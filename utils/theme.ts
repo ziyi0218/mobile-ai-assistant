@@ -21,6 +21,8 @@ export function useResolvedTheme(themeMode: ThemeMode) {
           text: "#FFFFFF",
           subtext: "#A0A0AA",
           border: "#262633",
+          accent: "blue",
+          subaccent: "deepskyblue",
         }
       : {
           bg: "#F6F6F6",
@@ -28,6 +30,8 @@ export function useResolvedTheme(themeMode: ThemeMode) {
           text: "#111111",
           subtext: "#777777",
           border: "#E6E6E6",
+          accent: "blue",
+          subaccent: "deepskyblue",
         };
 
   return { resolved, colors };

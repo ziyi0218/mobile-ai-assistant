@@ -171,6 +171,7 @@ export const resources = {
       iface_emoji_in_call: "Afficer les emojis en appel",
       iface_sep_image: "Image",
       iface_image_compression: "Compression des images",
+      
       /* ===== Personnalization ===== */
       persoMemoryTitle: "Mémoire",
       persoExperimental: "Expérimental",
@@ -303,6 +304,7 @@ export const resources = {
       notes: "Notes",
       addFolder: "Add",
       noTitle: "Untitled conversation",
+      
       /* ===== Interface ===== */
       iface_sep_ui: "UI",
       iface_ui_scale: "UI Scale",
@@ -474,6 +476,7 @@ export const resources = {
       notes: "笔记",
       addFolder: "添加",
       noTitle: "未命名对话",
+      
       /* ===== Interface ===== */
       iface_sep_ui: "UI",
       iface_ui_scale: "UI 缩放",

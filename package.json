@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
+    "@expo/react-native-action-sheet": "^4.1.1",
     "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "axios": "^1.13.5",
@@ -19,6 +20,7 @@
     "expo-constants": "~18.0.13",
     "expo-document-picker": "~14.0.8",
     "expo-file-system": "~19.0.21",
+    "expo-haptics": "^55.0.8",
     "expo-image-picker": "~17.0.10",
     "expo-linking": "~8.0.11",
     "expo-localization": "~17.0.8",
@@ -52,7 +54,7 @@
   "devDependencies": {
     "@types/react": "~19.1.10",
     "babel-preset-expo": "^54.0.10",
-    "tailwindcss": "^3.3.2",
+    "tailwindcss": "^3.2.2",
     "typescript": "~5.9.2"
   }
 }

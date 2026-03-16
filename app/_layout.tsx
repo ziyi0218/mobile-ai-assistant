@@ -4,6 +4,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as Localization from "expo-localization";
+import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
@@ -34,12 +35,14 @@ export default function RootLayout() {
         style={resolved === "dark" ? "light" : "dark"}
         backgroundColor={colors.bg}
       />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.bg },
-        }}
-      />
+      <ActionSheetProvider>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.bg },
+          }}
+        />
+      </ActionSheetProvider>
     </SafeAreaProvider>
   );
 }
