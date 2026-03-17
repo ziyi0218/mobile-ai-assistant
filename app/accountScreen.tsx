@@ -1,4 +1,4 @@
-﻿import { SafeAreaView, View, Text, Pressable, FlatList } from 'react-native';
+import { SafeAreaView, View, Text, Pressable, FlatList } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -12,7 +12,7 @@ import { useHaptics } from '../utils/useHaptics'
 const optionsList = [
   { id: '0', text: 'General', icon: 'settings-outline', color: '#000', route: '/general' },
   { id: '1', text: 'Interface', icon: 'apps-outline', color: '#000', route: '/interfaceScreen' },
-  { id: '2', text: 'Personalization', icon: 'person-circle-outline', color: '#000', route: '/' },
+  { id: '2', text: 'Personalization', icon: 'person-circle-outline', color: '#000', route: '/Personnalization' },
   { id: '3', text: 'Data Controls', icon: 'database-cog-outline', lib: 'MaterialCommunityIcons', color: '#000', route: '/data_controls' },
   { id: '4', text: 'About', icon: 'information-circle-outline', color: '#000', route: '/' },
   { id: '5', text: 'Log out', icon: 'log-out-outline', color: '#FF0000', route: '/' }

@@ -8,13 +8,15 @@ import {
   Modal,
   Pressable,
 } from "react-native";
-import { ChevronRight, Check } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Check } from "lucide-react-native";
+import { useRouter } from "expo-router";
 
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
 import { useI18n } from "../i18n/useI18n";
 
 export default function General() {
+  const router = useRouter();
   const {
     themeMode,
     language,
@@ -62,6 +64,18 @@ export default function General() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      <View style={styles.header}>
+        <Pressable
+          onPress={() => router.replace("/accountScreen")}
+          style={[
+            styles.backButton,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <ChevronLeft size={22} color={colors.text} strokeWidth={2.5} />
+        </Pressable>
+      </View>
+
       <Text style={[styles.title, { color: colors.text }]}>{t("general")}</Text>
 
       <TouchableOpacity
@@ -138,11 +152,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 60,
+    marginTop: 60,
+  },
+  header: {
+    alignItems: "flex-start",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,0,0,0.08)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
   },
   title: {
     fontSize: 22,
     fontWeight: "600",
+    marginTop: 20,
     marginBottom: 24,
   },
   item: {
