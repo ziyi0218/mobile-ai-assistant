@@ -13,12 +13,13 @@ interface ModelInfo {
   id: string;
   name: string;
   size: string;
+  vision?: boolean;
 }
 
 interface ModelSelectorProps {
   visible: boolean;
   onClose: () => void;
-  onSelect: (modelName: string) => void;
+  onSelect: (modelName: string, vision?: boolean) => void;
   mode?: 'add' | 'switch';
 }
 
@@ -42,7 +43,8 @@ export default function ModelSelector({ visible, onClose, onSelect, mode = 'add'
               return {
                 id: item.id || String(index),
                 name: item.name || item.id || item,
-                size: item.size || ''
+                size: item.size || '',
+                vision: item.vision ?? false,
               };
             });
             setModels(modelList);
@@ -113,7 +115,7 @@ export default function ModelSelector({ visible, onClose, onSelect, mode = 'add'
                   <TouchableOpacity
                     className="flex-row items-center justify-between p-4 border-b border-gray-50 active:bg-gray-50"
                     onPress={() => {
-                      onSelect(item.name);
+                      onSelect(item.name, item.vision);
                       onClose();
                       setSearchQuery('');
                     }}

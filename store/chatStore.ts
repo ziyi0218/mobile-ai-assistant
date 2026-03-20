@@ -6,7 +6,91 @@
 
 import { create } from 'zustand';
 import { chatService } from '../services/chatService';
+import { adeService } from '../services/adeService';
 import { generateUUID } from '../utils/uuid';
+
+// --- ADE System Prompt ---
+const ADE_SYSTEM_PROMPT = `Tu as accès au système ADE Consult (emploi du temps universitaire Paris Cité).
+Tu peux naviguer dans l'interface ADE de manière autonome via des actions.
+
+Pour appeler une action, écris une balise sur une ligne seule :
+<<ADE:action(param1=valeur1,param2=valeur2)>>
+
+Actions disponibles :
+- <<ADE:browse()>> : Liste les noeuds visibles de l'arbre (catégories, formations, salles...)
+- <<ADE:expand(node=nom)>> : Ouvre un dossier de l'arbre pour voir son contenu (match partiel)
+- <<ADE:select(node=nom)>> : Sélectionne/coche un élément pour afficher son planning (match partiel)
+- <<ADE:search(query=texte)>> : Recherche dans ADE (formations, salles, profs...)
+- <<ADE:read()>> : Lit le contenu affiché (emploi du temps, événements)
+- <<ADE:status()>> : Vérifie la connexion ADE
+
+Workflow typique pour obtenir un emploi du temps :
+1. <<ADE:search(query=L3 informatique)>> — chercher la formation
+2. Analyser les résultats retournés
+3. <<ADE:select(node=L3 Informatique)>> — sélectionner le bon noeud
+4. <<ADE:read()>> — lire l'emploi du temps affiché
+
+Ou pour explorer l'arbre :
+1. <<ADE:browse()>> — voir les catégories
+2. <<ADE:expand(node=Formations)>> — ouvrir le dossier
+3. <<ADE:expand(node=Licence)>> — descendre dans l'arbre
+4. <<ADE:select(node=L3 Info)>> — sélectionner
+5. <<ADE:read()>> — lire le planning
+
+Règles :
+- N'invente JAMAIS de données. Utilise les actions ADE pour les obtenir.
+- Tu peux enchainer plusieurs actions dans une seule réponse.
+- Si l'utilisateur n'est pas connecté, dis-lui d'aller dans Paramètres > ADE Consult.
+- Si la demande ne concerne PAS l'emploi du temps, réponds normalement.
+- Utilise le match partiel : <<ADE:select(node=informatique)>> trouvera "L3 Informatique".
+- Si après plusieurs tentatives (search, browse, expand) tu ne trouves pas la formation ou la ressource, DEMANDE à l'utilisateur le nom exact de sa formation, son département ou son groupe. Ne boucle pas indéfiniment.`;
+
+const ADE_MAX_ITERATIONS = 5;
+
+function parseADEParams(raw: string): Record<string, string> {
+  const params: Record<string, string> = {};
+  if (!raw || raw.trim() === '') return params;
+  for (const part of raw.split(',')) {
+    const eq = part.indexOf('=');
+    if (eq > 0) {
+      params[part.slice(0, eq).trim()] = part.slice(eq + 1).trim();
+    }
+  }
+  return params;
+}
+
+async function executeADECall(action: string, params: Record<string, string>): Promise<string> {
+  try {
+    if (action === 'status') {
+      const s = await adeService.getStatus();
+      return `[ADE] Connecté: ${s.authenticated}, Credentials: ${s.has_credentials}, Projet: ${s.project_id ?? 'aucun'}, Ressources: ${s.resources_count}`;
+    }
+    // Toutes les autres actions passent par adeService.adeAction
+    const result = await adeService.adeAction(action, params);
+    return `[ADE] ${JSON.stringify(result)}`;
+  } catch (error: any) {
+    const msg = error?.response?.data?.detail || error?.message || 'Erreur inconnue';
+    return `[ADE] Erreur : ${msg}`;
+  }
+}
+
+async function processADECalls(text: string): Promise<{ hasADE: boolean; processed: string }> {
+  const regex = /<<ADE:(\w+)\(([^)]*)\)>>/g;
+  const calls: { fullMatch: string; action: string; rawParams: string }[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    calls.push({ fullMatch: match[0], action: match[1], rawParams: match[2] });
+  }
+  if (calls.length === 0) return { hasADE: false, processed: text };
+
+  let processed = text;
+  for (const call of calls) {
+    const params = parseADEParams(call.rawParams);
+    const result = await executeADECall(call.action, params);
+    processed = processed.replace(call.fullMatch, result);
+  }
+  return { hasADE: true, processed };
+}
 
 export interface Message {
   id: string;
@@ -41,6 +125,8 @@ interface ChatState {
   addAttachment: (att: Attachment) => void;
   removeAttachment: (uri: string) => void;
   clearAttachments: () => void;
+  modelVision: Record<string, boolean>;
+  setModelVision: (modelName: string, vision: boolean) => void;
   setWebSearchEnabled: (v: boolean) => void;
   setCodeInterpreterEnabled: (v: boolean) => void;
   addModel: (name: string) => void;
@@ -55,6 +141,8 @@ interface ChatState {
   setCurrentChatId: (chatId: string) => Promise<void>;
   regenerateResponse: (userMsgId: string) => Promise<void>;
   editAndResend: (userMsgId: string, newContent: string) => Promise<void>;
+  _stopRequested: boolean;
+  _historyTimeoutId: ReturnType<typeof setTimeout> | null;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -71,6 +159,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   currentTaskIds: [],
   currentEventSources: [],
   attachments: [],
+  _stopRequested: false,
+  _historyTimeoutId: null,
 
   setSystemPrompt: (v) => set({ systemPrompt: v }),
   setTemperature: (v) => set({ temperature: v }),
@@ -81,6 +171,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     attachments: state.attachments.filter(a => a.uri !== uri)
   })),
   clearAttachments: () => set({ attachments: [] }),
+
+  modelVision: {},
+  setModelVision: (modelName, vision) => set(state => ({
+    modelVision: { ...state.modelVision, [modelName]: vision }
+  })),
 
   setWebSearchEnabled: (value) => set({ webSearchEnabled: value }),
   setCodeInterpreterEnabled: (value) => set({ codeInterpreterEnabled: value }),
@@ -123,6 +218,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   startNewChat: async () => {
+    const { _historyTimeoutId } = get();
+    if (_historyTimeoutId !== null) clearTimeout(_historyTimeoutId);
     set({
       currentChatId: null,
       userMessages: [],
@@ -131,6 +228,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       currentTaskIds: [],
       currentEventSources: [],
       attachments: [],
+      _stopRequested: false,
+      _historyTimeoutId: null,
     });
   },
 
@@ -200,15 +299,27 @@ export const useChatStore = create<ChatState>((set, get) => ({
       role: m.role,
       content: m.content,
     }));
-    const apiMessages = systemPrompt
-      ? [{ role: 'system', content: systemPrompt }, ...baseMessages]
-      : baseMessages;
+    const adePrompt = systemPrompt
+      ? `${systemPrompt}\n\n${ADE_SYSTEM_PROMPT}`
+      : ADE_SYSTEM_PROMPT;
+    const apiMessages = [{ role: 'system', content: adePrompt }, ...baseMessages];
 
-    let activeStreamsCount = activeModels.length;
+    // Pre-generate stable assistant IDs for all (model × userMsg) combos
+    // so concurrent stream callbacks all reference the same IDs
+    const stableAssistantIds = new Map<string, string>();
+    for (const um of get().userMessages) {
+      for (const mn of activeModels) {
+        stableAssistantIds.set(`${mn}::${um.id}`, generateUUID());
+      }
+    }
+
+    // Shared stream state — plain object avoids race on primitive closure var
+    const streamState = { count: activeModels.length, finalized: false };
+    set({ _stopRequested: false });
 
     activeModels.forEach(async (modelName) => {
       let fullContent = '';
-      const assistantMsgId = generateUUID();
+      const assistantMsgId = stableAssistantIds.get(`${modelName}::${userMsgId}`)!;
 
       const modelItem = {
         id: modelName,
@@ -221,7 +332,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           name: modelName,
           meta: {
             capabilities: {
-              vision: false,
+              vision: get().modelVision[modelName] ?? false,
               file_upload: true,
               web_search: true,
               image_generation: true,
@@ -300,8 +411,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
         },
         (err) => {
           console.error(`Stream error (${modelName}):`, err);
-          activeStreamsCount--;
-          if (activeStreamsCount <= 0) set({ isTyping: false });
+          streamState.count--;
+          if (streamState.count <= 0 && !streamState.finalized) {
+            streamState.finalized = true;
+            set({ isTyping: false });
+          }
         }
       );
 
@@ -312,9 +426,100 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const originalClose = es.close.bind(es);
       es.close = async () => {
         originalClose();
-        activeStreamsCount--;
 
-        if (currentChatId && fullContent) {
+        // --- ADE loop: execute actions, re-stream, repeat if LLM emits more actions ---
+        let adeIteration = 0;
+        const adeConversation: { role: string; content: string }[] = [
+          { role: 'system', content: adePrompt },
+          ...baseMessages,
+        ];
+
+        while (adeIteration < ADE_MAX_ITERATIONS && fullContent) {
+          const adeRegex = /<<ADE:(\w+)\(([^)]*)\)>>/g;
+          if (!adeRegex.test(fullContent)) break;
+
+          adeIteration++;
+          try {
+            const { hasADE, processed: adeData } = await processADECalls(fullContent);
+            if (!hasADE) break;
+
+            // Show loading indicator
+            set(state => ({
+              modelResponses: {
+                ...state.modelResponses,
+                [modelName]: {
+                  ...(state.modelResponses[modelName] || {}),
+                  [userMsgId]: '...',
+                },
+              },
+            }));
+
+            // Build conversation with ADE results
+            adeConversation.push({ role: 'assistant', content: fullContent });
+            adeConversation.push({
+              role: 'user',
+              content: `Résultats des actions ADE (iteration ${adeIteration}) :\n\n${adeData}\n\nAnalyse ces résultats. Si tu as besoin de plus d'info, utilise d'autres actions <<ADE:...>>. Sinon, reformule les données clairement en markdown sans mentionner les balises ADE.`,
+            });
+
+            let reformulated = '';
+            const reformulatePayload = {
+              model: modelName,
+              messages: adeConversation,
+              params: { temperature: 0.3, max_tokens: maxTokens },
+              stream: true,
+            };
+
+            await new Promise<void>((resolve) => {
+              chatService.streamCompletion(
+                reformulatePayload,
+                (chunk) => {
+                  reformulated += chunk;
+                  set(state => ({
+                    modelResponses: {
+                      ...state.modelResponses,
+                      [modelName]: {
+                        ...(state.modelResponses[modelName] || {}),
+                        [userMsgId]: reformulated,
+                      },
+                    },
+                  }));
+                },
+                (err) => {
+                  console.error('ADE reformulate error:', err);
+                  reformulated = adeData;
+                  set(state => ({
+                    modelResponses: {
+                      ...state.modelResponses,
+                      [modelName]: {
+                        ...(state.modelResponses[modelName] || {}),
+                        [userMsgId]: reformulated,
+                      },
+                    },
+                  }));
+                  resolve();
+                },
+              ).then((es2) => {
+                const origClose2 = es2.close.bind(es2);
+                es2.close = () => {
+                  origClose2();
+                  resolve();
+                };
+              });
+            });
+
+            fullContent = reformulated;
+            // Loop continues — if reformulated contains more <<ADE:...>> tags, we process them
+          } catch (adeErr) {
+            console.error(`ADE loop error (iteration ${adeIteration}):`, adeErr);
+            break;
+          }
+        }
+        // --- Fin ADE loop ---
+
+        streamState.count--;
+
+        // Skip persistence if user pressed Stop
+        if (!get()._stopRequested && currentChatId && fullContent) {
           try {
             const allUserMsgs = get().userMessages;
             const allModelResponses = get().modelResponses;
@@ -336,9 +541,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
               const responseIds: string[] = [];
               for (const mn of activeModels) {
                 if (allModelResponses[mn]?.[um.id]) {
-                  const aId = um.id === userMsgId && mn === modelName
-                    ? assistantMsgId
-                    : generateUUID();
+                  // Use stable pre-generated IDs — avoids UUID churn across concurrent closes
+                  const aId = stableAssistantIds.get(`${mn}::${um.id}`) ?? generateUUID();
                   responseIds.push(aId);
 
                   const aObj: any = {
@@ -416,14 +620,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
           }
         }
 
-        if (activeStreamsCount <= 0) {
+        // finalized flag prevents double-execution if two streams close simultaneously
+        if (streamState.count <= 0 && !streamState.finalized) {
+          streamState.finalized = true;
           set({
             isTyping: false,
             currentEventSources: [],
             currentTaskIds: [],
           });
           get().fetchHistory();
-          setTimeout(() => get().fetchHistory(), 3000);
+          const tid = setTimeout(() => get().fetchHistory(), 3000);
+          set({ _historyTimeoutId: tid });
         }
       };
     });
@@ -431,6 +638,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   stopGeneration: async () => {
     const { currentEventSources, currentTaskIds } = get();
+    // Set flag BEFORE closing so es.close callbacks skip persistence
+    set({ _stopRequested: true, isTyping: false, currentTaskIds: [], currentEventSources: [] });
     currentEventSources.forEach(es => {
       if (es && typeof es.close === 'function') {
         es.close();
@@ -441,11 +650,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
     } catch (error) {
       console.warn("Erreur lors de l'arrêt des tâches serveur:", error);
     }
-    set({
-      isTyping: false,
-      currentTaskIds: [],
-      currentEventSources: [],
-    });
   },
 
   setCurrentChatId: async (chatId: string) => {
@@ -522,16 +726,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const userContent = typeof userMsg.content === 'string' ? userMsg.content : JSON.stringify(userMsg.content);
     const timestamp = Math.floor(Date.now() / 1000);
 
-    let activeStreamsCount = activeModels.length;
+    // Pre-generate stable IDs for all (model × userMsg) combos
+    const regenStableIds = new Map<string, string>();
+    for (const um of allUserMsgs) {
+      for (const mn of activeModels) {
+        regenStableIds.set(`${mn}::${um.id}`, generateUUID());
+      }
+    }
+
+    const regenStreamState = { count: activeModels.length, finalized: false };
 
     activeModels.forEach(async (modelName) => {
       let fullContent = '';
-      const assistantMsgId = generateUUID();
+      const assistantMsgId = regenStableIds.get(`${modelName}::${userMsgId}`)!;
 
       const modelItem = {
         id: modelName, name: modelName, object: 'model',
         connection_type: 'local', tags: [],
-        info: { id: modelName, name: modelName, meta: { capabilities: { vision: false, file_upload: true, web_search: true, image_generation: true, code_interpreter: true, citations: true } } },
+        info: { id: modelName, name: modelName, meta: { capabilities: { vision: get().modelVision[modelName] ?? false, file_upload: true, web_search: true, image_generation: true, code_interpreter: true, citations: true } } },
         actions: [], filters: [],
       };
 
@@ -564,8 +776,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
         },
         (err) => {
           console.error(`Regenerate stream error (${modelName}):`, err);
-          activeStreamsCount--;
-          if (activeStreamsCount <= 0) set({ isTyping: false });
+          regenStreamState.count--;
+          if (regenStreamState.count <= 0 && !regenStreamState.finalized) {
+            regenStreamState.finalized = true;
+            set({ isTyping: false });
+          }
         }
       );
 
@@ -574,9 +789,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const originalClose = es.close.bind(es);
       es.close = async () => {
         originalClose();
-        activeStreamsCount--;
+        regenStreamState.count--;
 
-        if (currentChatId && fullContent) {
+        if (!get()._stopRequested && currentChatId && fullContent) {
           try {
             const allMsgs = get().userMessages;
             const allResp = get().modelResponses;
@@ -589,7 +804,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
               const responseIds: string[] = [];
               for (const mn of activeModels) {
                 if (allResp[mn]?.[um.id]) {
-                  const aId = um.id === userMsgId && mn === modelName ? assistantMsgId : generateUUID();
+                  const aId = regenStableIds.get(`${mn}::${um.id}`) ?? generateUUID();
                   responseIds.push(aId);
                   const aObj: any = { parentId: um.id, id: aId, childrenIds: [], role: 'assistant', content: allResp[mn][um.id], model: mn, modelName: mn, modelIdx: activeModels.indexOf(mn), timestamp };
                   historyMessages[aId] = aObj;
@@ -623,7 +838,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
           }
         }
 
-        if (activeStreamsCount <= 0) {
+        if (regenStreamState.count <= 0 && !regenStreamState.finalized) {
+          regenStreamState.finalized = true;
           set({ isTyping: false, currentEventSources: [], currentTaskIds: [] });
           get().fetchHistory();
         }

@@ -55,7 +55,7 @@ export default function Sidebar({ visible, onClose, t = (k: string) => k }: { vi
       };
       load();
     }
-  }, [visible]);
+  }, [visible, fetchHistory]);
 
   const toggleFolder = (folder) => {
     setExpandedFolders(prev => ({ ...prev, [folder]: !prev[folder] }));

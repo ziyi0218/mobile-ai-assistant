@@ -44,7 +44,8 @@ apiClient.interceptors.response.use(
 
       try {
         await SecureStore.deleteItemAsync('token');
-        router.push("/sign-in");
+        // Defer navigation to avoid calling router before it is mounted
+        setTimeout(() => { try { router.replace('/sign-in'); } catch { /* router not ready */ } }, 0);
       } catch (e) {
         console.error('[API Client] Erreur lors de la suppression de la clé', e);
       }

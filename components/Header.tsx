@@ -58,8 +58,9 @@ export default function Header({
     setTimeout(() => action(), 600);
   };
 
-  const handleSwitchModel = (newModel: string) => {
+  const handleSwitchModel = (newModel: string, vision?: boolean) => {
     switchModel(currentIndex, newModel);
+    useChatStore.getState().setModelVision(newModel, vision ?? false);
   };
 
   return (
@@ -73,7 +74,10 @@ export default function Header({
       <ModelSelector
         visible={isSelectorVisible}
         onClose={() => setIsSelectorVisible(false)}
-        onSelect={addModel}
+        onSelect={(name, vision) => {
+          addModel(name);
+          useChatStore.getState().setModelVision(name, vision ?? false);
+        }}
         mode="add"
       />
 
@@ -95,6 +99,17 @@ export default function Header({
             className="absolute top-[100px] right-4 rounded-2xl py-1.5 px-1 w-[200px] shadow-lg shadow-black/10 border"
             style={{ elevation: 8, backgroundColor: colors.card, borderColor: colors.border }}
           >
+            <TouchableOpacity
+              onPress={() => handleMenuAction(onOpenChatControls)}
+              activeOpacity={0.6}
+              className="flex-row items-center py-3 px-[14px] rounded-[10px]"
+            >
+              <SlidersHorizontal color={colors.subtext} size={17} />
+              <Text className="ml-3 text-[14px] font-medium" style={{ color: colors.text }}>
+                {t('chatControls')}
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               onPress={() => handleMenuAction(() => { })}
               activeOpacity={0.6}
@@ -131,22 +146,22 @@ export default function Header({
         </View>
       </Modal>
 
-      <View className="flex-row items-center justify-between px-4">
-        <View className="flex-row items-center">
+      <View className="flex-row items-center justify-between px-4 overflow-hidden">
+        <View className="flex-1 flex-row items-center min-w-0 mr-3">
           <TouchableOpacity onPress={() => setIsSidebarVisible(true)}>
             <Menu color={colors.text} size={24} />
           </TouchableOpacity>
 
-          <View className="ml-4">
+          <View className="ml-4 flex-1 min-w-0">
             <TouchableOpacity
               onPress={() => setIsSwitchSelectorVisible(true)}
               activeOpacity={0.6}
               className="flex-row items-center"
             >
-              <Text className="text-[18px] font-bold" style={{ color: colors.text }}>
+              <Text className="text-[18px] font-bold" style={{ color: colors.text, flexShrink: 1 }} numberOfLines={1}>
                 {activeModels[currentIndex] || "Modèle"}
               </Text>
-              <ChevronDown color={colors.subtext} size={18} style={{ marginLeft: 4 }} />
+              <ChevronDown color={colors.subtext} size={18} style={{ marginLeft: 4, flexShrink: 0 }} />
             </TouchableOpacity>
           </View>
         </View>
@@ -162,10 +177,6 @@ export default function Header({
 
           <TouchableOpacity onPress={startNewChat} activeOpacity={0.6} className="w-8 h-8 rounded-[10px] items-center justify-center">
             <Edit3 color="#999" size={19} />
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={onOpenChatControls} activeOpacity={0.6} className="w-8 h-8 rounded-[10px] items-center justify-center">
-            <SlidersHorizontal color="#999" size={19} />
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => setIsMoreMenuVisible(true)} activeOpacity={0.6} className="w-8 h-8 rounded-[10px] items-center justify-center">

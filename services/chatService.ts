@@ -25,6 +25,7 @@ export const chatService = {
         name: model.id || model.name,
         size: model.size ? `${(model.size / 1e9).toFixed(1)}B` :
           model.parameter_size || '',
+        vision: model.info?.meta?.capabilities?.vision ?? false,
         _raw: model,
       }));
     } catch (error) {
@@ -88,14 +89,16 @@ export const chatService = {
     await apiClient.delete(`/chats/${chatId}`);
   },
 
-  uploadFile: async (uri: string, filename: string, mimeType: string) => {
+  uploadFile: async (uri: string, filename?: string, mimeType?: string) => {
+    const resolvedFilename = filename ?? 'upload';
+    const resolvedMimeType = mimeType ?? 'application/octet-stream';
     try {
       const token = await SecureStore.getItemAsync('token');
       const formData = new FormData();
       formData.append('file', {
         uri,
-        type: mimeType,
-        name: filename,
+        type: resolvedMimeType,
+        name: resolvedFilename,
       } as any);
 
       const response = await fetch(`${BASE_URL}/files/?process=true`, {
@@ -109,10 +112,10 @@ export const chatService = {
       const data = await response.json();
       return {
         id: data.id,
-        name: data.filename || filename,
+        name: data.filename || resolvedFilename,
         url: data.path,
         meta: data.meta,
-        mimeType,
+        mimeType: resolvedMimeType,
       };
     } catch (error) {
       console.error('[Chat Service] Erreur upload fichier:', error);
@@ -161,6 +164,7 @@ export const chatService = {
         const taskId = json.task_id;
         onChunk(content, taskId);
       } catch (e) {
+        console.warn('[SSE] Chunk malformé:', e, event.data);
       }
     });
 

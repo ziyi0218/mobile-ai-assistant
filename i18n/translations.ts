@@ -3,6 +3,10 @@ export const resources = {
     translation: {
       /* ===== General ===== */
       general: "Général",
+      interface: "Interface",
+      personalization: "Personnalisation",
+      dataControls: "Contrôles des données",
+      logOut: "Déconnexion",
       theme: "Thème",
       language: "Langue",
       notifications: "Notifications",
@@ -12,6 +16,26 @@ export const resources = {
       chinese: "Chinois",
       english: "Anglais",
       french: "Français",
+
+      /* ===== About ===== */
+      about: "À propos",
+      aboutProductVersionLabel: "PLEIADE MATH-INFO (Open WebUI) Version :",
+      aboutVersionStatus: "{{version}} (dernière version)",
+      aboutReleaseNotes: "Découvrez les nouvelles fonctionnalités",
+      aboutCheckUpdates: "Vérifier les mises à jour disponibles",
+      aboutNoUpdatesMessage: "Aucune mise à jour disponible. Version actuelle : {{version}}.",
+      aboutOllamaVersion: "Version d'Ollama",
+      aboutDiscord: "Discord",
+      aboutOpenWebUI: "Open WebUI",
+      aboutFollowOpenWebUI: "Follow @OpenWebUI",
+      aboutStarGithub: "Star us on GitHub",
+      aboutEmojiCredit: "Emoji graphics provided by Twemoji, licensed under CC-BY 4.0.",
+      aboutCopyright: "Copyright (c) 2026 Open WebUI Inc. All rights reserved.",
+      aboutCreatedBy: "Créé par Timothy J. Baek",
+      aboutCreatedByPrefix: "Créé par ",
+      aboutCreatedByName: "Timothy J. Baek",
+      aboutCreatedBySuffix: "",
+      aboutOpenRepository: "Ouvrir le dépôt",
 
       /* ===== Auth ===== */
       signInTo: "Se connecter à",
@@ -65,6 +89,7 @@ export const resources = {
 
       // Sidebar
       search: "Rechercher",
+      archivedChats: "Chats archivés",
       folders: "Dossiers",
       recentChats: "Chats Récents",
       settings: "Paramètres",
@@ -195,6 +220,25 @@ export const resources = {
       persoClearConfirmText:
         "Êtes-vous certain de vouloir supprimer toutes les mémoires ? Cette action est définitive.",
       persoConfirm: "Confirmer",
+
+      /* ===== ADE Consult ===== */
+      adeConsult: "ADE Consult",
+      adeLogin: "Connexion ADE",
+      adeCasUsername: "Identifiant universitaire",
+      adeCasPassword: "Mot de passe CAS",
+      adeConnect: "Se connecter à ADE",
+      adeConnected: "Connecté à ADE",
+      adeDisconnected: "Non connecté à ADE",
+      adeSessionExpired: "Session ADE expirée",
+      adeSchedule: "Emploi du temps",
+      adeNoEvents: "Aucun cours trouvé pour cette période.",
+      adeSearch: "Rechercher un cours ou une salle",
+      adeNoResults: "Aucun résultat trouvé.",
+      adeIcalLink: "Lien iCal",
+      adeRemember: "Mémoriser cette ressource",
+      adeResources: "Ressources mémorisées",
+      adeRoutines: "Routines planifiées",
+      adeError: "Erreur ADE",
     },
   },
 
@@ -202,6 +246,10 @@ export const resources = {
     translation: {
       /* ===== General ===== */
       general: "General",
+      interface: "Interface",
+      personalization: "Personalization",
+      dataControls: "Data Controls",
+      logOut: "Log out",
       theme: "Theme",
       language: "Language",
       notifications: "Notifications",
@@ -211,6 +259,26 @@ export const resources = {
       chinese: "Chinese",
       english: "English",
       french: "French",
+
+      /* ===== About ===== */
+      about: "About",
+      aboutProductVersionLabel: "PLEIADE MATH-INFO (Open WebUI) Version:",
+      aboutVersionStatus: "{{version}} (latest version)",
+      aboutReleaseNotes: "Discover what's new",
+      aboutCheckUpdates: "Check for available updates",
+      aboutNoUpdatesMessage: "No update available. Current version: {{version}}.",
+      aboutOllamaVersion: "Ollama Version",
+      aboutDiscord: "Discord",
+      aboutOpenWebUI: "Open WebUI",
+      aboutFollowOpenWebUI: "Follow @OpenWebUI",
+      aboutStarGithub: "Star us on GitHub",
+      aboutEmojiCredit: "Emoji graphics provided by Twemoji, licensed under CC-BY 4.0.",
+      aboutCopyright: "Copyright (c) 2026 Open WebUI Inc. All rights reserved.",
+      aboutCreatedBy: "Created by Timothy J. Baek",
+      aboutCreatedByPrefix: "Created by ",
+      aboutCreatedByName: "Timothy J. Baek",
+      aboutCreatedBySuffix: "",
+      aboutOpenRepository: "Open repository",
 
       /* ===== Auth ===== */
       signInTo: "Sign in to",
@@ -253,6 +321,7 @@ export const resources = {
       advancedParams: "Advanced Params",
       defaultValue: "Default",
       search: "Search",
+      archivedChats: "Archived Chats",
       folders: "Folders",
       recentChats: "Recent Chats",
       settings: "Settings",
@@ -368,6 +437,25 @@ export const resources = {
       persoClearConfirmText:
         "Are you sure you want to delete all memories? This action is permanent.",
       persoConfirm: "Confirm",
+
+      /* ===== ADE Consult ===== */
+      adeConsult: "ADE Consult",
+      adeLogin: "ADE Login",
+      adeCasUsername: "University ID",
+      adeCasPassword: "CAS Password",
+      adeConnect: "Connect to ADE",
+      adeConnected: "Connected to ADE",
+      adeDisconnected: "Not connected to ADE",
+      adeSessionExpired: "ADE session expired",
+      adeSchedule: "Schedule",
+      adeNoEvents: "No classes found for this period.",
+      adeSearch: "Search for a course or room",
+      adeNoResults: "No results found.",
+      adeIcalLink: "iCal Link",
+      adeRemember: "Remember this resource",
+      adeResources: "Saved resources",
+      adeRoutines: "Scheduled routines",
+      adeError: "ADE Error",
     },
   },
 
@@ -375,6 +463,10 @@ export const resources = {
     translation: {
       /* ===== General ===== */
       general: "通用",
+      interface: "界面",
+      personalization: "个性化",
+      dataControls: "数据控制",
+      logOut: "退出登录",
       theme: "主题",
       language: "语言",
       notifications: "通知",
@@ -384,6 +476,26 @@ export const resources = {
       chinese: "中文",
       english: "英语",
       french: "法语",
+
+      /* ===== About ===== */
+      about: "关于",
+      aboutProductVersionLabel: "PLEIADE MATH-INFO（Open WebUI）版本：",
+      aboutVersionStatus: "{{version}}（最新版本）",
+      aboutReleaseNotes: "查看新功能",
+      aboutCheckUpdates: "检查可用更新",
+      aboutNoUpdatesMessage: "当前没有可用更新。当前版本：{{version}}。",
+      aboutOllamaVersion: "Ollama 版本",
+      aboutDiscord: "Discord",
+      aboutOpenWebUI: "Open WebUI",
+      aboutFollowOpenWebUI: "关注 @OpenWebUI",
+      aboutStarGithub: "在 GitHub 上 Star",
+      aboutEmojiCredit: "Emoji 图形由 Twemoji 提供，并采用 CC-BY 4.0 许可。",
+      aboutCopyright: "Copyright (c) 2026 Open WebUI Inc. 保留所有权利。",
+      aboutCreatedBy: "由 Timothy J. Baek 创建",
+      aboutCreatedByPrefix: "由 ",
+      aboutCreatedByName: "Timothy J. Baek",
+      aboutCreatedBySuffix: " 创建",
+      aboutOpenRepository: "打开代码仓库",
 
       /* ===== Auth ===== */
       signInTo: "登录到",
@@ -426,6 +538,7 @@ export const resources = {
       advancedParams: "高级参数",
       defaultValue: "默认",
       search: "搜索",
+      archivedChats: "已归档对话",
       folders: "文件夹",
       recentChats: "最近对话",
       settings: "设置",
@@ -537,6 +650,25 @@ export const resources = {
       persoInputHint: "请用“用户”称呼自己（例如：“用户正在学习西班牙语”）。",
       persoClearConfirmText: "确定要删除全部记忆吗？此操作不可恢复。",
       persoConfirm: "确认",
+
+      /* ===== ADE Consult ===== */
+      adeConsult: "ADE Consult",
+      adeLogin: "ADE 登录",
+      adeCasUsername: "大学账号",
+      adeCasPassword: "CAS 密码",
+      adeConnect: "连接 ADE",
+      adeConnected: "已连接 ADE",
+      adeDisconnected: "未连接 ADE",
+      adeSessionExpired: "ADE 会话已过期",
+      adeSchedule: "课程表",
+      adeNoEvents: "该时间段未找到课程。",
+      adeSearch: "搜索课程或教室",
+      adeNoResults: "未找到结果。",
+      adeIcalLink: "iCal 链接",
+      adeRemember: "记住此资源",
+      adeResources: "已保存的资源",
+      adeRoutines: "定时任务",
+      adeError: "ADE 错误",
     },
   },
 } as const;

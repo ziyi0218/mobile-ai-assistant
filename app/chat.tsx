@@ -114,8 +114,10 @@ export default function ChatScreen() {
   }, [editingMsgId, editText]);
 
   const handleRegenerate = useCallback((assistantMsgId: string, modelName: string) => {
-    const userMsgId = assistantMsgId.replace(`${modelName}-`, '');
-    if (userMsgId && userMsgId !== assistantMsgId) {
+    // Use substring instead of replace to safely strip the `${modelName}-` prefix,
+    // even when modelName itself contains dashes (e.g. "athene-v2:latest")
+    const userMsgId = assistantMsgId.substring(modelName.length + 1);
+    if (userMsgId) {
       useChatStore.getState().regenerateResponse(userMsgId);
     }
   }, []);

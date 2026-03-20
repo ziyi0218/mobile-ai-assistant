@@ -4,7 +4,7 @@
  * @github https://github.com/assinscreedFC
  */
 import React from 'react';
-import { View, Text, TouchableOpacity, Modal, Pressable, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import { Camera, Image, Paperclip, MessageSquare, ChevronRight } from 'lucide-react-native';
 import { TranslationKey } from '../i18n';
 
@@ -55,7 +55,8 @@ export default function ActionMenu({
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <Pressable style={s.backdrop} onPress={onClose}>
+      <View style={s.backdrop}>
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
         <View style={s.menu}>
           {menuItems.map((item, index) => (
             <TouchableOpacity
@@ -72,7 +73,7 @@ export default function ActionMenu({
             </TouchableOpacity>
           ))}
         </View>
-      </Pressable>
+      </View>
     </Modal>
   );
 }

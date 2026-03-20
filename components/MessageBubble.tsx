@@ -73,7 +73,7 @@ function parseContent(raw: string): ContentBlock[] {
 // No lodash, no native modules — just a tiny WebView with KaTeX CDN
 //                                                              
 function buildKatexHtml(latex: string, displayMode: boolean, textColor: string): string {
-  const escaped = latex.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/'/g, "\\'");
+  const safeLatex = JSON.stringify(latex); // handles all escaping safely (XSS-safe)
   return `<!DOCTYPE html>
 <html><head>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
@@ -89,9 +89,9 @@ function buildKatexHtml(latex: string, displayMode: boolean, textColor: string):
 <div id="math"></div>
 <script>
 try {
-  katex.render('${escaped}', document.getElementById('math'), { displayMode: ${displayMode}, throwOnError: false, strict: false });
+  katex.render(${safeLatex}, document.getElementById('math'), { displayMode: ${displayMode}, throwOnError: false, strict: false });
 } catch(e) {
-  document.getElementById('math').innerHTML = '<span class="error">' + '${escaped}' + '</span>';
+  document.getElementById('math').innerHTML = '<span class="error">' + ${safeLatex} + '</span>';
 }
 setTimeout(function() {
   window.ReactNativeWebView.postMessage(String(document.documentElement.scrollHeight));
@@ -174,13 +174,14 @@ export default function MessageBubble({ content, isUser }: MessageBubbleProps) {
   const isDark = resolved === 'dark';
   const mdStyles = useMemo(() => createMdStyles(colors, isDark), [colors, isDark]);
 
+  // Hooks must be called unconditionally before any early return
+  const blocks = useMemo(() => parseContent(content || ''), [content]);
+  const hasMath = blocks.some(b => b.type !== 'text');
+
   // User messages: simple text
   if (isUser) {
     return <Text style={s.userText}>{content}</Text>;
   }
-
-  const blocks = useMemo(() => parseContent(content || ''), [content]);
-  const hasMath = blocks.some(b => b.type !== 'text');
 
   if (!hasMath) {
     return (

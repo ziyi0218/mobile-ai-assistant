@@ -9,8 +9,8 @@ import { View, TextInput, TouchableOpacity, Keyboard, Platform, Image, ScrollVie
 import { Plus, Mic, Send, ChevronUp, ChevronDown, LayoutGrid, Square, X, MessageSquare } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import ActionMenu from './ActionMenu';
 import IntegrationsMenu from './IntegrationsMenu';
+import { useActionSheet } from '@expo/react-native-action-sheet';
 import { TranslationKey } from '../i18n';
 import { useChatStore, Attachment } from '../store/chatStore';
 import { chatService } from '../services/chatService';
@@ -23,7 +23,6 @@ interface InputBarProps {
 
 export default function InputBar({ t = (k) => k }: InputBarProps) {
   const [inputText, setInputText] = useState('');
-  const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [isIntegrationsVisible, setIsIntegrationsVisible] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -50,6 +49,7 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
   const { themeMode } = useSettingsStore();
   const { colors, resolved } = useResolvedTheme(themeMode);
   const isDark = resolved === 'dark';
+  const { showActionSheetWithOptions } = useActionSheet();
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -95,6 +95,21 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
     } else {
       console.log("Micro activé");
     }
+  };
+
+  const handlePlusPress = () => {
+    const options = [t('actionCamera'), t('actionPhoto'), t('actionFile'), t('actionReferenceChat'), t('cancel')];
+    showActionSheetWithOptions(
+      { options, cancelButtonIndex: 4 },
+      (index) => {
+        switch (index) {
+          case 0: handleCamera(); break;
+          case 1: handlePickImage(); break;
+          case 2: handlePickFile(); break;
+          case 3: handleReferenceChat(); break;
+        }
+      }
+    );
   };
 
   const handleCamera = async () => {
@@ -183,15 +198,6 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
   //     Normal mode    
   return (
     <View style={[s.container, { paddingBottom: isKeyboardVisible ? 4 : 32, backgroundColor: colors.bg }]}>
-      <ActionMenu
-        visible={isMenuVisible}
-        onClose={() => setIsMenuVisible(false)}
-        onCamera={handleCamera}
-        onPickImage={handlePickImage}
-        onPickFile={handlePickFile}
-        onReferenceChat={handleReferenceChat}
-        t={t}
-      />
       <IntegrationsMenu
         visible={isIntegrationsVisible}
         onClose={() => setIsIntegrationsVisible(false)}
@@ -217,7 +223,7 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
 
       {attachments.length > 0 && <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />}
       <View style={[s.inputRow, { backgroundColor: isDark ? '#1C1C23' : '#F7F7F7', borderColor: colors.border }]}>
-        <TouchableOpacity onPress={() => setIsMenuVisible(true)} style={[s.plusBtn, { backgroundColor: isDark ? '#2C2C35' : '#E5E5E5' }]}>
+        <TouchableOpacity onPress={handlePlusPress} style={[s.plusBtn, { backgroundColor: isDark ? '#2C2C35' : '#E5E5E5' }]}>
           <Plus color={colors.text} size={22} strokeWidth={2.5} />
         </TouchableOpacity>
         <TouchableOpacity
