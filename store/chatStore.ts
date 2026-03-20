@@ -135,6 +135,9 @@ interface ChatState {
   sendMessage: (text: string) => Promise<void>;
   history: any[];
   fetchHistory: () => Promise<void>;
+  archivedChats: any[];
+  fetchArchivedChats: () => Promise<void>;
+  toggleArchiveChat: (chatId: string) => Promise<void>;
   currentTaskIds: string[];
   currentEventSources: any[];
   stopGeneration: () => Promise<void>;
@@ -206,6 +209,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   history: [],
+  archivedChats: [],
+
 
   fetchHistory: async () => {
     try {
@@ -214,6 +219,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ history: list });
     } catch (error) {
       console.error('Erreur historique:', error);
+    }
+  },
+
+  fetchArchivedChats: async () => {
+    try {
+      const data = await chatService.getArchivedChats(1);
+      const list = Array.isArray(data) ? data : [];
+      set({ archivedChats: list });
+    } catch (error) {
+      console.error('Erreur archived chats:', error);
+    }
+  },
+
+  toggleArchiveChat: async (chatId: string) => {
+    try {
+      await chatService.toggleArchiveChat(chatId);
+      await get().fetchArchivedChats();
+      await get().fetchHistory();
+    } catch (error) {
+      console.error('Erreur toggle archive:', error);
     }
   },
 

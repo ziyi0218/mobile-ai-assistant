@@ -239,6 +239,12 @@ export const resources = {
       adeResources: "Ressources mémorisées",
       adeRoutines: "Routines planifiées",
       adeError: "Erreur ADE",
+
+      /* ===== Data Controls ===== */
+      importChats: "Importer les discussions",
+      exportChats: "Exporter les discussions",
+      archiveAllChats: "Archiver toutes les discussions",
+      deleteAllChats: "Supprimer toutes les discussions",
     },
   },
 
@@ -456,6 +462,12 @@ export const resources = {
       adeResources: "Saved resources",
       adeRoutines: "Scheduled routines",
       adeError: "ADE Error",
+
+      /* ===== Data Controls ===== */
+      importChats: "Import Chats",
+      exportChats: "Export Chats",
+      archiveAllChats: "Archive All Chats",
+      deleteAllChats: "Delete All Chats",
     },
   },
 
@@ -631,6 +643,7 @@ export const resources = {
       iface_emoji_in_call: "通话中显示表情符号",
       iface_sep_image: "图片",
       iface_image_compression: "图片压缩",
+
       /* ===== Personnalization ===== */
       persoMemoryTitle: "记忆",
       persoExperimental: "实验功能",
@@ -669,6 +682,12 @@ export const resources = {
       adeResources: "已保存的资源",
       adeRoutines: "定时任务",
       adeError: "ADE 错误",
+
+      /* ===== Data Controls ===== */
+      importChats: "导入聊天",
+      exportChats: "导出聊天",
+      archiveAllChats: "归档所有聊天",
+      deleteAllChats: "删除所有聊天",
     },
   },
 } as const;

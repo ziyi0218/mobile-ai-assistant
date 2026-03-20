@@ -89,6 +89,19 @@ export const chatService = {
     await apiClient.delete(`/chats/${chatId}`);
   },
 
+  // --- Data Controls / Archived Chats ---
+  getArchivedChats: async (page: number = 1) => {
+    const response = await apiClient.get(
+      `/chats/archived?page=${page}&order_by=updated_at&direction=desc`
+    );
+    return response.data;
+  },
+
+  toggleArchiveChat: async (chatId: string) => {
+    const response = await apiClient.post(`/chats/${chatId}/archive`);
+    return response.data;
+  },
+
   uploadFile: async (uri: string, filename?: string, mimeType?: string) => {
     const resolvedFilename = filename ?? 'upload';
     const resolvedMimeType = mimeType ?? 'application/octet-stream';
