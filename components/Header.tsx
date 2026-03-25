@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Pressable, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, Pressable, Modal, Alert } from 'react-native';
 import { Menu, ChevronDown, Plus, User, Edit3, MoreVertical, SlidersHorizontal, Share2, Download, Trash2 } from 'lucide-react-native';
 import ModelSelector from './ModelSelector';
 import Sidebar from './Sidebar';
@@ -40,15 +40,28 @@ export default function Header({
   const switchModel = useChatStore((state) => state.switchModel);
   const startNewChat = useChatStore((state) => state.startNewChat);
 
-  const handleDeleteChat = async () => {
-    const currentChatId = useChatStore.getState().currentChatId;
-    if (currentChatId) {
-      await chatService.deleteChat(currentChatId);
-    }
-    startNewChat();
+  const handleDeleteChat = () => {
+    Alert.alert(
+      t('deleteChat'),
+      t('deleteChatConfirm'),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: t('deleteChat'),
+          style: 'destructive',
+          onPress: async () => {
+            const currentChatId = useChatStore.getState().currentChatId;
+            if (currentChatId) {
+              await chatService.deleteChat(currentChatId);
+            }
+            startNewChat();
+          },
+        },
+      ]
+    );
   };
 
-  const { themeMode } = useSettingsStore();
+  const themeMode = useSettingsStore(state => state.themeMode);
   const { colors, resolved } = useResolvedTheme(themeMode);
 
   const isDark = resolved === 'dark';
@@ -79,6 +92,7 @@ export default function Header({
           useChatStore.getState().setModelVision(name, vision ?? false);
         }}
         mode="add"
+        t={t}
       />
 
       <ModelSelector
@@ -86,6 +100,7 @@ export default function Header({
         onClose={() => setIsSwitchSelectorVisible(false)}
         onSelect={handleSwitchModel}
         mode="switch"
+        t={t}
       />
 
       <Modal visible={isMoreMenuVisible} transparent animationType="fade">
@@ -159,7 +174,7 @@ export default function Header({
               className="flex-row items-center"
             >
               <Text className="text-[18px] font-bold" style={{ color: colors.text, flexShrink: 1 }} numberOfLines={1}>
-                {activeModels[currentIndex] || "Modèle"}
+                {activeModels[currentIndex] || t('model')}
               </Text>
               <ChevronDown color={colors.subtext} size={18} style={{ marginLeft: 4, flexShrink: 0 }} />
             </TouchableOpacity>

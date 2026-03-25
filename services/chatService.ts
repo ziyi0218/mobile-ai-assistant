@@ -163,6 +163,14 @@ export const chatService = {
 
   attachWebpage: async (url: string, collectionName: string = '') => {
     try {
+      const parsed = new URL(url);
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        throw new Error('Seuls les protocoles HTTP/HTTPS sont autorisés');
+      }
+      if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(parsed.hostname)) {
+        throw new Error('Les URLs vers des réseaux privés ne sont pas autorisées');
+      }
+
       const response = await apiClient.post('/retrieval/process/web', {
         url,
         collection_name: collectionName,
@@ -207,7 +215,7 @@ export const chatService = {
     });
 
     eventSource.addEventListener('error', (event) => {
-      console.error('SSE Error:', event);
+      console.error('[SSE] Erreur de connexion');
       onError(event);
       eventSource.close();
     });
@@ -217,16 +225,10 @@ export const chatService = {
 
   chatCompleted: async (payload: any) => {
     try {
-      const token = await SecureStore.getItemAsync('token');
-      const response = await fetch(`${BASE_URL_CHAT}/chat/completed`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
+      const response = await apiClient.post('/chat/completed', payload, {
+        baseURL: BASE_URL_CHAT,
       });
-      return await response.json();
+      return response.data;
     } catch (error) {
       console.error('[Chat Service] Erreur chat completed:', error);
       return null;
@@ -235,14 +237,8 @@ export const chatService = {
 
   stopTask: async (taskId: string) => {
     try {
-      const token = await SecureStore.getItemAsync('token');
-      await fetch(`${BASE_URL_CHAT}/chat/stop`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ task_id: taskId }),
+      await apiClient.post('/chat/stop', { task_id: taskId }, {
+        baseURL: BASE_URL_CHAT,
       });
     } catch (error) {
       console.error('[Chat Service] Erreur stop task:', error);

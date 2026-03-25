@@ -3,9 +3,9 @@
  * @email anishammouche50@gmail.com
  * @github https://github.com/assinscreedFC
  */
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
-  View, FlatList, Text, Dimensions,
+  View, FlatList, Text, useWindowDimensions,
   Platform, TouchableOpacity, TextInput, Keyboard, StyleSheet, KeyboardAvoidingView
 } from 'react-native';
 import { Copy, RefreshCw, Pencil, Volume2, Check, X, VolumeX, MessageCircle } from 'lucide-react-native';
@@ -19,8 +19,6 @@ import { useChatStore, Message } from '../store/chatStore';
 import MessageBubble from '../components/MessageBubble';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useResolvedTheme } from '../utils/theme';
-
-const { width } = Dimensions.get('window');
 
 function buildConversation(userMessages: Message[], modelResponses: Record<string, string>, modelName: string): Message[] {
   const conversation: Message[] = [];
@@ -42,8 +40,17 @@ function getDisplayText(content: string | any[]): string {
   return String(content);
 }
 
+const ActionBtn = React.memo(({ icon: Icon, size = 15, color = '#AAA', onPress }: {
+  icon: any; size?: number; color?: string; onPress: () => void;
+}) => (
+  <TouchableOpacity onPress={onPress} activeOpacity={0.5} style={cs.actionBtnTouch}>
+    <Icon color={color} size={size} />
+  </TouchableOpacity>
+));
+
 export default function ChatScreen() {
   const { t } = useI18n();
+  const { width } = useWindowDimensions();
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const activeModels = useChatStore((state) => state.activeModels);
@@ -65,7 +72,7 @@ export default function ChatScreen() {
   const [editText, setEditText] = useState('');
   const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
 
-  const { themeMode } = useSettingsStore();
+  const themeMode = useSettingsStore(state => state.themeMode);
   const { colors } = useResolvedTheme(themeMode);
 
   const scrollRefs = useRef<Record<string, FlatList | null>>({});
@@ -87,10 +94,16 @@ export default function ChatScreen() {
     if (isTyping) scrollToBottom(false);
   }, [modelResponses, isTyping, scrollToBottom]);
 
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleCopy = useCallback(async (msgId: string, text: string) => {
     await Clipboard.setStringAsync(text);
     setCopiedMsgId(msgId);
-    setTimeout(() => setCopiedMsgId(null), 1500);
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    copyTimeoutRef.current = setTimeout(() => setCopiedMsgId(null), 1500);
+  }, []);
+
+  useEffect(() => {
+    return () => { if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current); };
   }, []);
 
   const handleReadAloud = useCallback(async (msgId: string, text: string) => {
@@ -121,12 +134,6 @@ export default function ChatScreen() {
       useChatStore.getState().regenerateResponse(userMsgId);
     }
   }, []);
-
-  const ActionBtn = ({ icon: Icon, size = 15, color = '#AAA', onPress }: any) => (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.5} style={{ padding: 6, marginRight: 4 }}>
-      <Icon color={color} size={size} />
-    </TouchableOpacity>
-  );
 
   return (
     <KeyboardAvoidingView
@@ -160,13 +167,15 @@ export default function ChatScreen() {
           return (
             <View style={{ width, flex: 1 }}>
               <FlatList
-
                 data={reversedConversation}
                 inverted={true}
                 keyExtractor={(msg) => msg.id}
                 contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 40 }}
                 showsVerticalScrollIndicator={false}
                 keyboardDismissMode="interactive"
+                initialNumToRender={10}
+                maxToRenderPerBatch={5}
+                windowSize={7}
 
 
                 ListEmptyComponent={() => (
@@ -252,4 +261,5 @@ const cs = StyleSheet.create({
   editActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8, gap: 8 },
   editBtn: { padding: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)' },
   actionsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, paddingHorizontal: 4 },
+  actionBtnTouch: { padding: 6, marginRight: 4 },
 });

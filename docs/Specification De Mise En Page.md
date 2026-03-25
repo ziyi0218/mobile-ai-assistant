@@ -323,3 +323,40 @@ item: {
     <ChevronRight size={18} color={colors.subtext} />
   </View>
 </TouchableOpacity>
+
+
+## 13. Titre Centre De La Page
+
+Lorsqu'un titre de page doit etre centre, il peut etre affiche sous la forme `— Titre —` avec un alignement horizontal centre. Dans ce cas, les autres parametres deja definis, comme les marges et les espacements verticaux, restent inchanges. La modification porte uniquement sur le contenu du titre et sur `textAlign: "center"`.
+
+Code :
+
+title: {
+  fontSize: 22,
+  fontWeight: "600",
+  marginTop: 20,
+  marginBottom: 24,
+  textAlign: "center",
+},
+
+<Text style={[styles.title, { color: colors.text }]}>
+  — {t("pageTitle")} —
+</Text>
+
+
+## 14. Parametres Des Interrupteurs
+
+Lorsqu'une page de settings contient un interrupteur, les parametres visuels doivent etre definis explicitement. Le rail inactif utilise `colors.subtext`, le rail actif utilise `colors.subaccent`, et le bouton mobile utilise `colors.accent` lorsqu'il est actif, sinon `colors.text`. Cette specification ne modifie pas les autres regles de mise en page de la ligne ou de la page.
+
+Code :
+
+<Switch
+  value={value}
+  onValueChange={onChange}
+  trackColor={{
+    false: colors.subtext,
+    true: colors.subaccent,
+  }}
+  thumbColor={value ? colors.accent : colors.text}
+  ios_backgroundColor={colors.subtext}
+/>

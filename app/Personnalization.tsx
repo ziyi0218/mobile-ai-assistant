@@ -358,7 +358,9 @@ export default function PersonnalizationScreen() {
           </Pressable>
         </View>
 
-        <Text style={[styles.pageTitle, { color: colors.text }]}>{t("personalization")}</Text>
+        <Text style={[styles.pageTitle, { color: colors.text }]}>
+          — {t("personalization")} —
+        </Text>
 
         <View style={styles.content}>
           <View
@@ -381,7 +383,16 @@ export default function PersonnalizationScreen() {
                 </Text>
               </View>
 
-              <Switch value={isMemoryEnabled} onValueChange={setIsMemoryEnabled} />
+              <Switch
+                value={isMemoryEnabled}
+                onValueChange={setIsMemoryEnabled}
+                trackColor={{
+                  false: colors.subtext,
+                  true: colors.subaccent,
+                }}
+                thumbColor={isMemoryEnabled ? colors.accent : colors.text}
+                ios_backgroundColor={colors.subtext}
+              />
             </View>
 
             <Pressable
@@ -459,6 +470,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: 20,
     marginBottom: 24,
+    textAlign: "center",
   },
   memoryCard: {
     borderRadius: 20,
@@ -513,7 +525,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 16,
-    fontWeight: "70",
+    fontWeight: "700",
   },
   bottomOverlay: {
     flex: 1,
