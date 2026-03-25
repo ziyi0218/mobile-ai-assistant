@@ -10,10 +10,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, Search, ArchiveRestore, Share2 } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 
+import SettingsConfirmModal from "../components/SettingsConfirmModal";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
 import { useI18n } from "../i18n/useI18n";
+import { chatService } from "../services/chatService";
 import { useChatStore } from "../store/chatStore";
 
 export default function ArchivedChatsScreen() {
@@ -22,9 +26,10 @@ export default function ArchivedChatsScreen() {
   const { colors } = useResolvedTheme(themeMode);
   const { t } = useI18n();
 
-  const { archivedChats, fetchArchivedChats, toggleArchiveChat } = useChatStore();
-
+  const { archivedChats, fetchArchivedChats, toggleArchiveChat, unarchiveAllChats} = useChatStore();
+  
   const [search, setSearch] = useState("");
+  const [confirmMode, setConfirmMode] = useState<"unarchiveAll" | "exportAll" | null>(null);
 
   useEffect(() => {
     fetchArchivedChats();
@@ -38,6 +43,40 @@ export default function ArchivedChatsScreen() {
       String(item?.title || "").toLowerCase().includes(q)
     );
   }, [archivedChats, search]);
+
+  const handleUnarchiveAll = async () => {
+    try {
+      await unarchiveAllChats();
+      setConfirmMode(null);
+    } catch (error) {
+      console.error("Error unarchiving all chats:", error);
+    }
+  };
+
+  const handleExportAll = async () => {
+    try {
+      const data = await chatService.exportAllArchivedChats();
+
+      const json = JSON.stringify(data, null, 2);
+      const fileUri = FileSystem.documentDirectory + "archived-chats-export.json";
+
+      await FileSystem.writeAsStringAsync(fileUri, json, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: "application/json",
+          dialogTitle: t("exportAllArchivedChats"),
+        });
+      }
+
+      setConfirmMode(null);
+    } catch (error) {
+      console.error("Erreur export archived chats:", error);
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.bg }]}>
@@ -55,7 +94,7 @@ export default function ArchivedChatsScreen() {
         </View>
 
         <Text style={[styles.title, { color: colors.text }]}>
-          {t("archivedChats")}
+          - {t("archivedChats")} -
         </Text>
 
         <View style={[styles.panel, { backgroundColor: colors.card }]}>
@@ -105,7 +144,7 @@ export default function ArchivedChatsScreen() {
                     <Pressable
                       style={styles.iconButton}
                       onPress={() => {
-                        // placeholder export/share action
+                        // TODO: export/share single chat
                       }}
                     >
                       <Share2 size={18} color={colors.subtext} />
@@ -129,6 +168,7 @@ export default function ArchivedChatsScreen() {
                 styles.secondaryActionButton,
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
+              onPress={() => setConfirmMode("unarchiveAll")}
             >
               <Text style={[styles.secondaryActionText, { color: colors.text }]}>
                 {t("unarchiveAllArchivedChats")}
@@ -140,6 +180,7 @@ export default function ArchivedChatsScreen() {
                 styles.secondaryActionButton,
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
+              onPress={() => setConfirmMode("exportAll")}
             >
               <Text style={[styles.secondaryActionText, { color: colors.text }]}>
                 {t("exportAllArchivedChats")}
@@ -148,6 +189,28 @@ export default function ArchivedChatsScreen() {
           </View>
         </View>
       </View>
+
+      <SettingsConfirmModal
+        visible={confirmMode === "unarchiveAll"}
+        title={t("archivedChats")}
+        message={t("confirmUnarchiveAllArchivedChats")}
+        cancelText={t("cancel")}
+        confirmText={t("unarchiveAllArchivedChats")}
+        onCancel={() => setConfirmMode(null)}
+        onConfirm={handleUnarchiveAll}
+        colors={colors}
+      />
+
+      <SettingsConfirmModal
+        visible={confirmMode === "exportAll"}
+        title={t("archivedChats")}
+        message={t("confirmExportAllArchivedChats")}
+        cancelText={t("cancel")}
+        confirmText={t("exportAllArchivedChats")}
+        onCancel={() => setConfirmMode(null)}
+        onConfirm={handleExportAll}
+        colors={colors}
+      />
     </SafeAreaView>
   );
 }
@@ -159,7 +222,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
-    marginTop: 60,
+    marginTop: 20,
   },
   header: {
     alignItems: "flex-start",
@@ -182,6 +245,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: 20,
     marginBottom: 20,
+    textAlign: "center",
   },
   panel: {
     flex: 1,

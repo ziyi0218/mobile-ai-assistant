@@ -102,6 +102,31 @@ export const chatService = {
     return response.data;
   },
 
+  archiveAllChats: async () => {
+    const response = await apiClient.post("/chats/archive/all");
+    return response.data;
+  },
+
+  unarchiveAllChats: async () => {
+    const response = await apiClient.post("/chats/unarchive/all");
+    return response.data;
+  },
+
+  exportAllChats: async () => {
+    const response = await apiClient.get("/chats/all");
+    return response.data;
+  },
+
+  exportAllArchivedChats: async () => {
+    const response = await apiClient.get("/chats/all/archived");
+    return response.data;
+  },
+
+  importChats: async (chats: any[]) => {
+    const response = await apiClient.post("/chats/import", { chats });
+    return response.data;
+  },
+
   uploadFile: async (uri: string, filename?: string, mimeType?: string) => {
     const resolvedFilename = filename ?? 'upload';
     const resolvedMimeType = mimeType ?? 'application/octet-stream';
@@ -267,5 +292,10 @@ export const chatService = {
       console.error('[Chat Service] Erreur génération titre:', error);
       return null;
     }
+  },
+
+  deleteAllChats: async () => {
+    const response = await apiClient.delete("/chats/");
+    return response.data;
   },
 };

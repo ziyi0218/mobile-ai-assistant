@@ -138,6 +138,9 @@ interface ChatState {
   archivedChats: any[];
   fetchArchivedChats: () => Promise<void>;
   toggleArchiveChat: (chatId: string) => Promise<void>;
+  archiveAllChats: () => Promise<void>;
+  unarchiveAllChats: () => Promise<void>;
+  deleteAllChats: () => Promise<void>;
   currentTaskIds: string[];
   currentEventSources: any[];
   stopGeneration: () => Promise<void>;
@@ -239,6 +242,36 @@ export const useChatStore = create<ChatState>((set, get) => ({
       await get().fetchHistory();
     } catch (error) {
       console.error('Erreur toggle archive:', error);
+    }
+  },
+
+  archiveAllChats: async () => {
+    try {
+      await chatService.archiveAllChats();
+      await get().fetchHistory();
+      await get().fetchArchivedChats();
+    } catch (error) {
+      console.error("Erreur archive all chats:", error);
+    }
+  },
+
+  unarchiveAllChats: async () => {
+    try {
+      await chatService.unarchiveAllChats();
+      await get().fetchHistory();
+      await get().fetchArchivedChats();
+    } catch (error) {
+      console.error("Erreur unarchive all chats:", error);
+    }
+  },
+
+  deleteAllChats: async () => {
+    try {
+      await chatService.deleteAllChats();
+      await get().fetchHistory();
+      await get().fetchArchivedChats();
+    } catch (error) {
+      console.error("Erreur delete all chats:", error);
     }
   },
 

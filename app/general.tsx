@@ -66,7 +66,7 @@ export default function General() {
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={styles.header}>
         <Pressable
-          onPress={() => router.replace("/accountScreen")}
+          onPress={() => router.back()}
           style={[
             styles.backButton,
             { backgroundColor: colors.card, borderColor: colors.border },

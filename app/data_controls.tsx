@@ -1,4 +1,5 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import React, { useState } from "react";
+import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -7,16 +8,24 @@ import {
   Fontisto
 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
+import * as DocumentPicker from "expo-document-picker";
 
+import SettingsConfirmModal from "../components/SettingsConfirmModal";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
 import { useI18n } from "../i18n/useI18n";
+import { chatService } from "../services/chatService";
+import { useChatStore } from "../store/chatStore";
 
 export default function DataControlsScreen() {
   const router = useRouter();
   const { themeMode } = useSettingsStore();
   const { colors } = useResolvedTheme(themeMode);
+  const { archiveAllChats, deleteAllChats, fetchHistory, fetchArchivedChats } = useChatStore();
   const { t } = useI18n();
+  const [confirmMode, setConfirmMode] = useState<"archiveAll" | "deleteAll" | null>(null);
 
   const dataControlOptions = [
       {
@@ -61,8 +70,6 @@ export default function DataControlsScreen() {
       },
     ] as const;
 
-
-
   const renderIcon = (item: typeof dataControlOptions[number]) => {
     const iconColor = item.danger ? "#DC2626" : colors.text;
 
@@ -75,6 +82,82 @@ export default function DataControlsScreen() {
         return <Fontisto name={item.icon} size={20} color={iconColor} />;
       default:
         return null;
+    }
+  };
+  const handleArchiveAll = async () => {
+    try {
+      await archiveAllChats();
+      setConfirmMode(null);  
+    } catch (error) {
+      console.error("Error archiving all chats:", error);
+    }
+  };
+
+  const handleImportChats = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "application/json",
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (result.canceled) return;
+
+      const file = result.assets?.[0];
+      if (!file?.uri) return;
+
+      const content = await FileSystem.readAsStringAsync(file.uri, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+
+      const parsed = JSON.parse(content);
+
+      const chats = Array.isArray(parsed) ? parsed : parsed?.chats;
+
+      if (!Array.isArray(chats)) {
+        Alert.alert(t("importChats"), t("invalidImportFile"));
+        return;
+      }
+
+      await chatService.importChats(chats);
+      await fetchHistory();
+      await fetchArchivedChats();
+
+      Alert.alert(t("importChats"), t("importChatsSuccess"));
+    } catch (error) {
+      console.error("Error importing chats:", error);
+      Alert.alert(t("importChats"), t("importChatsError"));
+    }
+  };
+  const handleExportAll = async () => {
+    try {
+      const data = await chatService.exportAllChats();
+
+      const json = JSON.stringify(data, null, 2);
+      const fileUri = FileSystem.documentDirectory + "all-chats-export.json";
+
+      await FileSystem.writeAsStringAsync(fileUri, json, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: "application/json",
+          dialogTitle: t("exportChats"),
+        });
+      }
+    } catch (error) {
+      console.error("Error exporting all chats:", error);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    try {
+      await deleteAllChats();
+      setConfirmMode(null);
+    } catch (error) {
+      console.error("Error deleting all chats:", error);
     }
   };
 
@@ -94,7 +177,7 @@ export default function DataControlsScreen() {
         </View>
 
         <Text style={[styles.title, { color: colors.text }]}>
-          {t("dataControls")}
+          - {t("dataControls")} -   
         </Text>
 
         <View style={styles.content}>
@@ -103,6 +186,26 @@ export default function DataControlsScreen() {
               key={item.id}
               style={[styles.item, { backgroundColor: colors.card }]}
               onPress={() => {
+                if (item.id === "0") {
+                  handleImportChats();
+                  return;
+                }
+
+                if (item.id === "1") {
+                  handleExportAll();
+                  return;
+                }
+
+                if (item.id === "3") {
+                  setConfirmMode("archiveAll");
+                  return;
+                }
+
+                if (item.id === "4") {
+                  setConfirmMode("deleteAll");
+                  return;
+                }
+
                 if (item.route) {
                   router.push(item.route);
                 }
@@ -125,6 +228,28 @@ export default function DataControlsScreen() {
           ))}
         </View>
       </View>
+      <SettingsConfirmModal
+        visible={confirmMode === "archiveAll"}
+        title={t("dataControls")}
+        message={t("confirmArchiveAllChats")}
+        cancelText={t("cancel")}
+        confirmText={t("archiveAllChats")}
+        onCancel={() => setConfirmMode(null)}
+        onConfirm={handleArchiveAll}
+        colors={colors}
+      />
+
+      <SettingsConfirmModal
+        visible={confirmMode === "deleteAll"}
+        title={t("dataControls")}
+        message={t("confirmDeleteAllChats")}
+        cancelText={t("cancel")}
+        confirmText={t("deleteAllChats")}
+        onCancel={() => setConfirmMode(null)}
+        onConfirm={handleDeleteAll}
+        colors={colors}
+        danger
+      />
     </SafeAreaView>
   );
 }
@@ -136,7 +261,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
-    marginTop: 60,
+    marginTop: 20,
   },
   header: {
     alignItems: "flex-start",
@@ -159,6 +284,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: 20,
     marginBottom: 24,
+    textAlign: "center",
   },
   content: {
     flex: 1,

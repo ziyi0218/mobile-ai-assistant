@@ -112,7 +112,7 @@ export default function AboutScreen() {
       >
         <View style={styles.header}>
           <Pressable
-            onPress={() => router.replace("/accountScreen")}
+            onPress={() => router.back()}
             style={[
               styles.backButton,
               { backgroundColor: colors.card, borderColor: colors.border },
