@@ -57,6 +57,14 @@ export const resources = {
         "Veuillez vérifier vos identifiants ou votre connexion internet.",
       back: "Retour",
       backToSignIn: "Retour à la connexion",
+      invalidEmail: "Adresse email invalide",
+      emailRequired: "L'adresse email est requise",
+      passwordTooShort: "Le mot de passe doit contenir au moins 6 caractères",
+      passwordNeedsUppercase: "Le mot de passe doit contenir au moins une majuscule",
+      passwordNeedsNumber: "Le mot de passe doit contenir au moins un chiffre",
+      nameRequired: "Le nom est requis",
+      nameTooShort: "Le nom doit contenir au moins 2 caractères",
+      validationError: "Erreur de validation",
 
       /* ===== Pending ===== */
       pleaseWait: "Veuillez patienter",
@@ -262,6 +270,25 @@ export const resources = {
       invalidImportFile: "Fichier d’import invalide.",
       importChatsSuccess: "Importation des discussions réussie.",
       importChatsError: "Échec de l’importation des discussions.",
+
+      /* ===== Notifications ===== */
+      notificationPermission: "Autorisation de notifications",
+      notificationPermissionDesc: "Autorisez les notifications pour recevoir des alertes",
+      notificationNewMessage: "Nouveau message",
+
+      /* ===== Deep Linking ===== */
+      deepLinkError: "Impossible d'ouvrir ce lien",
+      deepLinkChatNotFound: "Conversation non trouvée",
+
+      /* ===== Biometric ===== */
+      biometricLock: "Verrouillage biométrique",
+      biometricLockDescription: "Utiliser l'empreinte digitale ou Face ID pour déverrouiller",
+      biometricPrompt: "Authentifiez-vous pour continuer",
+      biometricTitle: "Authentification requise",
+      biometricSubtitle: "Utilisez votre empreinte digitale ou Face ID",
+      biometricFailed: "Échec de l'authentification",
+      biometricRetry: "Réessayer",
+      biometricUsePassword: "Utiliser le mot de passe",
     },
   },
 
@@ -322,6 +349,14 @@ export const resources = {
       loginFailedDesc: "Check your credentials or internet connection.",
       back: "Back",
       backToSignIn: "Back to Sign in",
+      invalidEmail: "Invalid email address",
+      emailRequired: "Email address is required",
+      passwordTooShort: "Password must be at least 6 characters",
+      passwordNeedsUppercase: "Password must contain at least one uppercase letter",
+      passwordNeedsNumber: "Password must contain at least one number",
+      nameRequired: "Name is required",
+      nameTooShort: "Name must be at least 2 characters",
+      validationError: "Validation error",
 
       /* ===== Pending ===== */
       pleaseWait: "Please wait",
@@ -502,6 +537,25 @@ export const resources = {
       invalidImportFile: "Invalid import file.",
       importChatsSuccess: "Chats imported successfully.",
       importChatsError: "Failed to import chats.",
+
+      /* ===== Notifications ===== */
+      notificationPermission: "Notification Permission",
+      notificationPermissionDesc: "Allow notifications to receive alerts",
+      notificationNewMessage: "New message",
+
+      /* ===== Deep Linking ===== */
+      deepLinkError: "Unable to open this link",
+      deepLinkChatNotFound: "Chat not found",
+
+      /* ===== Biometric ===== */
+      biometricLock: "Biometric Lock",
+      biometricLockDescription: "Use fingerprint or Face ID to unlock",
+      biometricPrompt: "Authenticate to continue",
+      biometricTitle: "Authentication required",
+      biometricSubtitle: "Use your fingerprint or Face ID",
+      biometricFailed: "Authentication failed",
+      biometricRetry: "Retry",
+      biometricUsePassword: "Use password",
     },
   },
 
@@ -562,6 +616,14 @@ export const resources = {
       loginFailedDesc: "请检查您的账号信息或网络连接。",
       back: "返回",
       backToSignIn: "返回登录",
+      invalidEmail: "邮箱地址无效",
+      emailRequired: "邮箱地址为必填项",
+      passwordTooShort: "密码至少需要6个字符",
+      passwordNeedsUppercase: "密码必须包含至少一个大写字母",
+      passwordNeedsNumber: "密码必须包含至少一个数字",
+      nameRequired: "姓名为必填项",
+      nameTooShort: "姓名至少需要2个字符",
+      validationError: "验证错误",
 
       /* ===== Pending ===== */
       pleaseWait: "请稍候",
@@ -739,6 +801,29 @@ export const resources = {
       invalidImportFile: "导入文件格式无效。",
       importChatsSuccess: "聊天导入成功。",
       importChatsError: "聊天导入失败。",
+
+      /* ===== Notifications ===== */
+      notificationPermission: "通知权限",
+      notificationPermissionDesc: "允许通知以接收提醒",
+      notificationNewMessage: "新消息",
+
+      /* ===== Deep Linking ===== */
+      deepLinkError: "无法打开此链接",
+      deepLinkChatNotFound: "未找到对话",
+
+      /* ===== Biometric ===== */
+      biometricLock: "生物识别锁",
+      biometricLockDescription: "使用指纹或面容 ID 解锁",
+      biometricPrompt: "请验证身份以继续",
+      biometricTitle: "需要身份验证",
+      biometricSubtitle: "使用您的指纹或面容 ID",
+      biometricFailed: "身份验证失败",
+      biometricRetry: "重试",
+      biometricUsePassword: "使用密码",
     },
   },
 } as const;
+
+export const translations = resources;
+export type Language = keyof typeof resources;
+export type TranslationKey = keyof typeof resources['fr']['translation'];
