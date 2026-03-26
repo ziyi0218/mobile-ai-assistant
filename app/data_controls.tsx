@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Ionicons,
   Feather,
@@ -177,7 +177,7 @@ export default function DataControlsScreen() {
         </View>
 
         <Text style={[styles.title, { color: colors.text }]}>
-          - {t("dataControls")} -   
+          — {t("dataControls")} —
         </Text>
 
         <View style={styles.content}>
