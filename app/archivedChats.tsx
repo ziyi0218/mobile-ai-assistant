@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronLeft, Search, ArchiveRestore, Share2 } from "lucide-react-native";
+import { ChevronLeft, Search, ArchiveRestore, Trash2 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
@@ -20,16 +20,73 @@ import { useI18n } from "../i18n/useI18n";
 import { chatService } from "../services/chatService";
 import { useChatStore } from "../store/chatStore";
 
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function getDayDiffFromNow(date: Date) {
+  const now = startOfDay(new Date());
+  const target = startOfDay(date);
+  return Math.floor((now.getTime() - target.getTime()) / 86400000);
+}
+
+function getLocale(language: string) {
+  if (language.startsWith("fr")) return "fr-FR";
+  if (language.startsWith("zh")) return "zh-CN";
+  return "en-US";
+}
+
+function parseChatDate(value: string | number | null | undefined) {
+  if (value === null || value === undefined || value === "") return null;
+
+  if (typeof value === "number") {
+    const normalized = value < 1e12 ? value * 1000 : value;
+    const date = new Date(normalized);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const trimmed = String(value).trim();
+  if (!trimmed) return null;
+
+  if (/^\d+$/.test(trimmed)) {
+    const numeric = Number(trimmed);
+    const normalized = numeric < 1e12 ? numeric * 1000 : numeric;
+    const date = new Date(normalized);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const date = new Date(trimmed);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatRowDate(value: string | number | null | undefined) {
+  const date = parseChatDate(value);
+  if (!date) return "";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}/${month}/${day}`;
+}
+
 export default function ArchivedChatsScreen() {
   const router = useRouter();
   const { themeMode } = useSettingsStore();
   const { colors } = useResolvedTheme(themeMode);
-  const { t } = useI18n();
+  const { t, i18n } = useI18n();
 
-  const { archivedChats, fetchArchivedChats, toggleArchiveChat, unarchiveAllChats} = useChatStore();
+  const {
+    archivedChats,
+    fetchArchivedChats,
+    toggleArchiveChat,
+    deleteChat,
+    unarchiveAllChats,
+  } = useChatStore();
   
   const [search, setSearch] = useState("");
-  const [confirmMode, setConfirmMode] = useState<"unarchiveAll" | "exportAll" | null>(null);
+  const [confirmMode, setConfirmMode] = useState<"unarchiveAll" | "exportAll" | "deleteOne" | null>(null);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [selectedChatTitle, setSelectedChatTitle] = useState("");
 
   useEffect(() => {
     fetchArchivedChats();
@@ -43,6 +100,48 @@ export default function ArchivedChatsScreen() {
       String(item?.title || "").toLowerCase().includes(q)
     );
   }, [archivedChats, search]);
+
+  const groupedChats = useMemo(() => {
+    const locale = getLocale(i18n.language);
+    const monthFormatter = new Intl.DateTimeFormat(locale, {
+      month: "long",
+      ...(locale === "zh-CN" ? { year: "numeric" } : {}),
+    });
+
+    const groups: { label: string; items: any[] }[] = [];
+    const map = new Map<string, any[]>();
+
+    filteredChats.forEach((item: any) => {
+      const parsed = parseChatDate(item?.updated_at);
+      const valid = !!parsed;
+
+      let label = t("archivedLast30Days");
+      if (valid && parsed) {
+        const diff = getDayDiffFromNow(parsed);
+        if (diff === 0) {
+          label = t("archivedToday");
+        } else if (diff === 1) {
+          label = t("archivedYesterday");
+        } else if (diff <= 7) {
+          label = t("archivedLast7Days");
+        } else if (diff <= 30) {
+          label = t("archivedLast30Days");
+        } else {
+          label = monthFormatter.format(parsed);
+        }
+      }
+
+      if (!map.has(label)) {
+        const items: any[] = [];
+        map.set(label, items);
+        groups.push({ label, items });
+      }
+
+      map.get(label)!.push(item);
+    });
+
+    return groups;
+  }, [filteredChats, i18n.language, t]);
 
   const handleUnarchiveAll = async () => {
     try {
@@ -78,6 +177,25 @@ export default function ArchivedChatsScreen() {
     }
   };
 
+  const openDeleteConfirm = (chatId: string, chatTitle?: string | null) => {
+    setSelectedChatId(chatId);
+    setSelectedChatTitle(chatTitle || "Untitled chat");
+    setConfirmMode("deleteOne");
+  };
+
+  const handleDeleteOne = async () => {
+    if (!selectedChatId) return;
+
+    try {
+      await deleteChat(selectedChatId);
+      setConfirmMode(null);
+      setSelectedChatId(null);
+      setSelectedChatTitle("");
+    } catch (error) {
+      console.error("Error deleting archived chat:", error);
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.bg }]}>
       <View style={styles.container}>
@@ -94,8 +212,7 @@ export default function ArchivedChatsScreen() {
         </View>
 
         <Text style={[styles.title, { color: colors.text }]}>
-          - {t("archivedChats")} -
-        </Text>
+          — {t("archivedChats")} —       </Text>
 
         <View style={[styles.panel, { backgroundColor: colors.card }]}>
 
@@ -129,34 +246,46 @@ export default function ArchivedChatsScreen() {
                 {t("adeNoResults")}
               </Text>
             ) : (
-              filteredChats.map((item: any) => (
-                <View key={item.id} style={styles.row}>
-                  <View style={styles.rowLeft}>
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.chatTitle, { color: colors.text }]}
-                    >
-                      {item.title || "Untitled chat"}
-                    </Text>
-                  </View>
+              groupedChats.map((group) => (
+                <View key={group.label} style={styles.groupBlock}>
+                  <Text style={[styles.groupLabel, { color: colors.subtext }]}>
+                    {group.label}
+                  </Text>
 
-                  <View style={styles.rowActions}>
-                    <Pressable
-                      style={styles.iconButton}
-                      onPress={() => {
-                        // TODO: export/share single chat
-                      }}
-                    >
-                      <Share2 size={18} color={colors.subtext} />
-                    </Pressable>
+                  {group.items.map((item: any) => (
+                    <View key={item.id} style={styles.row}>
+                      <View style={styles.rowLeft}>
+                        <Text
+                          numberOfLines={1}
+                          style={[styles.chatTitle, { color: colors.text }]}
+                        >
+                          {item.title || "Untitled chat"}
+                        </Text>
+                      </View>
 
-                    <Pressable
-                      style={styles.iconButton}
-                      onPress={() => toggleArchiveChat(item.id)}
-                    >
-                      <ArchiveRestore size={18} color={colors.subtext} />
-                    </Pressable>
-                  </View>
+                      <View style={styles.rowMeta}>
+                        <Text style={[styles.dateText, { color: colors.subtext }]}>
+                          {formatRowDate(item.updated_at)}
+                        </Text>
+                      </View>
+
+                      <View style={styles.rowActions}>
+                        <Pressable
+                          style={styles.iconButton}
+                          onPress={() => toggleArchiveChat(item.id)}
+                        >
+                          <ArchiveRestore size={18} color={colors.subtext} />
+                        </Pressable>
+
+                        <Pressable
+                          style={styles.iconButton}
+                          onPress={() => openDeleteConfirm(item.id, item.title)}
+                        >
+                          <Trash2 size={18} color={colors.subtext} />
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))}
                 </View>
               ))
             )}
@@ -195,7 +324,7 @@ export default function ArchivedChatsScreen() {
         title={t("archivedChats")}
         message={t("confirmUnarchiveAllArchivedChats")}
         cancelText={t("cancel")}
-        confirmText={t("unarchiveAllArchivedChats")}
+        confirmText={t("dataControlsConfirm")}
         onCancel={() => setConfirmMode(null)}
         onConfirm={handleUnarchiveAll}
         colors={colors}
@@ -206,10 +335,26 @@ export default function ArchivedChatsScreen() {
         title={t("archivedChats")}
         message={t("confirmExportAllArchivedChats")}
         cancelText={t("cancel")}
-        confirmText={t("exportAllArchivedChats")}
+        confirmText={t("dataControlsConfirm")}
         onCancel={() => setConfirmMode(null)}
         onConfirm={handleExportAll}
         colors={colors}
+      />
+
+      <SettingsConfirmModal
+        visible={confirmMode === "deleteOne"}
+        title={t("deleteChat")}
+        message={`${t("deleteChatConfirm")}\n\n${selectedChatTitle}`}
+        cancelText={t("cancel")}
+        confirmText={t("dataControlsConfirm")}
+        onCancel={() => {
+          setConfirmMode(null);
+          setSelectedChatId(null);
+          setSelectedChatTitle("");
+        }}
+        onConfirm={handleDeleteOne}
+        colors={colors}
+        danger
       />
     </SafeAreaView>
   );
@@ -244,7 +389,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "600",
     marginTop: 20,
-    marginBottom: 20,
+    marginBottom: 24,
     textAlign: "center",
   },
   panel: {
@@ -297,6 +442,14 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 16,
   },
+  groupBlock: {
+    marginBottom: 18,
+  },
+  groupLabel: {
+    marginBottom: 12,
+    fontSize: 15,
+    fontWeight: "500",
+  },
   row: {
     minHeight: 52,
     flexDirection: "row",
@@ -307,6 +460,14 @@ const styles = StyleSheet.create({
   rowLeft: {
     flex: 1,
     paddingRight: 12,
+  },
+  rowMeta: {
+    minWidth: 92,
+    alignItems: "flex-end",
+    marginRight: 8,
+  },
+  dateText: {
+    fontSize: 14,
   },
   chatTitle: {
     fontSize: 16,

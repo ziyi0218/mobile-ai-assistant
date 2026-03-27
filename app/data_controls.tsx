@@ -223,7 +223,9 @@ export default function DataControlsScreen() {
                 </Text>
               </View>
 
-              <ChevronRight size={18} color={colors.subtext} />
+              {item.route ? (
+                <ChevronRight size={18} color={colors.subtext} />
+              ) : null}
             </Pressable>
           ))}
         </View>

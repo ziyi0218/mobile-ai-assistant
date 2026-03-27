@@ -163,6 +163,17 @@ export default function ChatScreen() {
 
           const reversedConversation = [...conversation].reverse();
 
+          if (conversation.length === 0) {
+            return (
+              <View style={{ width, flex: 1 }}>
+                <View style={cs.emptyState}>
+                  <MessageCircle size={48} color={colors.subtext} />
+                  <Text style={[cs.emptyText, { color: colors.subtext }]}>{t('askQuestion')}</Text>
+                </View>
+              </View>
+            );
+          }
+
           return (
             <View style={{ width, flex: 1 }}>
               <FlatList
@@ -175,14 +186,6 @@ export default function ChatScreen() {
                 initialNumToRender={10}
                 maxToRenderPerBatch={5}
                 windowSize={7}
-
-
-                ListEmptyComponent={() => (
-                  <View style={[cs.emptyState, { transform: [{ scaleY: -1 }] }]}>
-                    <MessageCircle size={48} color={colors.subtext} />
-                    <Text style={[cs.emptyText, { color: colors.subtext }]}>{t('askQuestion')}</Text>
-                  </View>
-                )}
 
                 renderItem={({ item: msg }) => {
                   const isUser = msg.role === 'user';
