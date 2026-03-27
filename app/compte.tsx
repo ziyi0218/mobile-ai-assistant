@@ -20,6 +20,7 @@ import {
   EyeOff,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 
 import { compteService, type CompteGenderKey, type CompteProfile } from "../services/compteService";
 import { useSettingsStore } from "../store/useSettingsStore";
@@ -46,6 +47,7 @@ export default function CompteScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [isGenderVisible, setIsGenderVisible] = useState(false);
   const [showPasswordField, setShowPasswordField] = useState(false);
   const [isCurrentPasswordVisible, setIsCurrentPasswordVisible] = useState(false);
@@ -149,7 +151,42 @@ export default function CompteScreen() {
     }
   };
 
-  const handleUpdatePassword = () => {
+  const handlePickAvatar = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== "granted") {
+        Alert.alert(t("permissionRequired"), t("galleryPermission"));
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (result.canceled || !result.assets[0]) {
+        return;
+      }
+
+      const asset = result.assets[0];
+
+      if (!asset.base64) {
+        Alert.alert(t("errorTitle"), t("accountSaveError"));
+        return;
+      }
+
+      const mimeType = asset.mimeType || "image/jpeg";
+      setAvatarUrl(`data:${mimeType};base64,${asset.base64}`);
+    } catch (error) {
+      Alert.alert(t("errorTitle"), t("accountSaveError"));
+    }
+  };
+
+  const handleUpdatePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       Alert.alert(t("errorTitle"), t("accountPasswordFillAll"));
       return;
@@ -160,15 +197,30 @@ export default function CompteScreen() {
       return;
     }
 
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setShowPasswordField(false);
-    setIsCurrentPasswordVisible(false);
-    setIsNewPasswordVisible(false);
-    setIsConfirmPasswordVisible(false);
+    try {
+      setIsUpdatingPassword(true);
 
-    Alert.alert(t("accountUpdatePassword"), t("accountPasswordUpdated"));
+      await compteService.updatePassword({
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      });
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowPasswordField(false);
+      setIsCurrentPasswordVisible(false);
+      setIsNewPasswordVisible(false);
+      setIsConfirmPasswordVisible(false);
+
+      Alert.alert(t("accountUpdatePassword"), t("accountPasswordUpdated"));
+    } catch (error: any) {
+      const messageKey = error?.message || "accountPasswordUpdateError";
+      Alert.alert(t("errorTitle"), t(messageKey));
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
 
   return (
@@ -207,13 +259,25 @@ export default function CompteScreen() {
               </Text>
 
               <View style={styles.profileRow}>
-                <View style={styles.avatar}>
+                <Pressable
+                  onPress={handlePickAvatar}
+                  disabled={isSavingProfile}
+                  style={styles.avatar}
+                >
                   {avatarUrl ? (
                     <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
                   ) : (
                     <Text style={styles.avatarText}>{initials}</Text>
                   )}
-                </View>
+                  <View
+                    style={[
+                      styles.avatarBadge,
+                      { backgroundColor: colors.card, borderColor: colors.border },
+                    ]}
+                  >
+                    <Pencil size={14} color={colors.text} />
+                  </View>
+                </Pressable>
 
                 <View style={styles.profileFields}>
                   <View style={styles.fieldBlock}>
@@ -357,6 +421,7 @@ export default function CompteScreen() {
                         style={[styles.passwordInput, { color: colors.text }]}
                         placeholder={t("accountCurrentPasswordPlaceholder")}
                         placeholderTextColor={colors.subtext}
+                        editable={!isUpdatingPassword}
                       />
                       <Pressable onPress={() => setIsCurrentPasswordVisible((prev) => !prev)}>
                         {isCurrentPasswordVisible ? (
@@ -385,6 +450,7 @@ export default function CompteScreen() {
                         style={[styles.passwordInput, { color: colors.text }]}
                         placeholder={t("accountNewPasswordPlaceholder")}
                         placeholderTextColor={colors.subtext}
+                        editable={!isUpdatingPassword}
                       />
                       <Pressable onPress={() => setIsNewPasswordVisible((prev) => !prev)}>
                         {isNewPasswordVisible ? (
@@ -413,6 +479,7 @@ export default function CompteScreen() {
                         style={[styles.passwordInput, { color: colors.text }]}
                         placeholder={t("accountConfirmPasswordPlaceholder")}
                         placeholderTextColor={colors.subtext}
+                        editable={!isUpdatingPassword}
                       />
                       <Pressable onPress={() => setIsConfirmPasswordVisible((prev) => !prev)}>
                         {isConfirmPasswordVisible ? (
@@ -429,14 +496,20 @@ export default function CompteScreen() {
                       style={[
                         styles.passwordUpdateButton,
                         { backgroundColor: colors.card, borderColor: colors.border },
+                        isUpdatingPassword && styles.disabledButton,
                       ]}
                       onPress={handleUpdatePassword}
+                      disabled={isUpdatingPassword}
                     >
-                      <Text
-                        style={[styles.passwordUpdateButtonText, { color: colors.text }]}
-                      >
-                        {t("accountUpdatePassword")}
-                      </Text>
+                      {isUpdatingPassword ? (
+                        <ActivityIndicator color={colors.text} />
+                      ) : (
+                        <Text
+                          style={[styles.passwordUpdateButtonText, { color: colors.text }]}
+                        >
+                          {t("accountUpdatePassword")}
+                        </Text>
+                      )}
                     </Pressable>
                   </View>
                 </View>
@@ -555,11 +628,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#F59E0B",
     marginRight: 18,
+    position: "relative",
   },
   avatarImage: {
     width: "100%",
     height: "100%",
     borderRadius: 42,
+  },
+  avatarBadge: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
   },
   avatarText: {
     fontSize: 30,

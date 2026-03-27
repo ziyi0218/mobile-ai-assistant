@@ -51,7 +51,7 @@ const SETTINGS_ROUTE =
 const SETTINGS_UPDATE_ROUTE =
   process.env.EXPO_PUBLIC_ACCOUNT_SETTINGS_UPDATE_ROUTE || "/users/user/settings/update";
 const PASSWORD_ROUTE =
-  process.env.EXPO_PUBLIC_ACCOUNT_PASSWORD_ROUTE || "/users/me/password";
+  process.env.EXPO_PUBLIC_ACCOUNT_PASSWORD_ROUTE || "/auths/update/password";
 const AVATAR_ROUTE = process.env.EXPO_PUBLIC_ACCOUNT_AVATAR_ROUTE || "/users/me/avatar";
 const BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL || "https://pleiade.mi.parisdescartes.fr/api/v1";
@@ -252,12 +252,22 @@ export const compteService = {
       throw new ValidationError(message, field);
     }
 
-    const response = await apiClient.post(PASSWORD_ROUTE, {
-      current_password: validation.data!.currentPassword,
-      new_password: validation.data!.newPassword,
-    });
+    try {
+      const response = await apiClient.post(PASSWORD_ROUTE, {
+        password: validation.data!.currentPassword,
+        new_password: validation.data!.newPassword,
+      });
 
-    return extractData(response.data);
+      return extractData(response.data);
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail;
+
+      if (typeof detail === "string" && detail.trim()) {
+        throw new Error(detail);
+      }
+
+      throw error;
+    }
   },
 
   uploadAvatar: async (input: UploadCompteAvatarInput): Promise<CompteProfile> => {
