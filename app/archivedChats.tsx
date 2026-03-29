@@ -17,6 +17,8 @@ import SettingsConfirmModal from "../components/SettingsConfirmModal";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
 import { useI18n } from "../i18n/useI18n";
+import { useUIScale } from "../utils/useUIScale";
+import { useHaptics } from "../utils/useHaptics";
 import { chatService } from "../services/chatService";
 import { useChatStore } from "../store/chatStore";
 
@@ -74,6 +76,25 @@ export default function ArchivedChatsScreen() {
   const { themeMode } = useSettingsStore();
   const { colors } = useResolvedTheme(themeMode);
   const { t, i18n } = useI18n();
+  const scaledTitleSize = useUIScale(22);
+  const scaledSectionLabelSize = useUIScale(16);
+  const scaledGroupLabelSize = useUIScale(15);
+  const scaledInputSize = useUIScale(15);
+  const scaledDateSize = useUIScale(14);
+  const scaledChatTitleSize = useUIScale(16);
+  const scaledButtonTextSize = useUIScale(16);
+  const scaledBackButtonSize = useUIScale(40);
+  const scaledBackIconSize = useUIScale(22);
+  const scaledSearchIconSize = useUIScale(18);
+  const scaledRowActionIconSize = useUIScale(18);
+  const scaledPanelRadius = useUIScale(24);
+  const scaledSearchBoxHeight = useUIScale(44);
+  const scaledSearchBoxRadius = useUIScale(14);
+  const scaledRowMinHeight = useUIScale(52);
+  const scaledIconButtonPaddingX = useUIScale(8);
+  const scaledIconButtonPaddingY = useUIScale(6);
+  const scaledSecondaryButtonMinWidth = useUIScale(250);
+  const { haptics } = useHaptics();
 
   const {
     archivedChats,
@@ -201,38 +222,52 @@ export default function ArchivedChatsScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => {
+              haptics("light");
+              router.back();
+            }}
             style={[
               styles.backButton,
-              { backgroundColor: colors.card, borderColor: colors.border },
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                width: scaledBackButtonSize,
+                height: scaledBackButtonSize,
+                borderRadius: scaledBackButtonSize / 2,
+              },
             ]}
           >
-            <ChevronLeft size={22} color={colors.text} strokeWidth={2.5} />
+            <ChevronLeft size={scaledBackIconSize} color={colors.text} strokeWidth={2.5} />
           </Pressable>
         </View>
 
-        <Text style={[styles.title, { color: colors.text }]}>
+        <Text style={[styles.title, { color: colors.text, fontSize: scaledTitleSize }]}>
           — {t("archivedChats")} —       </Text>
 
-        <View style={[styles.panel, { backgroundColor: colors.card }]}>
+        <View style={[styles.panel, { backgroundColor: colors.card, borderRadius: scaledPanelRadius }]}>
 
           <View
             style={[
               styles.searchBox,
-              { backgroundColor: colors.bg, borderColor: colors.border },
+              {
+                backgroundColor: colors.bg,
+                borderColor: colors.border,
+                height: scaledSearchBoxHeight,
+                borderRadius: scaledSearchBoxRadius,
+              },
             ]}
           >
-            <Search size={18} color={colors.subtext} />
+            <Search size={scaledSearchIconSize} color={colors.subtext} />
             <TextInput
               value={search}
               onChangeText={setSearch}
               placeholder={t("searchChats")}
               placeholderTextColor={colors.subtext}
-              style={[styles.searchInput, { color: colors.text }]}
+              style={[styles.searchInput, { color: colors.text, fontSize: scaledInputSize }]}
             />
           </View>
 
-          <Text style={[styles.sectionLabel, { color: colors.text }]}>
+          <Text style={[styles.sectionLabel, { color: colors.text, fontSize: scaledSectionLabelSize }]}>
             {t("title")}
           </Text>
 
@@ -242,46 +277,64 @@ export default function ArchivedChatsScreen() {
             showsVerticalScrollIndicator={false}
           >
             {filteredChats.length === 0 ? (
-              <Text style={[styles.emptyText, { color: colors.subtext }]}>
+              <Text style={[styles.emptyText, { color: colors.subtext, fontSize: scaledGroupLabelSize }]}>
                 {t("adeNoResults")}
               </Text>
             ) : (
               groupedChats.map((group) => (
                 <View key={group.label} style={styles.groupBlock}>
-                  <Text style={[styles.groupLabel, { color: colors.subtext }]}>
+                  <Text style={[styles.groupLabel, { color: colors.subtext, fontSize: scaledGroupLabelSize }]}>
                     {group.label}
                   </Text>
 
                   {group.items.map((item: any) => (
-                    <View key={item.id} style={styles.row}>
+                    <View key={item.id} style={[styles.row, { minHeight: scaledRowMinHeight }]}>
                       <View style={styles.rowLeft}>
                         <Text
                           numberOfLines={1}
-                          style={[styles.chatTitle, { color: colors.text }]}
+                          style={[styles.chatTitle, { color: colors.text, fontSize: scaledChatTitleSize }]}
                         >
                           {item.title || "Untitled chat"}
                         </Text>
                       </View>
 
                       <View style={styles.rowMeta}>
-                        <Text style={[styles.dateText, { color: colors.subtext }]}>
+                        <Text style={[styles.dateText, { color: colors.subtext, fontSize: scaledDateSize }]}>
                           {formatRowDate(item.updated_at)}
                         </Text>
                       </View>
 
                       <View style={styles.rowActions}>
                         <Pressable
-                          style={styles.iconButton}
-                          onPress={() => toggleArchiveChat(item.id)}
+                          style={[
+                            styles.iconButton,
+                            {
+                              paddingHorizontal: scaledIconButtonPaddingX,
+                              paddingVertical: scaledIconButtonPaddingY,
+                            },
+                          ]}
+                          onPress={() => {
+                            haptics("light");
+                            toggleArchiveChat(item.id);
+                          }}
                         >
-                          <ArchiveRestore size={18} color={colors.subtext} />
+                          <ArchiveRestore size={scaledRowActionIconSize} color={colors.subtext} />
                         </Pressable>
 
                         <Pressable
-                          style={styles.iconButton}
-                          onPress={() => openDeleteConfirm(item.id, item.title)}
+                          style={[
+                            styles.iconButton,
+                            {
+                              paddingHorizontal: scaledIconButtonPaddingX,
+                              paddingVertical: scaledIconButtonPaddingY,
+                            },
+                          ]}
+                          onPress={() => {
+                            haptics("light");
+                            openDeleteConfirm(item.id, item.title);
+                          }}
                         >
-                          <Trash2 size={18} color={colors.subtext} />
+                          <Trash2 size={scaledRowActionIconSize} color={colors.subtext} />
                         </Pressable>
                       </View>
                     </View>
@@ -295,11 +348,18 @@ export default function ArchivedChatsScreen() {
             <Pressable
               style={[
                 styles.secondaryActionButton,
-                { backgroundColor: colors.card, borderColor: colors.border },
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  minWidth: scaledSecondaryButtonMinWidth,
+                },
               ]}
-              onPress={() => setConfirmMode("unarchiveAll")}
+              onPress={() => {
+                haptics("light");
+                setConfirmMode("unarchiveAll");
+              }}
             >
-              <Text style={[styles.secondaryActionText, { color: colors.text }]}>
+              <Text style={[styles.secondaryActionText, { color: colors.text, fontSize: scaledButtonTextSize }]}>
                 {t("unarchiveAllArchivedChats")}
               </Text>
             </Pressable>
@@ -307,11 +367,18 @@ export default function ArchivedChatsScreen() {
             <Pressable
               style={[
                 styles.secondaryActionButton,
-                { backgroundColor: colors.card, borderColor: colors.border },
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  minWidth: scaledSecondaryButtonMinWidth,
+                },
               ]}
-              onPress={() => setConfirmMode("exportAll")}
+              onPress={() => {
+                haptics("light");
+                setConfirmMode("exportAll");
+              }}
             >
-              <Text style={[styles.secondaryActionText, { color: colors.text }]}>
+              <Text style={[styles.secondaryActionText, { color: colors.text, fontSize: scaledButtonTextSize }]}>
                 {t("exportAllArchivedChats")}
               </Text>
             </Pressable>
