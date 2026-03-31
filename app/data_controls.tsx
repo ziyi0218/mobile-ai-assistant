@@ -16,8 +16,8 @@ import SettingsConfirmModal from "../components/SettingsConfirmModal";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
 import { useI18n } from "../i18n/useI18n";
-import { useUIScale } from "../utils/useUIScale";
-import { useHaptics } from "../utils/useHaptics";
+import { useUIScale } from "../hooks/useUIScale";
+import { useHaptics } from "../hooks/useHaptics";
 import { chatService } from "../services/chatService";
 import { useChatStore } from "../store/chatStore";
 

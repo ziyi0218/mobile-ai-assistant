@@ -18,11 +18,14 @@ import { useRouter } from "expo-router";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
 import { useI18n } from "../i18n/useI18n";
-import { useUIScale } from "../utils/useUIScale";
-import { useHaptics } from "../utils/useHaptics";
+import { useUIScale } from "../hooks/useUIScale";
+import { useHaptics } from "../hooks/useHaptics";
 import { logout } from "../services/authService";
 import { adeService } from "../services/adeService";
 import { useBiometric } from "../hooks/useBiometric";
+import { useCommonDesign } from "../hooks/useCommonDesign";
+import { ChevronLeft } from "lucide-react-native";
+
 
 type AccountOption = {
   id: string;
@@ -102,8 +105,10 @@ export default function AccountScreen() {
   const { colors } = useResolvedTheme(themeMode);
   const scaledFontSize = useUIScale(24);
   const scaled48 = useUIScale(48);
+  const scaled22 = useUIScale(22);
   const scaleFactor = useUIScale(1);
   const { haptics } = useHaptics();
+  const styles = useCommonDesign();
   const {
     isAvailable: biometricAvailable,
     isEnabled: biometricEnabled,
@@ -171,18 +176,16 @@ export default function AccountScreen() {
       }}
     >
       <View className="flex-1" style={{ backgroundColor: colors.bg }}>
+        {/* Back button */}
         <View className="flex-row items-center px-2.5">
-          <Pressable
-            onPress={() => {
-              haptics("light");
-              router.back();
-            }}
+          <Pressable onPress={() => {haptics('light'); router.back()}}
+                     style={styles.backButton}
           >
-            <Ionicons name="chevron-back" size={scaled48} color={colors.text} />
+            <ChevronLeft size={scaled22} color={colors.text} strokeWidth={2.5} />
           </Pressable>
         </View>
 
-        <View className="flex-row">
+        <View style={styles.content}>
           <FlatList
             className="px-5 pt-5"
             data={optionsList}
@@ -190,7 +193,7 @@ export default function AccountScreen() {
             ListHeaderComponent={
               <View>
                 <Pressable
-                  className="flex-row items-center py-5 mb-1"
+                  style={styles.item_start}
                   onPress={() => {
                     haptics("light");
                     router.push({ pathname: "/archivedChats" });
@@ -206,8 +209,7 @@ export default function AccountScreen() {
                   <Text
                     minimumFontScale={0.8}
                     ellipsizeMode="tail"
-                    className="font-bold text-center"
-                    style={{ color: colors.text, fontSize: scaledFontSize, marginRight: 10 }}
+                    style={[styles.title, {marginRight: 10, marginLeft: 10} ]}
                   >
                     {t("archivedChats")}
                   </Text>
@@ -218,7 +220,7 @@ export default function AccountScreen() {
                     minimumFontScale={0.8}
                     ellipsizeMode="tail"
                     className="font-bold text-center"
-                    style={{ color: colors.text, fontSize: scaledFontSize, marginRight: 10 }}
+                    style={styles.title}
                   >
                     — {t("settings")} —
                   </Text>
@@ -242,17 +244,15 @@ export default function AccountScreen() {
               };
 
               return (
-                <Pressable className="flex-row items-center py-5 mb-1" onPress={handlePress}>
+                <Pressable style={styles.item_start} onPress={handlePress}>
                   {renderOptionIcon(item)}
                   <Text
                     minimumFontScale={0.8}
                     ellipsizeMode="tail"
                     className="font-bold text-center"
-                    style={{
+                    style={[styles.title, {marginRight: 10, marginLeft: 10,
                       color: item.color === "#FF0000" ? item.color : colors.text,
-                      fontSize: scaledFontSize,
-                      marginRight: 10,
-                    }}
+                    }]}
                   >
                     {t(item.textKey)}
                   </Text>
