@@ -1,53 +1,46 @@
-import { renderHook } from '@testing-library/react-native';
 import { useColorScheme } from 'react-native';
 import { useResolvedTheme } from '../../utils/theme';
-
-jest.mock('react-native', () => {
-  const actual = jest.requireActual('react-native');
-  return { ...actual, useColorScheme: jest.fn() };
-});
 
 const mockUseColorScheme = useColorScheme as jest.Mock;
 
 describe('useResolvedTheme', () => {
   it('systeme + dark system → dark theme', () => {
     mockUseColorScheme.mockReturnValue('dark');
-    const { result } = renderHook(() => useResolvedTheme('systeme'));
-    expect(result.current.resolved).toBe('dark');
-    expect(result.current.colors.bg).toBe('#0B0B0F');
+    const { resolved, colors } = useResolvedTheme('systeme');
+    expect(resolved).toBe('dark');
+    expect(colors.bg).toBe('#0B0B0F');
   });
 
   it('systeme + light system → light theme', () => {
     mockUseColorScheme.mockReturnValue('light');
-    const { result } = renderHook(() => useResolvedTheme('systeme'));
-    expect(result.current.resolved).toBe('light');
-    expect(result.current.colors.bg).toBe('#F6F6F6');
+    const { resolved, colors } = useResolvedTheme('systeme');
+    expect(resolved).toBe('light');
+    expect(colors.bg).toBe('#F6F6F6');
   });
 
   it('systeme + null system → light theme (fallback)', () => {
     mockUseColorScheme.mockReturnValue(null);
-    const { result } = renderHook(() => useResolvedTheme('systeme'));
-    expect(result.current.resolved).toBe('light');
+    const { resolved } = useResolvedTheme('systeme');
+    expect(resolved).toBe('light');
   });
 
   it('sombre → dark theme regardless of system', () => {
     mockUseColorScheme.mockReturnValue('light');
-    const { result } = renderHook(() => useResolvedTheme('sombre'));
-    expect(result.current.resolved).toBe('dark');
-    expect(result.current.colors.card).toBe('#15151C');
+    const { resolved, colors } = useResolvedTheme('sombre');
+    expect(resolved).toBe('dark');
+    expect(colors.card).toBe('#15151C');
   });
 
   it('clair → light theme regardless of system', () => {
     mockUseColorScheme.mockReturnValue('dark');
-    const { result } = renderHook(() => useResolvedTheme('clair'));
-    expect(result.current.resolved).toBe('light');
-    expect(result.current.colors.card).toBe('#FFFFFF');
+    const { resolved, colors } = useResolvedTheme('clair');
+    expect(resolved).toBe('light');
+    expect(colors.card).toBe('#FFFFFF');
   });
 
   it('returns correct dark color palette', () => {
     mockUseColorScheme.mockReturnValue('dark');
-    const { result } = renderHook(() => useResolvedTheme('systeme'));
-    const { colors } = result.current;
+    const { colors } = useResolvedTheme('systeme');
     expect(colors).toEqual({
       bg: '#0B0B0F',
       card: '#15151C',
@@ -61,8 +54,7 @@ describe('useResolvedTheme', () => {
 
   it('returns correct light color palette', () => {
     mockUseColorScheme.mockReturnValue('light');
-    const { result } = renderHook(() => useResolvedTheme('systeme'));
-    const { colors } = result.current;
+    const { colors } = useResolvedTheme('systeme');
     expect(colors).toEqual({
       bg: '#F6F6F6',
       card: '#FFFFFF',

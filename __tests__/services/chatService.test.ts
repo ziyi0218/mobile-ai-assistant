@@ -106,12 +106,89 @@ describe('chatService', () => {
     });
   });
 
+  describe('folders', () => {
+    it('gets folders list', async () => {
+      (mockApi.get as jest.Mock).mockResolvedValue({ data: [{ id: 'f1', name: 'Folder' }] });
+
+      const result = await chatService.getFolders();
+      expect(mockApi.get).toHaveBeenCalledWith('/folders/');
+      expect(result).toEqual([{ id: 'f1', name: 'Folder' }]);
+    });
+
+    it('creates a folder', async () => {
+      (mockApi.post as jest.Mock).mockResolvedValue({ data: { id: 'f1' } });
+
+      const result = await chatService.createFolder('Folder');
+      expect(mockApi.post).toHaveBeenCalledWith('/folders/', {
+        name: 'Folder',
+        data: {
+          system_prompt: '',
+          files: [],
+        },
+      });
+      expect(result).toEqual({ id: 'f1' });
+    });
+
+    it('updates a folder', async () => {
+      (mockApi.post as jest.Mock).mockResolvedValue({ data: { ok: true } });
+
+      const result = await chatService.updateFolder('f1', { name: 'Renamed' });
+      expect(mockApi.post).toHaveBeenCalledWith('/folders/f1/update', {
+        name: 'Renamed',
+        meta: {
+          background_image_url: null,
+        },
+        data: {
+          system_prompt: '',
+          files: [],
+        },
+      });
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('deletes a folder', async () => {
+      (mockApi.delete as jest.Mock).mockResolvedValue({ data: { ok: true } });
+
+      const result = await chatService.deleteFolder('f1');
+      expect(mockApi.delete).toHaveBeenCalledWith('/folders/f1');
+      expect(result).toEqual({ ok: true });
+    });
+  });
+
   describe('deleteChat', () => {
     it('DELETEs /chats/{chatId}', async () => {
       (mockApi.delete as jest.Mock).mockResolvedValue({});
 
       await chatService.deleteChat('chat-1');
       expect(mockApi.delete).toHaveBeenCalledWith('/chats/chat-1');
+    });
+  });
+
+  describe('chat organization', () => {
+    it('renames a chat', async () => {
+      (mockApi.post as jest.Mock).mockResolvedValue({ data: { ok: true } });
+
+      const result = await chatService.renameChat('c1', 'New title');
+      expect(mockApi.post).toHaveBeenCalledWith('/chats/c1', {
+        chat: { title: 'New title' },
+      });
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('moves chat to folder', async () => {
+      (mockApi.post as jest.Mock).mockResolvedValue({ data: { ok: true } });
+
+      const result = await chatService.moveChatToFolder('c1', 'f1');
+      expect(mockApi.post).toHaveBeenCalledWith('/chats/c1/folder', { folder_id: 'f1' });
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('toggles chat pin', async () => {
+      (mockApi.get as jest.Mock).mockResolvedValue({ data: { pinned: true } });
+
+      const result = await chatService.togglePinChat('c1');
+      expect(mockApi.get).toHaveBeenCalledWith('/chats/c1/pinned');
+      expect(result).toEqual({ pinned: true });
     });
   });
 
@@ -130,6 +207,7 @@ describe('chatService', () => {
         url: '/files/f1',
         meta: {},
         mimeType: 'application/pdf',
+        _raw: { id: 'f1', filename: 'doc.pdf', path: '/files/f1', meta: {} },
       });
     });
 

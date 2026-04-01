@@ -8,6 +8,7 @@ import apiClient from './apiClient';
 import { invalidateCache } from '../utils/apiCache';
 import EventSource from 'react-native-sse';
 import * as SecureStore from 'expo-secure-store';
+import type { ChatFolder } from '../types/api';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://pleiade.mi.parisdescartes.fr/api/v1';
 const BASE_URL_CHAT = BASE_URL.replace('/api/v1', '/api');
@@ -88,6 +89,85 @@ export const chatService = {
     return response.data;
   },
 
+  getFolders: async () => {
+    const response = await apiClient.get('/folders/');
+    return Array.isArray(response.data) ? response.data : [];
+  },
+
+  createFolder: async (name: string) => {
+    const payload: Record<string, unknown> = {
+      name,
+      data: {
+        system_prompt: '',
+        files: [],
+      },
+    };
+
+    const response = await apiClient.post('/folders/', payload);
+    invalidateCache('/folders/');
+    invalidateCache('/chats');
+    return response.data;
+  },
+
+  getChatsByFolder: async (folderId: string, page: number = 1) => {
+    const response = await apiClient.get(`/chats/folder/${folderId}/list?page=${page}`);
+    return Array.isArray(response.data) ? response.data : [];
+  },
+
+  updateFolder: async (folderId: string, data: Partial<ChatFolder> & { name?: string }) => {
+    const meta = data.meta && typeof data.meta === 'object' ? data.meta : null;
+    const folderData = data.data ?? null;
+    const payload = {
+      name: data.name ?? '',
+      meta: {
+        background_image_url:
+          meta && 'background_image_url' in meta
+            ? (meta.background_image_url as string | null | undefined) ?? null
+            : null,
+      },
+      data: {
+        system_prompt: typeof folderData?.system_prompt === 'string' ? folderData.system_prompt : '',
+        files: Array.isArray(folderData?.files) ? folderData.files : [],
+      },
+    };
+
+    const response = await apiClient.post(`/folders/${folderId}/update`, payload);
+    invalidateCache('/folders/');
+    invalidateCache('/chats');
+    return response.data;
+  },
+
+  deleteFolder: async (folderId: string) => {
+    const response = await apiClient.delete(`/folders/${folderId}`);
+    invalidateCache('/folders/');
+    invalidateCache('/chats');
+    return response.data;
+  },
+
+  renameChat: async (chatId: string, title: string) => {
+    const response = await apiClient.post(`/chats/${chatId}`, {
+      chat: { title },
+    });
+    invalidateCache('/chats');
+    return response.data;
+  },
+
+  moveChatToFolder: async (chatId: string, folderId: string | null) => {
+    const response = await apiClient.post(`/chats/${chatId}/folder`, {
+      folder_id: folderId,
+    });
+    invalidateCache('/chats');
+    invalidateCache('/chats/folder/');
+    invalidateCache('/folders/');
+    return response.data;
+  },
+
+  togglePinChat: async (chatId: string) => {
+    const response = await apiClient.get(`/chats/${chatId}/pinned`);
+    invalidateCache('/chats');
+    return response.data;
+  },
+
   deleteChat: async (chatId: string) => {
     await apiClient.delete(`/chats/${chatId}`);
     invalidateCache('/chats');
@@ -135,7 +215,7 @@ export const chatService = {
     return response.data;
   },
 
-  uploadFile: async (uri: string, filename?: string, mimeType?: string) => {
+  uploadFile: async (uri: string, filename?: string, mimeType?: string, process: boolean = false) => {
     const resolvedFilename = filename ?? 'upload';
     const resolvedMimeType = mimeType ?? 'application/octet-stream';
     try {
@@ -147,7 +227,7 @@ export const chatService = {
         name: resolvedFilename,
       } as any);
 
-      const response = await fetch(`${BASE_URL}/files/?process=true`, {
+      const response = await fetch(`${BASE_URL}/files/?process=${process}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData,
@@ -162,6 +242,7 @@ export const chatService = {
         url: data.path,
         meta: data.meta,
         mimeType: resolvedMimeType,
+        _raw: data,  // Full server response for building Open WebUI file refs
       };
     } catch (error) {
       console.error('[Chat Service] Erreur upload fichier:', error);
@@ -200,12 +281,15 @@ export const chatService = {
 
     const body = JSON.stringify({ ...payload, stream: true });
 
-    // Use fetch for payloads with files — react-native-sse EventSource
-    // doesn't reliably transmit file references in POST bodies
-    const hasFiles = payload.files?.length > 0
-      || payload.messages?.some((m: any) => m.files?.length > 0);
-    console.log('[SSE] hasFiles:', hasFiles, 'payload.files:', payload.files?.length, 'msg.files:', payload.messages?.filter((m: any) => m.files?.length > 0).length);
-    if (hasFiles) {
+    // Use fetch ONLY when messages contain base64 images (large body that
+    // react-native-sse EventSource can't reliably transmit).
+    // For document-only payloads (PDF, etc.), EventSource works fine — the
+    // file refs are just small JSON IDs.
+    const hasBase64Images = payload.messages?.some((m: any) =>
+      Array.isArray(m.content) && m.content.some((p: any) => p.type === 'image_url')
+    );
+    console.log('[SSE] hasBase64Images:', hasBase64Images, 'payload.files:', payload.files?.length);
+    if (hasBase64Images) {
       // Mimic EventSource interface so streamingSlice can override .close()
       const fetchES: any = {
         _closed: false,
@@ -330,7 +414,7 @@ export const chatService = {
         model: modelName,
         messages,
         chat_id: chatId,
-      });
+      }, { timeout: 60000 });
 
       const content = response.data?.choices?.[0]?.message?.content || '';
       let title = 'Nouvelle conversation';

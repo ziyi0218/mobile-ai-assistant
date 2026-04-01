@@ -1,5 +1,8 @@
 // Global test setup — mocks for Expo & React Native modules
 
+// --- __DEV__ global (used by expo-modules-core) ---
+(globalThis as any).__DEV__ = true;
+
 // --- expo-secure-store ---
 // Use a module-level store that's accessible inside jest.mock via require
 jest.mock('expo-secure-store', () => {
@@ -42,16 +45,35 @@ jest.mock('expo-router', () => ({
 // --- @react-native-async-storage/async-storage ---
 jest.mock('@react-native-async-storage/async-storage', () => {
   const store = new Map<string, string>();
-  return {
-    default: {
-      getItem: jest.fn(async (key: string) => store.get(key) ?? null),
-      setItem: jest.fn(async (key: string, value: string) => { store.set(key, value); }),
-      removeItem: jest.fn(async (key: string) => { store.delete(key); }),
-      multiGet: jest.fn(async (keys: string[]) => keys.map((k: string) => [k, store.get(k) ?? null])),
-      multiSet: jest.fn(async (pairs: [string, string][]) => { pairs.forEach(([k, v]: [string, string]) => store.set(k, v)); }),
-    },
+  const impl = {
+    getItem: jest.fn(async (key: string) => store.get(key) ?? null),
+    setItem: jest.fn(async (key: string, value: string) => { store.set(key, value); }),
+    removeItem: jest.fn(async (key: string) => { store.delete(key); }),
+    multiGet: jest.fn(async (keys: string[]) => keys.map((k: string) => [k, store.get(k) ?? null])),
+    multiSet: jest.fn(async (pairs: [string, string][]) => { pairs.forEach(([k, v]: [string, string]) => store.set(k, v)); }),
   };
+  return { __esModule: true, default: impl };
 });
+
+// --- expo-file-system ---
+jest.mock('expo-file-system', () => ({
+  readAsStringAsync: jest.fn(async () => ''),
+  writeAsStringAsync: jest.fn(async () => {}),
+  deleteAsync: jest.fn(async () => {}),
+  getInfoAsync: jest.fn(async () => ({ exists: false })),
+  makeDirectoryAsync: jest.fn(async () => {}),
+  documentDirectory: '/mock/documents/',
+  cacheDirectory: '/mock/cache/',
+  EncodingType: { UTF8: 'utf8', Base64: 'base64' },
+}));
+
+// --- expo-constants ---
+jest.mock('expo-constants', () => ({
+  default: {
+    expoConfig: { extra: {} },
+    manifest: null,
+  },
+}));
 
 // --- expo-localization ---
 jest.mock('expo-localization', () => ({

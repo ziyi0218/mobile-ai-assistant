@@ -8,11 +8,10 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, Pressable, Modal, Alert, Image } from 'react-native';
 import { Menu, ChevronDown, Plus, User, Edit3, MoreVertical, SlidersHorizontal, Share2, Download, Trash2 } from 'lucide-react-native';
 import ModelSelector from './ModelSelector';
-import Sidebar from './Sidebar';
+import Sidebar from './sidebar/Sidebar';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { TranslationKey } from '../i18n';
 import { useChatStore } from '../store/chatStore';
-import { chatService } from '../services/chatService';
 import { compteService } from '../services/compteService';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useResolvedTheme } from '../utils/theme';
@@ -41,6 +40,7 @@ export default function Header({
   const addModel = useChatStore((state) => state.addModel);
   const switchModel = useChatStore((state) => state.switchModel);
   const startNewChat = useChatStore((state) => state.startNewChat);
+  const deleteChat = useChatStore((state) => state.deleteChat);
 
   const handleDeleteChat = () => {
     Alert.alert(
@@ -54,7 +54,7 @@ export default function Header({
           onPress: async () => {
             const currentChatId = useChatStore.getState().currentChatId;
             if (currentChatId) {
-              await chatService.deleteChat(currentChatId);
+              await deleteChat(currentChatId);
             }
             startNewChat();
           },

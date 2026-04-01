@@ -62,6 +62,7 @@ export default function ChatScreen() {
   const systemPrompt = useChatStore((state) => state.systemPrompt);
   const setSystemPrompt = useChatStore((state) => state.setSystemPrompt);
   const setParam = useChatStore((state) => state.setParam);
+  const resetToDefaults = useChatStore((state) => state.resetToDefaults);
   const llmParams = useChatStore(useShallow((state) => ({
     temperature: state.temperature, maxTokens: state.maxTokens, topK: state.topK, topP: state.topP,
     minP: state.minP, frequencyPenalty: state.frequencyPenalty, presencePenalty: state.presencePenalty,
@@ -259,6 +260,7 @@ export default function ChatScreen() {
         onSystemPromptChange={setSystemPrompt}
         params={llmParams}
         onParamChange={setParam}
+        onResetToDefaults={resetToDefaults}
         t={t}
       />
     </KeyboardAvoidingView>

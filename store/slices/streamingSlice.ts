@@ -99,13 +99,15 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
     const uploadedFiles: any[] = [];
     for (const att of attachments) {
       try {
-        console.log('[UPLOAD] Uploading:', att.type, att.name, att.mimeType);
-        const result = await chatService.uploadFile(att.uri, att.name, att.mimeType);
+        const shouldProcess = att.type !== 'image';
+        console.log('[UPLOAD] Uploading:', att.type, att.name, att.mimeType, 'process:', shouldProcess);
+        const result = await chatService.uploadFile(att.uri, att.name, att.mimeType, shouldProcess);
         console.log('[UPLOAD] Result:', JSON.stringify(result));
         if (result) {
           uploadedFiles.push({
             type: att.type === 'image' ? 'image' : 'file',
             localUri: att.uri,
+            base64: att.base64,
             ...result,
           });
         }
@@ -155,15 +157,59 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
       }
     }
 
-    // Build API messages — plain text content
+    // Build API messages — for images, embed base64 directly in content (OpenAI vision format)
     const allUserMsgsNow = get().userMessages;
-    const baseMessages = allUserMsgsNow.map((m: Message) => ({
-      role: m.role,
-      content: typeof m.content === 'string' ? m.content : getDisplayText(m.content),
-    }));
+
+    // Build file refs for persistence (Open WebUI web format)
+    const fileRefs = uploadedFiles.length > 0
+      ? uploadedFiles.map((f: any) => ({
+          type: 'file',
+          file: f._raw,
+          id: f.id,
+          url: f.id,
+          name: f.name,
+          status: 'uploaded',
+          size: f._raw?.meta?.size ?? 0,
+          error: '',
+          itemId: generateUUID(),
+          content_type: f.mimeType || 'application/octet-stream',
+        }))
+      : undefined;
+
+    // Prepare base64 data URIs for image attachments
+    const imageDataUrls: string[] = [];
+    for (const f of uploadedFiles) {
+      if (f.type === 'image') {
+        if (f.base64) {
+          imageDataUrls.push(`data:${f.mimeType || 'image/jpeg'};base64,${f.base64}`);
+        } else {
+          // Fallback: read from filesystem if base64 wasn't captured
+          try {
+            const b64 = await FileSystem.readAsStringAsync(f.localUri, { encoding: FileSystem.EncodingType.Base64 });
+            imageDataUrls.push(`data:${f.mimeType || 'image/jpeg'};base64,${b64}`);
+          } catch (e) {
+            console.error('[IMAGE] Failed to read base64 from file:', e);
+          }
+        }
+      }
+    }
+
+    const baseMessages = allUserMsgsNow.map((m: Message, idx: number) => {
+      const plainText = typeof m.content === 'string' ? m.content : getDisplayText(m.content);
+      // For the LAST user message: inject images as base64 content parts
+      if (idx === allUserMsgsNow.length - 1 && imageDataUrls.length > 0) {
+        const contentParts: any[] = imageDataUrls.map((dataUrl) => ({
+          type: 'image_url',
+          image_url: { url: dataUrl },
+        }));
+        contentParts.push({ type: 'text', text: plainText });
+        return { role: m.role, content: contentParts };
+      }
+      return { role: m.role, content: plainText };
+    });
     // Skip ADE system prompt when images are attached — it confuses vision models
     const effectiveSystemPrompt = hasImages
-      ? (systemPrompt || 'Tu es un assistant utile.')
+      ? (systemPrompt || 'Tu es un assistant utile. Réponds toujours en français.')
       : (systemPrompt ? `${systemPrompt}\n\n${ADE_SYSTEM_PROMPT}` : ADE_SYSTEM_PROMPT);
     const apiMessages = [{ role: 'system', content: effectiveSystemPrompt }, ...baseMessages];
 
@@ -211,7 +257,7 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
             : null,
           childrenIds: [assistantMsgId],
           role: 'user',
-          content: text,
+          content: messageContent,
           timestamp,
           models: activeModels,
         },
@@ -222,11 +268,9 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
         },
       };
 
-      // ALL files at top-level (images + documents)
-      if (uploadedFiles.length > 0) {
-        streamPayload.files = uploadedFiles.map((f: any) => ({
-          type: 'file', id: f.id, filename: f.name, meta: f.meta,
-        }));
+      // Also keep files at top-level for compatibility
+      if (fileRefs) {
+        streamPayload.files = fileRefs;
       }
 
       const es = await chatService.streamCompletion(
@@ -369,15 +413,20 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
               allUserMsgs, allModelResponses, activeModels, stableAssistantIds, timestamp,
             );
 
+            // Attach file refs to user messages in history (matching web format)
+            if (fileRefs) {
+              const lastUserMsg = messagesArray.find((m: any) => m.id === userMsgId);
+              if (lastUserMsg) lastUserMsg.files = fileRefs;
+              if (historyMessages[userMsgId]) historyMessages[userMsgId].files = fileRefs;
+            }
+
             await chatService.updateChat(currentChatId, {
               chat: {
                 models: activeModels,
                 history: { messages: historyMessages, currentId: lastMsgId },
                 messages: messagesArray,
                 params: {},
-                files: uploadedFiles.length > 0
-                  ? uploadedFiles.map((f: any) => ({ id: f.id, type: f.type, name: f.name, url: f.url, meta: f.meta, mimeType: f.mimeType }))
-                  : [],
+                files: [],
               },
             });
 

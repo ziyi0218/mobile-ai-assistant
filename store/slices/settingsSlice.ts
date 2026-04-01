@@ -46,6 +46,7 @@ export interface SettingsSlice extends LLMParams {
   setCodeInterpreterEnabled: (v: boolean) => void;
   addModel: (name: string) => void;
   switchModel: (index: number, newModel: string) => void;
+  resetToDefaults: () => void;
   // Legacy setters (keep for existing callers)
   setTemperature: (v: number) => void;
   setMaxTokens: (v: number) => void;
@@ -53,7 +54,7 @@ export interface SettingsSlice extends LLMParams {
   setTopP: (v: number) => void;
 }
 
-const DEFAULT_PARAMS: LLMParams = {
+export const DEFAULT_PARAMS: LLMParams = {
   temperature: 0.7,
   maxTokens: 2048,
   topK: 40,
@@ -86,6 +87,7 @@ export const createSettingsSlice = (set: any, get: any): SettingsSlice => ({
 
   setSystemPrompt: (v) => set({ systemPrompt: v }),
   setParam: (key, value) => set({ [key]: value }),
+  resetToDefaults: () => set({ ...DEFAULT_PARAMS, systemPrompt: '' }),
 
   // Legacy setters
   setTemperature: (v) => set({ temperature: v }),

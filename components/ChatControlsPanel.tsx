@@ -4,8 +4,8 @@
  * @github https://github.com/assinscreedFC
  */
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, Pressable, Switch } from 'react-native';
-import { X, ChevronDown, ChevronRight, Info, Zap, Thermometer, Box, FileText, CheckCircle2, Circle, SlidersHorizontal, Target, Hash, Repeat, Brain, Settings2 } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, Pressable, Switch, Keyboard } from 'react-native';
+import { X, ChevronDown, ChevronRight, Info, Zap, Thermometer, Box, FileText, CheckCircle2, Circle, SlidersHorizontal, Target, Hash, Repeat, Brain, Settings2, RotateCcw } from 'lucide-react-native';
 import { TranslationKey } from '../i18n';
 import type { LLMParams } from '../store/slices/settingsSlice';
 
@@ -16,6 +16,7 @@ interface ChatControlsPanelProps {
     onSystemPromptChange: (text: string) => void;
     params: LLMParams;
     onParamChange: <K extends keyof LLMParams>(key: K, value: LLMParams[K]) => void;
+    onResetToDefaults: () => void;
     t: (key: TranslationKey) => string;
 }
 
@@ -94,7 +95,7 @@ function parseNullableFloat(t: string): number | null { const v = parseFloat(t);
 
 // ─── Main component ────────────────────────────────────────────
 export default function ChatControlsPanel({
-    visible, onClose, systemPrompt, onSystemPromptChange, params, onParamChange, t,
+    visible, onClose, systemPrompt, onSystemPromptChange, params, onParamChange, onResetToDefaults, t,
 }: ChatControlsPanelProps) {
     const [activeTab, setActiveTab] = useState<'parameters' | 'system' | 'advanced'>('parameters');
     const [expanded, setExpanded] = useState<string>('');
@@ -326,11 +327,15 @@ export default function ChatControlsPanel({
                                         <FileText color="#333" size={18} />
                                         <Text className="text-[15px] font-semibold text-[#333]">{t('customSystemPrompt')}</Text>
                                     </View>
-                                    <TextInput multiline value={systemPrompt} onChangeText={onSystemPromptChange}
+                                    <TextInput multiline blurOnSubmit={false} returnKeyType="default"
+                                        value={systemPrompt} onChangeText={onSystemPromptChange}
                                         placeholder={t('systemPromptPlaceholder')} placeholderTextColor="#999"
                                         className="flex-1 bg-white border border-[#E0E0E0] rounded-xl p-3 text-[15px] leading-6 text-[#333]"
                                         style={{ textAlignVertical: 'top', minHeight: 200 }} />
-                                    <View className="mt-3 flex-row justify-end">
+                                    <View className="mt-3 flex-row justify-end gap-2">
+                                        <TouchableOpacity onPress={() => Keyboard.dismiss()} className="px-3 py-1.5 bg-[#E8F5E9] rounded-lg">
+                                            <Text className="text-[12px] font-medium text-[#2E7D32]">OK</Text>
+                                        </TouchableOpacity>
                                         <TouchableOpacity onPress={() => onSystemPromptChange("")} className="px-3 py-1.5 bg-[#FFEBEB] rounded-lg">
                                             <Text className="text-[12px] font-medium text-[#D32F2F]">{t('clear')}</Text>
                                         </TouchableOpacity>
@@ -346,9 +351,15 @@ export default function ChatControlsPanel({
 
                     {/* Footer */}
                     <View className="p-5 border-t border-[#F0F0F0] bg-white">
-                        <TouchableOpacity onPress={onClose} className="w-full bg-[#111] py-3.5 rounded-xl items-center">
-                            <Text className="text-white font-semibold text-[16px]">{t('done')}</Text>
-                        </TouchableOpacity>
+                        <View className="flex-row gap-3">
+                            <TouchableOpacity onPress={onResetToDefaults} className="flex-1 bg-[#F5F5F5] py-3.5 rounded-xl items-center flex-row justify-center gap-2">
+                                <RotateCcw color="#666" size={16} />
+                                <Text className="text-[#666] font-semibold text-[16px]">{t('resetDefaults')}</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={onClose} className="flex-1 bg-[#111] py-3.5 rounded-xl items-center">
+                                <Text className="text-white font-semibold text-[16px]">{t('done')}</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </View>

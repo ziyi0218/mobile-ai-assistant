@@ -56,6 +56,15 @@ export interface HistoryMessage {
 export interface ChatData {
   id: string;
   title: string;
+  user_id?: string;
+  updated_at?: number;
+  created_at?: number;
+  folder_id?: string | null;
+  pinned?: boolean;
+  archived?: boolean;
+  share_id?: string | null;
+  meta?: Record<string, unknown> | null;
+  folder?: ChatFolder | null;
   chat: {
     models: string[];
     history: {
@@ -73,9 +82,32 @@ export interface ChatData {
 /** Minimal chat summary returned by GET /chats/ (history list) */
 export interface ChatSummary {
   id: string;
-  title: string;
+  title: string | null;
   updated_at: number;
   created_at: number;
+  user_id?: string;
+  folder_id?: string | null;
+  pinned?: boolean;
+  archived?: boolean;
+  share_id?: string | null;
+  meta?: Record<string, unknown> | null;
+  chat?: ChatData['chat'];
+  folder?: ChatFolder | null;
+}
+
+export interface ChatFolder {
+  id: string;
+  name: string;
+  parent_id?: string | null;
+  user_id?: string;
+  meta?: Record<string, unknown> | null;
+  data?: {
+    system_prompt?: string;
+    files?: unknown[];
+  } | null;
+  items?: unknown[] | null;
+  is_expanded?: boolean;
+  expanded?: boolean;
 }
 
 // ---------------------------------------------------------------------------

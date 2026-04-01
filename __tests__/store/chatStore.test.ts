@@ -14,7 +14,14 @@ jest.mock('../../services/chatService', () => ({
     uploadFile: jest.fn(),
     stopTask: jest.fn(),
     getArchivedChats: jest.fn(),
+    getFolders: jest.fn(),
     toggleArchiveChat: jest.fn(),
+    renameChat: jest.fn(),
+    moveChatToFolder: jest.fn(),
+    togglePinChat: jest.fn(),
+    createFolder: jest.fn(),
+    updateFolder: jest.fn(),
+    deleteFolder: jest.fn(),
     archiveAllChats: jest.fn(),
     unarchiveAllChats: jest.fn(),
     deleteAllChats: jest.fn(),
@@ -49,6 +56,7 @@ function resetStore() {
     _historyTimeoutId: null,
     history: [],
     archivedChats: [],
+    folders: [],
     modelVision: {},
   });
 }
@@ -304,7 +312,7 @@ describe('chatStore', () => {
 
       await useChatStore.getState().sendMessage('See image');
 
-      expect(mockChatService.uploadFile).toHaveBeenCalledWith('file:///photo.jpg', 'photo.jpg', 'image/jpeg');
+      expect(mockChatService.uploadFile).toHaveBeenCalledWith('file:///photo.jpg', 'photo.jpg', 'image/jpeg', false);
       // Attachments should be cleared after sending
       expect(useChatStore.getState().attachments).toEqual([]);
     });
