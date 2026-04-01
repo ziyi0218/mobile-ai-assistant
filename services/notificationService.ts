@@ -82,8 +82,16 @@ export const notificationService = {
       });
     }
 
-    const tokenData = await Notifications.getExpoPushTokenAsync();
-    return tokenData.data;
+    try {
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      const tokenData = await Notifications.getExpoPushTokenAsync(
+        projectId ? { projectId } : undefined,
+      );
+      return tokenData.data;
+    } catch (e) {
+      console.warn('[Notifications] Could not get push token:', e);
+      return null;
+    }
   },
 
   /** Send push token to backend (if supported) */
