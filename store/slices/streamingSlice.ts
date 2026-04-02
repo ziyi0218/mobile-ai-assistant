@@ -86,6 +86,29 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
     let { isTyping, activeModels, currentChatId, webSearchEnabled, codeInterpreterEnabled, attachments, systemPrompt } = get();
     if (isTyping || (!text.trim() && attachments.length === 0)) return;
 
+    // Auto-detect persona if auto mode is enabled
+    let shouldIncludeADE = true; // default: include ADE when no auto-persona
+    const { autoPersona, personas: allPersonas, activePersonaId } = get();
+    if (autoPersona && text.trim()) {
+      try {
+        const personaList = allPersonas.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description,
+        }));
+        const result = await chatService.classifyPersona(text, activeModels[0], personaList);
+        shouldIncludeADE = result.includeADE;
+        if (result.personaId && result.personaId !== activePersonaId) {
+          get().selectPersona(result.personaId);
+        }
+      } catch (e) {
+        console.warn('[Auto-persona] Classification failed, keeping current:', e);
+      }
+    } else if (activePersonaId) {
+      // Manual persona selected → no ADE by default
+      shouldIncludeADE = false;
+    }
+
     set({
       isTyping: true,
       currentTaskIds: [],
@@ -207,10 +230,26 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
       }
       return { role: m.role, content: plainText };
     });
-    // Skip ADE system prompt when images are attached — it confuses vision models
-    const effectiveSystemPrompt = hasImages
-      ? (systemPrompt || 'Tu es un assistant utile. Réponds toujours en français.')
-      : (systemPrompt ? `${systemPrompt}\n\n${ADE_SYSTEM_PROMPT}` : ADE_SYSTEM_PROMPT);
+    // Build effective system prompt from 3 layers:
+    // 1. Persona context (name + description + persona prompt) — if persona active
+    // 2. User's system prompt — always present
+    // 3. ADE system prompt — only if shouldIncludeADE (auto-persona decides, or no persona)
+    const { activePersonaId: currentPersonaId, personas: currentPersonas } = get();
+    const activePersona = currentPersonaId ? currentPersonas.find((p: any) => p.id === currentPersonaId) : null;
+
+    const parts: string[] = [];
+    if (activePersona) {
+      parts.push(`[Role: ${activePersona.name}]\n[Description: ${activePersona.description}]\n\n${activePersona.systemPrompt}`);
+    }
+    if (systemPrompt) {
+      parts.push(systemPrompt);
+    }
+    if (shouldIncludeADE && !hasImages) {
+      parts.push(ADE_SYSTEM_PROMPT);
+    }
+    const effectiveSystemPrompt = parts.length > 0
+      ? parts.join('\n\n')
+      : 'Tu es un assistant utile. Réponds toujours en français.';
     const apiMessages = [{ role: 'system', content: effectiveSystemPrompt }, ...baseMessages];
 
     // Pre-generate stable assistant IDs for all (model x userMsg) combos

@@ -8,6 +8,8 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, Pressable, 
 import { X, ChevronDown, ChevronRight, Info, Zap, Thermometer, Box, FileText, CheckCircle2, Circle, SlidersHorizontal, Target, Hash, Repeat, Brain, Settings2, RotateCcw } from 'lucide-react-native';
 import { TranslationKey } from '../i18n';
 import type { LLMParams } from '../store/slices/settingsSlice';
+import type { Persona } from '../types/persona';
+import PersonaSelector from './PersonaSelector';
 
 interface ChatControlsPanelProps {
     visible: boolean;
@@ -17,6 +19,12 @@ interface ChatControlsPanelProps {
     params: LLMParams;
     onParamChange: <K extends keyof LLMParams>(key: K, value: LLMParams[K]) => void;
     onResetToDefaults: () => void;
+    personas: Persona[];
+    activePersonaId: string | null;
+    autoPersona: boolean;
+    onAutoPersonaChange: (value: boolean) => void;
+    onSelectPersona: (id: string | null) => void;
+    onCreatePersonaPress: () => void;
     t: (key: TranslationKey) => string;
 }
 
@@ -95,9 +103,10 @@ function parseNullableFloat(t: string): number | null { const v = parseFloat(t);
 
 // ─── Main component ────────────────────────────────────────────
 export default function ChatControlsPanel({
-    visible, onClose, systemPrompt, onSystemPromptChange, params, onParamChange, onResetToDefaults, t,
+    visible, onClose, systemPrompt, onSystemPromptChange, params, onParamChange, onResetToDefaults,
+    personas, activePersonaId, autoPersona, onAutoPersonaChange, onSelectPersona, onCreatePersonaPress, t,
 }: ChatControlsPanelProps) {
-    const [activeTab, setActiveTab] = useState<'parameters' | 'system' | 'advanced'>('parameters');
+    const [activeTab, setActiveTab] = useState<'personas' | 'parameters' | 'system' | 'advanced'>('parameters');
     const [expanded, setExpanded] = useState<string>('');
     const toggle = (s: string) => setExpanded(expanded === s ? '' : s);
 
@@ -119,17 +128,41 @@ export default function ChatControlsPanel({
 
                     {/* Tabs */}
                     <View className="flex-row px-5 pt-4 pb-2">
-                        {(['parameters', 'advanced', 'system'] as const).map((tab) => (
+                        {(['personas', 'parameters', 'advanced', 'system'] as const).map((tab) => (
                             <TouchableOpacity key={tab} onPress={() => setActiveTab(tab)}
                                 className={`mr-5 pb-2 border-b-2 ${activeTab === tab ? 'border-[#007AFF]' : 'border-transparent'}`}>
                                 <Text className={`text-[14px] font-medium ${activeTab === tab ? 'text-[#007AFF]' : 'text-[#666]'}`}>
-                                    {tab === 'parameters' ? t('parameters') : tab === 'advanced' ? t('advancedSettings') : t('systemPrompt')}
+                                    {tab === 'personas' ? t('personas') : tab === 'parameters' ? t('parameters') : tab === 'advanced' ? t('advancedSettings') : t('systemPrompt')}
                                 </Text>
                             </TouchableOpacity>
                         ))}
                     </View>
 
                     <ScrollView className="flex-1" contentContainerStyle={{ padding: 20 }}>
+                        {/* ═══ TAB: Personas ═══ */}
+                        {activeTab === 'personas' && (
+                            <View className="gap-3">
+                                {/* Auto-detection toggle */}
+                                <View className="bg-[#F9F9F9] rounded-[16px] p-4 border border-[#EAEAEA] flex-row items-center justify-between">
+                                    <View className="flex-1 mr-3">
+                                        <Text className="text-[15px] font-semibold text-[#333]">{t('autoPersona')}</Text>
+                                        <Text className="text-[12px] text-[#666] mt-0.5">{t('autoPersonaDesc')}</Text>
+                                    </View>
+                                    <Switch value={autoPersona} onValueChange={onAutoPersonaChange} trackColor={{ true: '#007AFF' }} />
+                                </View>
+                                {/* Manual persona selector (dimmed when auto is on) */}
+                                <View style={{ opacity: autoPersona ? 0.5 : 1 }} pointerEvents={autoPersona ? 'none' : 'auto'}>
+                                    <PersonaSelector
+                                        personas={personas}
+                                        activePersonaId={activePersonaId}
+                                        onSelect={onSelectPersona}
+                                        onCreatePress={onCreatePersonaPress}
+                                        t={t}
+                                    />
+                                </View>
+                            </View>
+                        )}
+
                         {/* ═══ TAB: Parameters ═══ */}
                         {activeTab === 'parameters' && (
                             <View className="gap-4">

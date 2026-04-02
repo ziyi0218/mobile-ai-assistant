@@ -63,6 +63,11 @@ export default function ChatScreen() {
   const setSystemPrompt = useChatStore((state) => state.setSystemPrompt);
   const setParam = useChatStore((state) => state.setParam);
   const resetToDefaults = useChatStore((state) => state.resetToDefaults);
+  const personas = useChatStore((state) => state.personas);
+  const activePersonaId = useChatStore((state) => state.activePersonaId);
+  const selectPersona = useChatStore((state) => state.selectPersona);
+  const autoPersona = useChatStore((state) => state.autoPersona);
+  const setAutoPersona = useChatStore((state) => state.setAutoPersona);
   const llmParams = useChatStore(useShallow((state) => ({
     temperature: state.temperature, maxTokens: state.maxTokens, topK: state.topK, topP: state.topP,
     minP: state.minP, frequencyPenalty: state.frequencyPenalty, presencePenalty: state.presencePenalty,
@@ -261,6 +266,12 @@ export default function ChatScreen() {
         params={llmParams}
         onParamChange={setParam}
         onResetToDefaults={resetToDefaults}
+        personas={personas}
+        activePersonaId={activePersonaId}
+        autoPersona={autoPersona}
+        onAutoPersonaChange={setAutoPersona}
+        onSelectPersona={selectPersona}
+        onCreatePersonaPress={() => { setIsChatControlsVisible(false); router.push('/personas'); }}
         t={t}
       />
     </KeyboardAvoidingView>

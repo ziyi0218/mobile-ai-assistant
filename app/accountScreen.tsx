@@ -63,6 +63,14 @@ const optionsList: AccountOption[] = [
     action: null,
   },
   {
+    id: "2b",
+    textKey: "personas",
+    icon: "people-outline",
+    color: "#000",
+    route: "/personas",
+    action: null,
+  },
+  {
     id: "3",
     textKey: "account",
     icon: "person-circle-outline",

@@ -271,6 +271,67 @@ export const chatService = {
     }
   },
 
+  classifyPersona: async (
+    userMessage: string,
+    modelName: string,
+    personas: Array<{ id: string; name: string; description: string }>
+  ): Promise<{ personaId: string | null; includeADE: boolean }> => {
+    try {
+      const token = await SecureStore.getItemAsync('token');
+      const url = `${BASE_URL_CHAT}/chat/completions`;
+
+      const personaList = personas
+        .map((p) => `- ${p.id}: ${p.name} — ${p.description}`)
+        .join('\n');
+
+      const classificationPrompt = `Tu es un routeur intelligent. Analyse le message de l'utilisateur et decide :
+1. Quel persona utiliser parmi cette liste :
+${personaList}
+
+2. Si le systeme ADE (emploi du temps universitaire Paris Cite) est necessaire.
+
+Reponds avec EXACTEMENT ce format :
+- Si ADE est utile : "persona_id+ade"
+- Sinon : "persona_id"
+
+Exemples :
+- "quel est mon emploi du temps ?" → "builtin-assistant+ade"
+- "ecris un poeme" → "builtin-creative"
+- "corrige ce code python" → "builtin-code"
+- "salle de cours demain ?" → "builtin-assistant+ade"
+
+Si aucun persona ne correspond, utilise "builtin-assistant".
+Reponds UNIQUEMENT l'id (avec ou sans +ade), rien d'autre.`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages: [
+            { role: 'system', content: classificationPrompt },
+            { role: 'user', content: userMessage },
+          ],
+          stream: false,
+          params: { temperature: 0.1, max_tokens: 50 },
+        }),
+      });
+
+      const data = await response.json();
+      const raw = data.choices?.[0]?.message?.content?.trim() || '';
+      const includeADE = raw.endsWith('+ade');
+      const personaIdStr = includeADE ? raw.replace('+ade', '') : raw;
+      const match = personas.find((p) => p.id === personaIdStr);
+      return { personaId: match ? match.id : null, includeADE };
+    } catch (error) {
+      console.warn('[classifyPersona] Classification failed:', error);
+      return { personaId: null, includeADE: false };
+    }
+  },
+
   streamCompletion: async (
     payload: any,
     onChunk: (text: string, taskId?: string) => void,

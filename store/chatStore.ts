@@ -10,11 +10,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createSettingsSlice, SettingsSlice } from './slices/settingsSlice';
 import { createChatHistorySlice, ChatHistorySlice } from './slices/chatHistorySlice';
 import { createStreamingSlice, StreamingSlice } from './slices/streamingSlice';
+import { createPersonaSlice, PersonaSlice } from './slices/personaSlice';
 
 // Re-export types so existing imports keep working
 export type { Message, Attachment } from '../utils/messageHelpers';
 
-interface ChatState extends SettingsSlice, ChatHistorySlice, StreamingSlice {}
+interface ChatState extends SettingsSlice, ChatHistorySlice, StreamingSlice, PersonaSlice {}
 
 export const useChatStore = create<ChatState>()(
   persist(
@@ -22,6 +23,7 @@ export const useChatStore = create<ChatState>()(
       ...createSettingsSlice(set, get),
       ...createChatHistorySlice(set, get),
       ...createStreamingSlice(set, get),
+      ...createPersonaSlice(set, get),
     }),
     {
       name: 'l3t1-chat-params-v1',
@@ -48,6 +50,9 @@ export const useChatStore = create<ChatState>()(
         think: state.think,
         streamResponse: state.streamResponse,
         systemPrompt: state.systemPrompt,
+        personas: state.personas,
+        activePersonaId: state.activePersonaId,
+        autoPersona: state.autoPersona,
       }),
     }
   )

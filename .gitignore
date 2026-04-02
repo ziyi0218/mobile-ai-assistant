@@ -47,3 +47,7 @@ yarn-error.*
 CLAUDE.md
 .claude/
 *.claude*
+
+# Plans internes (pas versionnés)
+OFFLINE_LLM_PLAN.md
+PERSONAS_PLAN.md
