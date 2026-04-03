@@ -53,6 +53,7 @@ export interface PersonaSlice {
   addPersona: (input: PersonaCreateInput) => void;
   updatePersona: (id: string, updates: Partial<PersonaCreateInput>) => void;
   deletePersona: (id: string) => void;
+  setPersonas: (personas: Persona[]) => void;
   selectPersona: (id: string | null) => void;
   initBuiltInPersonas: () => void;
 }
@@ -111,6 +112,17 @@ export const createPersonaSlice = (set: any, get: any): PersonaSlice => ({
     set({
       personas: personas.filter((p: Persona) => p.id !== id),
       ...(activePersonaId === id ? { activePersonaId: null } : {}),
+    });
+  },
+
+  setPersonas: (personas) => {
+    const { activePersonaId } = get();
+    const activeStillExists =
+      activePersonaId === null || personas.some((p: Persona) => p.id === activePersonaId);
+
+    set({
+      personas,
+      ...(activeStillExists ? {} : { activePersonaId: null }),
     });
   },
 

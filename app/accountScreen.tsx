@@ -1,7 +1,6 @@
 import type { ComponentProps } from "react";
 import { useState } from "react";
 import {
-  SafeAreaView,
   View,
   Text,
   Pressable,
@@ -10,9 +9,9 @@ import {
   ActivityIndicator,
   Alert,
   Switch,
+  StyleSheet,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
 import { useSettingsStore } from "../store/useSettingsStore";
@@ -24,8 +23,7 @@ import { logout } from "../services/authService";
 import { adeService } from "../services/adeService";
 import { useBiometric } from "../hooks/useBiometric";
 import { useCommonDesign } from "../hooks/useCommonDesign";
-import { ChevronLeft } from "lucide-react-native";
-
+import { ChevronLeft, ChevronRight } from "lucide-react-native";
 
 type AccountOption = {
   id: string;
@@ -106,14 +104,13 @@ const optionsList: AccountOption[] = [
 ];
 
 export default function AccountScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useI18n();
   const { themeMode } = useSettingsStore();
   const { colors } = useResolvedTheme(themeMode);
   const scaledFontSize = useUIScale(24);
-  const scaled48 = useUIScale(48);
   const scaled22 = useUIScale(22);
+  const scaledChevronSize = useUIScale(18);
   const scaleFactor = useUIScale(1);
   const { haptics } = useHaptics();
   const styles = useCommonDesign();
@@ -133,10 +130,9 @@ export default function AccountScreen() {
       return (
         <MaterialCommunityIcons
           name={item.icon as ComponentProps<typeof MaterialCommunityIcons>["name"]}
-          size={scaled48}
+          size={scaled22}
           color={item.color === "#FF0000" ? item.color : colors.text}
-          className="mr-5 text-center"
-          style={{ fontSize: scaled48 }}
+          style={accountStyles.rowIcon}
         />
       );
     }
@@ -144,10 +140,9 @@ export default function AccountScreen() {
     return (
       <Ionicons
         name={item.icon as ComponentProps<typeof Ionicons>["name"]}
-        size={scaled48}
+        size={scaled22}
         color={item.color === "#FF0000" ? item.color : colors.text}
-        className="mr-5 text-center"
-        style={{ fontSize: scaled48 }}
+        style={accountStyles.rowIcon}
       />
     );
   };
@@ -175,215 +170,263 @@ export default function AccountScreen() {
   };
 
   return (
-    <SafeAreaView
-      className="flex-1"
-      style={{
-        paddingTop: insets.top,
-        paddingBottom: insets.bottom,
-        backgroundColor: colors.bg,
-      }}
-    >
-      <View className="flex-1" style={{ backgroundColor: colors.bg }}>
-        {/* Back button */}
-        <View className="flex-row items-center px-2.5">
-          <Pressable onPress={() => {haptics('light'); router.back()}}
-                     style={styles.backButton}
-          >
-            <ChevronLeft size={scaled22} color={colors.text} strokeWidth={2.5} />
-          </Pressable>
-        </View>
-
-        <View style={styles.content}>
-          <FlatList
-            className="px-5 pt-5"
-            data={optionsList}
-            keyExtractor={(item) => item.id}
-            ListHeaderComponent={
-              <View>
-                <Pressable
-                  style={styles.item_start}
-                  onPress={() => {
-                    haptics("light");
-                    router.push({ pathname: "/archivedChats" });
-                  }}
-                >
-                  <Ionicons
-                    name="archive-outline"
-                    size={scaled48}
-                    color={colors.text}
-                    className="mr-5 text-center"
-                    style={{ width: scaled48, height: scaled48 }}
-                  />
-                  <Text
-                    minimumFontScale={0.8}
-                    ellipsizeMode="tail"
-                    style={[styles.title, {marginRight: 10, marginLeft: 10} ]}
-                  >
-                    {t("archivedChats")}
-                  </Text>
-                </Pressable>
-
-                <View className="items-center mt-2.5 mb-2.5">
-                  <Text
-                    minimumFontScale={0.8}
-                    ellipsizeMode="tail"
-                    className="font-bold text-center"
-                    style={styles.title}
-                  >
-                    — {t("settings")} —
-                  </Text>
-                </View>
-              </View>
-            }
-            renderItem={({ item }) => {
-              const handlePress = async () => {
+    <View className="flex-1" style={{ backgroundColor: colors.bg }}>
+      <View style={[layoutStyles.screen, { backgroundColor: colors.bg }]}>
+        <View style={layoutStyles.container}>
+          <View style={layoutStyles.header}>
+            <Pressable
+              onPress={() => {
                 haptics("light");
+                router.back();
+              }}
+              style={styles.backButton}
+            >
+              <ChevronLeft size={scaled22} color={colors.text} strokeWidth={2.5} />
+            </Pressable>
+          </View>
 
-                if (item.action === "logout") {
-                  try {
-                    await logout();
-                  } catch (e) {
-                    console.warn("[AccountScreen] Logout error:", e);
-                  }
-                  router.replace("/sign-in");
-                } else if (item.route) {
-                  router.push({ pathname: item.route });
-                }
-              };
-
-              return (
-                <Pressable style={styles.item_start} onPress={handlePress}>
-                  {renderOptionIcon(item)}
-                  <Text
-                    minimumFontScale={0.8}
-                    ellipsizeMode="tail"
-                    className="font-bold text-center"
-                    style={[styles.title, {marginRight: 10, marginLeft: 10,
-                      color: item.color === "#FF0000" ? item.color : colors.text,
-                    }]}
-                  >
-                    {t(item.textKey)}
-                  </Text>
-                </Pressable>
-              );
-            }}
-            ListFooterComponent={
-              <View style={{ marginTop: 20, paddingHorizontal: 5 }}>
-                {biometricAvailable && (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      paddingVertical: 12,
-                      marginBottom: 10,
+          <View style={layoutStyles.content}>
+            <FlatList
+              style={layoutStyles.list}
+              contentContainerStyle={layoutStyles.listContent}
+              data={optionsList}
+              keyExtractor={(item) => item.id}
+              ListHeaderComponent={
+                <View>
+                  <Pressable
+                    style={styles.item}
+                    onPress={() => {
+                      haptics("light");
+                      router.push({ pathname: "/archivedChats" });
                     }}
                   >
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: colors.text, fontSize: 16, fontWeight: "600" }}>
-                        {t("biometricLock")}
-                      </Text>
-                      <Text style={{ color: colors.subtext, fontSize: 13, marginTop: 2 }}>
-                        {t("biometricLockDescription")}
+                    <View style={accountStyles.rowStart}>
+                      <Ionicons
+                        name="archive-outline"
+                        size={scaled22}
+                        color={colors.text}
+                        style={accountStyles.rowIcon}
+                      />
+                      <Text
+                        minimumFontScale={0.8}
+                        ellipsizeMode="tail"
+                        style={[styles.label, accountStyles.rowLabel, { color: colors.text }]}
+                      >
+                        {t("archivedChats")}
                       </Text>
                     </View>
-                    <Switch
-                      value={biometricEnabled}
-                      onValueChange={(value) => {
-                        toggleBiometric(value);
-                      }}
-                      trackColor={{ false: "#767577", true: "#4A90D9" }}
-                      thumbColor={biometricEnabled ? "#fff" : "#f4f3f4"}
-                      style={{ transform: [{ scale: scaleFactor }] }}
-                    />
-                  </View>
-                )}
+                    <ChevronRight size={scaledChevronSize} color={colors.subtext} />
+                  </Pressable>
 
-                <View className="items-center mb-2.5">
-                  <Text
-                    className="font-bold text-center"
-                    style={{ color: colors.text, fontSize: scaledFontSize }}
-                  >
-                    — {t("adeConsult")} —
-                  </Text>
-                </View>
-
-                {adeConnected ? (
-                  <Text
-                    style={{
-                      color: "#4CAF50",
-                      fontSize: 16,
-                      textAlign: "center",
-                      marginBottom: 10,
-                    }}
-                  >
-                    {t("adeConnected")}
-                  </Text>
-                ) : (
-                  <View>
-                    <Text style={{ color: colors.subtext, fontSize: 13, marginBottom: 8 }}>
-                      {t("adeCasDescription")}
+                  <View className="items-center mt-2.5 mb-2.5">
+                    <Text
+                      minimumFontScale={0.8}
+                      ellipsizeMode="tail"
+                      className="font-bold text-center"
+                      style={styles.title}
+                    >
+                      — {t("settings")} —
                     </Text>
-                    <TextInput
-                      placeholder={t("adeCasPlaceholder")}
-                      placeholderTextColor={colors.subtext}
-                      value={adeUser}
-                      onChangeText={setAdeUser}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      style={{
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        borderRadius: 8,
-                        padding: 12,
-                        color: colors.text,
-                        marginBottom: 10,
-                        fontSize: 14,
-                      }}
+                  </View>
+                </View>
+              }
+              renderItem={({ item }) => {
+                const handlePress = async () => {
+                  haptics("light");
+
+                  if (item.action === "logout") {
+                    try {
+                      await logout();
+                    } catch (e) {
+                      console.warn("[AccountScreen] Logout error:", e);
+                    }
+                    router.replace("/sign-in");
+                  } else if (item.route) {
+                    router.push({ pathname: item.route });
+                  }
+                };
+
+                return (
+                  <Pressable style={styles.item} onPress={handlePress}>
+                    <View style={accountStyles.rowStart}>
+                      {renderOptionIcon(item)}
+                      <Text
+                        minimumFontScale={0.8}
+                        ellipsizeMode="tail"
+                        style={[
+                          styles.label,
+                          accountStyles.rowLabel,
+                          {
+                            color: item.color === "#FF0000" ? item.color : colors.text,
+                          },
+                        ]}
+                      >
+                        {t(item.textKey)}
+                      </Text>
+                    </View>
+                    <ChevronRight
+                      size={scaledChevronSize}
+                      color={item.color === "#FF0000" ? item.color : colors.subtext}
                     />
-                    <TextInput
-                      placeholder={t("adeCasPassword")}
-                      placeholderTextColor={colors.subtext}
-                      value={adePass}
-                      onChangeText={setAdePass}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      secureTextEntry
+                  </Pressable>
+                );
+              }}
+              ListFooterComponent={
+                <View style={{ marginTop: 20, paddingHorizontal: 5 }}>
+                  {biometricAvailable && (
+                    <View
                       style={{
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        borderRadius: 8,
-                        padding: 12,
-                        color: colors.text,
-                        marginBottom: 10,
-                        fontSize: 14,
-                      }}
-                    />
-                    <Pressable
-                      onPress={handleAdeLogin}
-                      disabled={adeLoading}
-                      style={{
-                        backgroundColor: adeLoading ? "#666" : "#4A90D9",
-                        borderRadius: 8,
-                        padding: 14,
+                        flexDirection: "row",
                         alignItems: "center",
+                        justifyContent: "space-between",
+                        paddingVertical: 12,
+                        marginBottom: 10,
                       }}
                     >
-                      {adeLoading ? (
-                        <ActivityIndicator color="#fff" />
-                      ) : (
-                        <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
-                          {t("adeConnect")}
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: colors.text, fontSize: 16, fontWeight: "600" }}>
+                          {t("biometricLock")}
                         </Text>
-                      )}
-                    </Pressable>
+                        <Text style={{ color: colors.subtext, fontSize: 13, marginTop: 2 }}>
+                          {t("biometricLockDescription")}
+                        </Text>
+                      </View>
+                      <Switch
+                        value={biometricEnabled}
+                        onValueChange={(value) => {
+                          toggleBiometric(value);
+                        }}
+                        trackColor={{ false: "#767577", true: "#4A90D9" }}
+                        thumbColor={biometricEnabled ? "#fff" : "#f4f3f4"}
+                        style={{ transform: [{ scale: scaleFactor }] }}
+                      />
+                    </View>
+                  )}
+
+                  <View className="items-center mb-2.5">
+                    <Text
+                      className="font-bold text-center"
+                      style={{ color: colors.text, fontSize: scaledFontSize }}
+                    >
+                      — {t("adeConsult")} —
+                    </Text>
                   </View>
-                )}
-              </View>
-            }
-          />
+
+                  {adeConnected ? (
+                    <Text
+                      style={{
+                        color: "#4CAF50",
+                        fontSize: 16,
+                        textAlign: "center",
+                        marginBottom: 10,
+                      }}
+                    >
+                      {t("adeConnected")}
+                    </Text>
+                  ) : (
+                    <View>
+                      <Text style={{ color: colors.subtext, fontSize: 13, marginBottom: 8 }}>
+                        {t("adeCasDescription")}
+                      </Text>
+                      <TextInput
+                        placeholder={t("adeCasPlaceholder")}
+                        placeholderTextColor={colors.subtext}
+                        value={adeUser}
+                        onChangeText={setAdeUser}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        style={{
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          borderRadius: 8,
+                          padding: 12,
+                          color: colors.text,
+                          marginBottom: 10,
+                          fontSize: 14,
+                        }}
+                      />
+                      <TextInput
+                        placeholder={t("adeCasPassword")}
+                        placeholderTextColor={colors.subtext}
+                        value={adePass}
+                        onChangeText={setAdePass}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        secureTextEntry
+                        style={{
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          borderRadius: 8,
+                          padding: 12,
+                          color: colors.text,
+                          marginBottom: 10,
+                          fontSize: 14,
+                        }}
+                      />
+                      <Pressable
+                        onPress={handleAdeLogin}
+                        disabled={adeLoading}
+                        style={{
+                          backgroundColor: adeLoading ? "#666" : "#4A90D9",
+                          borderRadius: 8,
+                          padding: 14,
+                          alignItems: "center",
+                        }}
+                      >
+                        {adeLoading ? (
+                          <ActivityIndicator color="#fff" />
+                        ) : (
+                          <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
+                            {t("adeConnect")}
+                          </Text>
+                        )}
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
+              }
+            />
+          </View>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
+
+const layoutStyles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
+    marginTop: 60,
+  },
+  header: {
+    alignItems: "flex-start",
+  },
+  content: {
+    flex: 1,
+  },
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    paddingTop: 20,
+    paddingBottom: 20,
+  },
+});
+
+const accountStyles = StyleSheet.create({
+  rowStart: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  rowIcon: {
+    marginRight: 14,
+  },
+  rowLabel: {
+    flex: 1,
+  },
+});

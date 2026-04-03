@@ -9,12 +9,11 @@ export const useCommonDesign = () => {
     const { themeMode } = useSettingsStore()
     const { colors } = useResolvedTheme(themeMode);
     const scaled16 = useUIScale(16);
-    const scaled48 = useUIScale(48);
     const scaled22 = useUIScale(22);
     const scaled14 = useUIScale(14);
     const scaleFactor = useUIScale(1);
 
-    return useMemo(() => ({
+    return useMemo(() => StyleSheet.create({
                  //useMemo means this will be recalculated on change, but also,
                  //lets us declare styles with a hook, which lets us use variables
                  screen: {
@@ -39,11 +38,9 @@ export const useCommonDesign = () => {
                      width: 40*scaleFactor,
                      height: 40*scaleFactor,
                      borderRadius: 20*scaleFactor,
-                     backgroundColor: "#FFFFFF",
                      alignItems: "center",
                      justifyContent: "center",
                      borderWidth: StyleSheet.hairlineWidth,
-                     borderColor: "rgba(0,0,0,0.08)",
                      shadowColor: "#000",
                      shadowOffset: { width: 0, height: 4 },
                      shadowOpacity: 0.08,
@@ -76,7 +73,7 @@ export const useCommonDesign = () => {
                      paddingVertical: 18,
                      marginBottom: 14,
                      flexDirection: "row",
-                     justifyContent: "start",
+                     justifyContent: "flex-start",
                      alignItems: "center",
                      backgroundColor: colors.card
                    },
@@ -131,6 +128,6 @@ export const useCommonDesign = () => {
                    optionText: {
                      fontSize: scaled16,
                    },
-               }), [scaled16, colors, themeMode]);
+               }), [scaled16, scaled22, scaled14, colors, scaleFactor]);
 
 }

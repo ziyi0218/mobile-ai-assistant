@@ -26,6 +26,7 @@ export default function InterfaceScreen() {
   const { colors } = useResolvedTheme(themeMode);
   const scaled16 = useUIScale(16);
   const scaled48 = useUIScale(48);
+  const scaled40 = useUIScale(40);
   const scaled22 = useUIScale(22);
   const scaleFactor = useUIScale(1);
   const { haptics } = useHaptics();
@@ -77,7 +78,7 @@ export default function InterfaceScreen() {
               let switchThumbColor = item.type === 'switch' ? (item.value? colors.accent : colors.text) : undefined;
 
               return (
-              <View style={styles.item}>
+              <View style={[styles.item, { paddingVertical: 14 }]}>
 
                 <Text minimumFontScale={0.8}
                       ellipsizeMode="tail"
@@ -98,7 +99,17 @@ export default function InterfaceScreen() {
                         style: {transform: [{scale: scaleFactor}]}
                       } : (item.type==='NumberInput'?{
                         onSubmitEditing: (value) => {updateDraftOptionsList(item.id, value); haptics('medium')},
-                        style: { color: colors.text, fontSize: scaled22, fontWeight: 'bold', width:scaled48, height:scaled48, minWidth:36, minHeight:36 }, //without the minimas, it can get impossible to recover from scaling it down too far.
+                        style: {
+                          color: colors.text,
+                          fontSize: scaled22,
+                          fontWeight: 'bold',
+                          width: scaled40,
+                          height: scaled40,
+                          minWidth: 36,
+                          minHeight: 36,
+                          paddingVertical: 0,
+                          textAlign: 'center',
+                        }, //without the minimas, it can get impossible to recover from scaling it down too far.
                         defaultValue: 100,
                         minValue: 9,
                         maxValue: 500

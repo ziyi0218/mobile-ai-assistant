@@ -3,15 +3,25 @@
  * @email anishammouche50@gmail.com
  * @github https://github.com/assinscreedFC
  */
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  SafeAreaView, View, Text, FlatList, TouchableOpacity,
-  Modal, Pressable, TextInput, Alert, ScrollView, Keyboard,
-  KeyboardAvoidingView, Platform, Switch,
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Modal,
+  Pressable,
+  TextInput,
+  Alert,
+  ScrollView,
+  Keyboard,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Switch,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Plus, Trash2, ChevronRight, Cpu } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Cpu, Plus, Trash2 } from 'lucide-react-native';
 import ModelSelector from '../components/ModelSelector';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useResolvedTheme } from '../utils/theme';
@@ -23,7 +33,6 @@ import { useChatStore } from '../store/chatStore';
 import type { Persona, PersonaCreateInput } from '../types/persona';
 import type { TranslationKey } from '../i18n';
 
-// ─── Empty form state ─────────────────────────────────────────
 const emptyForm: PersonaCreateInput = {
   name: '',
   description: '',
@@ -33,19 +42,81 @@ const emptyForm: PersonaCreateInput = {
 };
 
 export default function PersonasScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useI18n();
   const { themeMode } = useSettingsStore();
   const { colors } = useResolvedTheme(themeMode);
   const styles = useCommonDesign();
   const { haptics } = useHaptics();
+  const scaled16 = useUIScale(16);
+  const scaled18 = useUIScale(18);
   const scaled22 = useUIScale(22);
 
+  const pageStyles = useMemo(
+    () =>
+      StyleSheet.create({
+        headerButton: {
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: colors.card,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: colors.border,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 10,
+          elevation: 3,
+        },
+        title: {
+          color: colors.text,
+          fontSize: scaled22,
+          fontWeight: '600',
+          marginTop: 20,
+          marginBottom: 24,
+          textAlign: 'center',
+        },
+        card: {
+          borderRadius: 16,
+          paddingHorizontal: 18,
+          paddingVertical: 18,
+          marginBottom: 14,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: colors.card,
+        },
+        cardLabel: {
+          fontSize: scaled16,
+          fontWeight: '500',
+          textAlign: 'left',
+          color: colors.text,
+        },
+        footer: {
+          paddingBottom: 20,
+          alignItems: 'center',
+        },
+        saveButton: {
+          paddingVertical: 14,
+          paddingHorizontal: 40,
+          borderRadius: 999,
+          borderWidth: 1,
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+        },
+        saveButtonText: {
+          fontSize: scaled16,
+          fontWeight: '700',
+          color: colors.text,
+        },
+      }),
+    [colors, scaled16, scaled22]
+  );
+
   const personas = useChatStore((s) => s.personas);
-  const addPersona = useChatStore((s) => s.addPersona);
-  const updatePersona = useChatStore((s) => s.updatePersona);
-  const deletePersona = useChatStore((s) => s.deletePersona);
+  const setPersonas = useChatStore((s) => s.setPersonas);
   const autoPersona = useChatStore((s) => s.autoPersona);
   const setAutoPersona = useChatStore((s) => s.setAutoPersona);
 
@@ -55,9 +126,21 @@ export default function PersonasScreen() {
   const [viewingBuiltIn, setViewingBuiltIn] = useState<Persona | null>(null);
   const [modelSelectorVisible, setModelSelectorVisible] = useState(false);
   const [selectedModelId, setSelectedModelId] = useState<string | undefined>(undefined);
+  const [draftPersonas, setDraftPersonas] = useState<Persona[]>(personas);
+  const [draftAutoPersona, setDraftAutoPersona] = useState(autoPersona);
+  const [isDirty, setIsDirty] = useState(false);
+  const [tempParam, setTempParam] = useState({
+    temperature: '',
+    maxTokens: '',
+    topK: '',
+    topP: '',
+  });
 
-  // ─── Param editing ──────────────────────────────────────────
-  const [tempParam, setTempParam] = useState({ temperature: '', maxTokens: '', topK: '', topP: '' });
+  useEffect(() => {
+    if (isDirty) return;
+    setDraftPersonas(personas);
+    setDraftAutoPersona(autoPersona);
+  }, [personas, autoPersona, isDirty]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -72,6 +155,7 @@ export default function PersonasScreen() {
       setViewingBuiltIn(persona);
       return;
     }
+
     setEditingId(persona.id);
     setSelectedModelId(persona.modelId);
     setForm({
@@ -80,6 +164,7 @@ export default function PersonasScreen() {
       icon: persona.icon,
       systemPrompt: persona.systemPrompt,
       params: { ...persona.params },
+      modelId: persona.modelId,
     });
     setTempParam({
       temperature: persona.params.temperature != null ? String(persona.params.temperature) : '',
@@ -90,44 +175,62 @@ export default function PersonasScreen() {
     setModalVisible(true);
   };
 
-  const handleSave = () => {
+  const handleModalSave = () => {
     if (!form.name.trim() || !form.systemPrompt.trim()) return;
 
     const params: PersonaCreateInput['params'] = {};
     const temp = parseFloat(tempParam.temperature);
-    if (!isNaN(temp) && temp >= 0 && temp <= 2) params.temperature = temp;
-    const maxTok = parseInt(tempParam.maxTokens);
-    if (!isNaN(maxTok) && maxTok > 0) params.maxTokens = maxTok;
-    const tk = parseInt(tempParam.topK);
-    if (!isNaN(tk) && tk > 0) params.topK = tk;
+    if (!Number.isNaN(temp) && temp >= 0 && temp <= 2) params.temperature = temp;
+    const maxTok = parseInt(tempParam.maxTokens, 10);
+    if (!Number.isNaN(maxTok) && maxTok > 0) params.maxTokens = maxTok;
+    const tk = parseInt(tempParam.topK, 10);
+    if (!Number.isNaN(tk) && tk > 0) params.topK = tk;
     const tp = parseFloat(tempParam.topP);
-    if (!isNaN(tp) && tp >= 0 && tp <= 1) params.topP = tp;
+    if (!Number.isNaN(tp) && tp >= 0 && tp <= 1) params.topP = tp;
 
     const input: PersonaCreateInput = { ...form, params, modelId: selectedModelId };
 
     if (editingId) {
-      updatePersona(editingId, input);
+      setDraftPersonas((prev) =>
+        prev.map((persona) => {
+          if (persona.id !== editingId) return persona;
+          if (persona.isBuiltIn) return persona;
+          return { ...persona, ...input, updatedAt: Date.now() };
+        })
+      );
     } else {
-      addPersona(input);
+      const now = Date.now();
+      const persona: Persona = {
+        ...input,
+        id: `draft-${now}-${Math.random().toString(16).slice(2)}`,
+        isBuiltIn: false,
+        createdAt: now,
+        updatedAt: now,
+      };
+      setDraftPersonas((prev) => [...prev, persona]);
     }
+
+    setIsDirty(true);
     setModalVisible(false);
     haptics('light');
   };
 
   const handleDelete = (id: string) => {
-    const persona = personas.find((p) => p.id === id);
+    const persona = draftPersonas.find((p) => p.id === id);
     if (!persona) return;
     if (persona.isBuiltIn) {
       Alert.alert(t('personas'), t('personaCannotDeleteBuiltIn'));
       return;
     }
+
     Alert.alert(t('deletePersonaConfirm'), '', [
       { text: t('cancel'), style: 'cancel' },
       {
         text: t('deletePersona'),
         style: 'destructive',
         onPress: () => {
-          deletePersona(id);
+          setDraftPersonas((prev) => prev.filter((personaItem) => personaItem.id !== id));
+          setIsDirty(true);
           setModalVisible(false);
           haptics('light');
         },
@@ -135,74 +238,165 @@ export default function PersonasScreen() {
     ]);
   };
 
-  const displayName = (p: Persona) => p.isBuiltIn ? t(p.name as TranslationKey) : p.name;
-  const displayDesc = (p: Persona) => p.isBuiltIn ? t(p.description as TranslationKey) : p.description;
+  const handleSaveChanges = () => {
+    setPersonas(draftPersonas);
+    setAutoPersona(draftAutoPersona);
+    setIsDirty(false);
+    haptics('light');
+    Alert.alert(t('generalSave'), t('personasSaveMessage'));
+  };
+
+  const displayName = (persona: Persona) =>
+    persona.isBuiltIn ? t(persona.name as TranslationKey) : persona.name;
+  const displayDesc = (persona: Persona) =>
+    persona.isBuiltIn ? t(persona.description as TranslationKey) : persona.description;
 
   return (
-    <SafeAreaView style={{ flex: 1, paddingTop: insets.top, backgroundColor: colors.bg }}>
-      {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, paddingBottom: 8 }}>
-        <Pressable onPress={() => { haptics('light'); router.back(); }} style={styles.backButton}>
-          <ChevronLeft size={scaled22} color={colors.text} strokeWidth={2.5} />
-        </Pressable>
-        <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>{t('personas')}</Text>
-        <TouchableOpacity onPress={openCreate} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Plus size={24} color={colors.text} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Auto-detection toggle */}
-      <View style={{
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        marginHorizontal: 20, marginBottom: 8, paddingHorizontal: 16, paddingVertical: 12,
-        backgroundColor: colors.card, borderRadius: 14,
-      }}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text }}>{t('autoPersona')}</Text>
-          <Text style={{ fontSize: 12, color: colors.subtext, marginTop: 2 }}>{t('autoPersonaDesc')}</Text>
-        </View>
-        <Switch
-          value={autoPersona}
-          onValueChange={(v) => { setAutoPersona(v); haptics('light'); }}
-          trackColor={{ false: colors.border, true: '#007AFF' }}
-        />
-      </View>
-
-      {/* List */}
-      <FlatList
-        data={personas}
-        keyExtractor={(p) => p.id}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 40 }}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => openEdit(item)}
-            activeOpacity={0.6}
-            style={{
-              flexDirection: 'row', alignItems: 'center',
-              backgroundColor: colors.card, borderRadius: 16,
-              padding: 16, marginBottom: 12,
+    <View style={[personaStyles.screen, { backgroundColor: colors.bg }]}>
+      <View style={styles.container}>
+        <View style={personaStyles.headerRow}>
+          <Pressable
+            onPress={() => {
+              haptics('light');
+              router.back();
             }}
+            style={pageStyles.headerButton}
           >
-            <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 22 }}>{item.icon}</Text>
-            </View>
-            <View style={{ flex: 1, marginLeft: 14 }}>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text }}>{displayName(item)}</Text>
-              <Text style={{ fontSize: 13, color: colors.subtext, marginTop: 2 }} numberOfLines={1}>
-                {displayDesc(item)}
+            <ChevronLeft size={scaled22} color={colors.text} strokeWidth={2.5} />
+          </Pressable>
+
+          <Pressable
+            onPress={openCreate}
+            style={pageStyles.headerButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Plus size={scaled22} color={colors.text} strokeWidth={2.5} />
+          </Pressable>
+        </View>
+
+        <Text style={pageStyles.title}>— {t('personas')} —</Text>
+
+        <View style={personaStyles.content}>
+          <View style={[pageStyles.card, personaStyles.autoPersonaCard]}>
+            <View style={personaStyles.autoPersonaTextWrap}>
+              <Text style={pageStyles.cardLabel}>{t('autoPersona')}</Text>
+              <Text style={[personaStyles.descriptionText, { color: colors.subtext }]}>
+                {t('autoPersonaDesc')}
               </Text>
             </View>
-          </TouchableOpacity>
-        )}
-      />
+            <Switch
+              value={draftAutoPersona}
+              onValueChange={(value) => {
+                setDraftAutoPersona(value);
+                setIsDirty(true);
+                haptics('light');
+              }}
+              trackColor={{ false: colors.border, true: '#007AFF' }}
+            />
+          </View>
 
-      {/* Edit/Create Modal */}
-      <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
-        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <Pressable style={{ flex: 1 }} onPress={() => { Keyboard.dismiss(); setModalVisible(false); }} />
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '85%' }}>
-            {/* Modal header */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <FlatList
+            data={draftPersonas}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={personaStyles.listContent}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                onPress={() => openEdit(item)}
+                activeOpacity={0.6}
+                style={pageStyles.card}
+              >
+                <View style={personaStyles.cardStart}>
+                  <View style={[personaStyles.iconBox, { backgroundColor: colors.bg }]}>
+                    <Text style={personaStyles.iconText}>{item.icon}</Text>
+                  </View>
+
+                  <View style={personaStyles.cardTextWrap}>
+                    <View style={personaStyles.nameRow}>
+                      <Text
+                        style={[pageStyles.cardLabel, personaStyles.nameText]}
+                        numberOfLines={1}
+                      >
+                        {displayName(item)}
+                      </Text>
+
+                      {item.isBuiltIn && (
+                        <View style={personaStyles.badge}>
+                          <Text style={personaStyles.badgeText}>{t('builtInPersona')}</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    <Text
+                      style={[personaStyles.descriptionText, { color: colors.subtext }]}
+                      numberOfLines={1}
+                    >
+                      {displayDesc(item)}
+                    </Text>
+                  </View>
+                </View>
+
+                <ChevronRight size={scaled18} color={colors.subtext} />
+              </TouchableOpacity>
+            )}
+          />
+
+          <View style={pageStyles.footer}>
+            <Pressable
+              style={[
+                pageStyles.saveButton,
+                {
+                  opacity: isDirty ? 1 : 0.6,
+                },
+              ]}
+              onPress={handleSaveChanges}
+              disabled={!isDirty}
+            >
+              <Text style={pageStyles.saveButtonText}>{t('generalSave')}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'flex-end',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+          }}
+        >
+          <Pressable
+            style={{ flex: 1 }}
+            onPress={() => {
+              Keyboard.dismiss();
+              setModalVisible(false);
+            }}
+          />
+
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{
+              backgroundColor: colors.card,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              maxHeight: '85%',
+            }}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 20,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.border,
+              }}
+            >
               <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>
                 {editingId ? t('editPersona') : t('createPersona')}
               </Text>
@@ -213,134 +407,210 @@ export default function PersonasScreen() {
               )}
             </View>
 
-            <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
-              {/* Icon + Name row */}
+            <ScrollView
+              contentContainerStyle={{ padding: 20 }}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+            >
               <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
                 <TextInput
                   value={form.icon}
-                  onChangeText={(v) => {
-                    const emojis = [...v.matchAll(/\p{Extended_Pictographic}/gu)];
-                    setForm({ ...form, icon: emojis.length > 0 ? emojis[0][0] : '' });
+                  onChangeText={(value) => {
+                    const emojis = [...value.matchAll(/\p{Extended_Pictographic}/gu)];
+                    setForm({ ...form, icon: emojis[0]?.[0] ?? '' });
                   }}
                   placeholder="😀"
+                  placeholderTextColor={colors.subtext}
                   style={{
-                    width: 56, height: 56, borderRadius: 14, backgroundColor: colors.bg,
-                    borderWidth: 1, borderColor: colors.border,
-                    textAlign: 'center', fontSize: 24, color: colors.text,
+                    width: 56,
+                    height: 56,
+                    borderRadius: 14,
+                    backgroundColor: colors.bg,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    textAlign: 'center',
+                    fontSize: 24,
+                    color: colors.text,
                   }}
                 />
+
                 <TextInput
                   value={form.name}
-                  onChangeText={(v) => setForm({ ...form, name: v })}
+                  onChangeText={(value) => setForm({ ...form, name: value })}
                   placeholder={t('personaName')}
                   placeholderTextColor={colors.subtext}
                   style={{
-                    flex: 1, height: 56, borderRadius: 14, backgroundColor: colors.bg,
-                    borderWidth: 1, borderColor: colors.border,
-                    paddingHorizontal: 14, fontSize: 16, color: colors.text,
+                    flex: 1,
+                    height: 56,
+                    borderRadius: 14,
+                    backgroundColor: colors.bg,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    paddingHorizontal: 14,
+                    fontSize: 16,
+                    color: colors.text,
                   }}
                 />
               </View>
 
-              {/* Description */}
               <TextInput
                 value={form.description}
-                onChangeText={(v) => setForm({ ...form, description: v })}
+                onChangeText={(value) => setForm({ ...form, description: value })}
                 placeholder={t('personaDescription')}
                 placeholderTextColor={colors.subtext}
                 style={{
-                  borderRadius: 14, backgroundColor: colors.bg,
-                  borderWidth: 1, borderColor: colors.border,
-                  paddingHorizontal: 14, paddingVertical: 12, fontSize: 15,
-                  color: colors.text, marginBottom: 16,
+                  borderRadius: 14,
+                  backgroundColor: colors.bg,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                  fontSize: 15,
+                  color: colors.text,
+                  marginBottom: 16,
                 }}
               />
 
-              {/* System prompt */}
-              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.subtext, marginBottom: 8 }}>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: '600',
+                  color: colors.subtext,
+                  marginBottom: 8,
+                }}
+              >
                 {t('personaSystemPrompt')}
               </Text>
               <TextInput
                 value={form.systemPrompt}
-                onChangeText={(v) => setForm({ ...form, systemPrompt: v })}
+                onChangeText={(value) => setForm({ ...form, systemPrompt: value })}
                 placeholder={t('personaSystemPrompt')}
                 placeholderTextColor={colors.subtext}
                 multiline
                 blurOnSubmit={false}
                 style={{
-                  borderRadius: 14, backgroundColor: colors.bg,
-                  borderWidth: 1, borderColor: colors.border,
-                  paddingHorizontal: 14, paddingVertical: 12, fontSize: 15,
-                  color: colors.text, minHeight: 120, textAlignVertical: 'top',
+                  borderRadius: 14,
+                  backgroundColor: colors.bg,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                  fontSize: 15,
+                  color: colors.text,
+                  minHeight: 120,
+                  textAlignVertical: 'top',
                   marginBottom: 16,
                 }}
               />
 
-              {/* Model selector (optional) */}
-              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.subtext, marginBottom: 8 }}>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: '600',
+                  color: colors.subtext,
+                  marginBottom: 8,
+                }}
+              >
                 {t('personaModel')}
               </Text>
               <TouchableOpacity
                 onPress={() => setModelSelectorVisible(true)}
                 style={{
-                  flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-                  borderRadius: 14, backgroundColor: colors.bg,
-                  borderWidth: 1, borderColor: colors.border,
-                  paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderRadius: 14,
+                  backgroundColor: colors.bg,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                  marginBottom: 16,
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Cpu size={16} color={colors.subtext} />
-                  <Text style={{ fontSize: 15, color: selectedModelId ? colors.text : colors.subtext }}>
+                  <Text
+                    style={{
+                      fontSize: 15,
+                      color: selectedModelId ? colors.text : colors.subtext,
+                    }}
+                  >
                     {selectedModelId || t('personaModelNone')}
                   </Text>
                 </View>
                 <ChevronRight size={16} color={colors.subtext} />
               </TouchableOpacity>
 
-              {/* Optional LLM params — hidden for now
-              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.subtext, marginBottom: 8 }}>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: '600',
+                  color: colors.subtext,
+                  marginBottom: 8,
+                }}
+              >
                 {t('personaParams')}
               </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
                 {(['temperature', 'maxTokens', 'topK', 'topP'] as const).map((key) => (
                   <View key={key} style={{ width: '47%' }}>
                     <Text style={{ fontSize: 12, color: colors.subtext, marginBottom: 4 }}>
-                      {key === 'temperature' ? 'Temperature' : key === 'maxTokens' ? 'Max Tokens' : key === 'topK' ? 'Top K' : 'Top P'}
+                      {key === 'temperature'
+                        ? 'Temperature'
+                        : key === 'maxTokens'
+                          ? 'Max Tokens'
+                          : key === 'topK'
+                            ? 'Top K'
+                            : 'Top P'}
                     </Text>
                     <TextInput
                       value={tempParam[key]}
-                      onChangeText={(v) => setTempParam({ ...tempParam, [key]: v })}
+                      onChangeText={(value) => setTempParam({ ...tempParam, [key]: value })}
                       keyboardType="numeric"
                       placeholder="-"
                       placeholderTextColor={colors.subtext}
                       style={{
-                        borderRadius: 10, backgroundColor: colors.bg,
-                        borderWidth: 1, borderColor: colors.border,
-                        padding: 10, fontSize: 14, color: colors.text, textAlign: 'center',
+                        borderRadius: 10,
+                        backgroundColor: colors.bg,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        padding: 10,
+                        fontSize: 14,
+                        color: colors.text,
+                        textAlign: 'center',
                       }}
                     />
                   </View>
                 ))}
               </View>
-              */}
 
-              {/* Actions */}
               <View style={{ flexDirection: 'row', gap: 12 }}>
                 <TouchableOpacity
                   onPress={() => setModalVisible(false)}
                   style={{
-                    flex: 1, paddingVertical: 14, borderRadius: 14,
-                    backgroundColor: colors.bg, alignItems: 'center',
+                    flex: 1,
+                    paddingVertical: 14,
+                    borderRadius: 14,
+                    backgroundColor: colors.bg,
+                    alignItems: 'center',
                   }}
                 >
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: colors.subtext }}>{t('cancel')}</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: colors.subtext }}>
+                    {t('cancel')}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => { Keyboard.dismiss(); handleSave(); }}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    handleModalSave();
+                  }}
                   style={{
-                    flex: 1, paddingVertical: 14, borderRadius: 14,
-                    backgroundColor: '#007AFF', alignItems: 'center',
+                    flex: 1,
+                    paddingVertical: 14,
+                    borderRadius: 14,
+                    backgroundColor: '#007AFF',
+                    alignItems: 'center',
                   }}
                 >
                   <Text style={{ fontSize: 16, fontWeight: '600', color: '#fff' }}>
@@ -353,37 +623,96 @@ export default function PersonasScreen() {
         </View>
       </Modal>
 
-      {/* Read-only modal for built-in persona system prompt */}
-      <Modal visible={viewingBuiltIn !== null} transparent animationType="slide" onRequestClose={() => setViewingBuiltIn(null)}>
-        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <Modal
+        visible={viewingBuiltIn !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setViewingBuiltIn(null)}
+      >
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'flex-end',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+          }}
+        >
           <Pressable style={{ flex: 1 }} onPress={() => setViewingBuiltIn(null)} />
-          <View style={{ backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '70%' }}>
+          <View
+            style={{
+              backgroundColor: colors.card,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              maxHeight: '70%',
+            }}
+          >
             {viewingBuiltIn && (
               <>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-                  <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: 20,
+                    borderBottomWidth: 1,
+                    borderBottomColor: colors.border,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      backgroundColor: colors.bg,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
                     <Text style={{ fontSize: 22 }}>{viewingBuiltIn.icon}</Text>
                   </View>
                   <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text, flex: 1 }}>
                     {t(viewingBuiltIn.name as TranslationKey)}
                   </Text>
                 </View>
+
                 <ScrollView contentContainerStyle={{ padding: 20 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: colors.subtext, marginBottom: 8 }}>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: '600',
+                      color: colors.subtext,
+                      marginBottom: 8,
+                    }}
+                  >
                     {t('personaSystemPrompt')}
                   </Text>
-                  <View style={{ borderRadius: 14, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, padding: 14 }}>
+                  <View
+                    style={{
+                      borderRadius: 14,
+                      backgroundColor: colors.bg,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      padding: 14,
+                    }}
+                  >
                     <Text style={{ fontSize: 15, color: colors.text, lineHeight: 22 }}>
                       {t(viewingBuiltIn.systemPrompt as TranslationKey)}
                     </Text>
                   </View>
                 </ScrollView>
+
                 <View style={{ padding: 20, paddingTop: 0 }}>
                   <TouchableOpacity
                     onPress={() => setViewingBuiltIn(null)}
-                    style={{ paddingVertical: 14, borderRadius: 14, backgroundColor: '#007AFF', alignItems: 'center' }}
+                    style={{
+                      paddingVertical: 14,
+                      borderRadius: 14,
+                      backgroundColor: '#007AFF',
+                      alignItems: 'center',
+                    }}
                   >
-                    <Text style={{ fontSize: 16, fontWeight: '600', color: '#fff' }}>{t('done')}</Text>
+                    <Text style={{ fontSize: 16, fontWeight: '600', color: '#fff' }}>
+                      {t('done')}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -392,7 +721,6 @@ export default function PersonasScreen() {
         </View>
       </Modal>
 
-      {/* Model selector modal (reused component) */}
       <ModelSelector
         visible={modelSelectorVisible}
         onClose={() => setModelSelectorVisible(false)}
@@ -403,6 +731,74 @@ export default function PersonasScreen() {
         mode="switch"
         t={t}
       />
-    </SafeAreaView>
+    </View>
   );
 }
+
+const personaStyles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  content: {
+    flex: 1,
+  },
+  autoPersonaCard: {
+    marginBottom: 14,
+  },
+  autoPersonaTextWrap: {
+    flex: 1,
+    marginRight: 12,
+  },
+  listContent: {
+    paddingTop: 6,
+    paddingBottom: 24,
+  },
+  cardStart: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  iconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  iconText: {
+    fontSize: 20,
+  },
+  cardTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  nameText: {
+    flexShrink: 1,
+  },
+  descriptionText: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  badge: {
+    backgroundColor: '#E8F0FE',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+});
