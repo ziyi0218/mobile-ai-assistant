@@ -8,9 +8,9 @@ import { StyleSheet } from "react-native";
 export const useCommonDesign = () => {
     const { themeMode } = useSettingsStore()
     const { colors } = useResolvedTheme(themeMode);
-    const scaled16 = useUIScale(16);
-    const scaled22 = useUIScale(22);
-    const scaled14 = useUIScale(14);
+    const scaled16 = useUIScale();
+    const scaled22 = useUIScale('large');
+    const scaled14 = useUIScale('small');
     const scaleFactor = useUIScale(1);
 
     return useMemo(() => StyleSheet.create({
