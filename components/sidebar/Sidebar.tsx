@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Dimensions,
   Easing,
@@ -20,13 +21,21 @@ import {
   Archive,
   ChevronDown,
   ChevronRight,
+  CopyPlus,
+  Download,
+  ExternalLink,
   FileText,
+  FileJson,
+  FileType2,
   FolderClosed,
   FolderOpen,
   FolderPlus,
+  Link2,
+  Link2Off,
   Pin,
   PinOff,
   Search,
+  Share2,
   Settings,
   SquarePen,
   Trash2,
@@ -41,6 +50,14 @@ import { useI18n } from '../../i18n/useI18n';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useResolvedTheme } from '../../utils/theme';
 import {
+  cloneChat,
+  ensureShareLink,
+  exportFolderAsJson,
+  exportSingleChat,
+  openCommunitySharePage,
+  removeShareLink,
+} from '../../utils/chatActions';
+import {
   buildSidebarUi,
   emptyPromptState,
   filterChats,
@@ -53,6 +70,7 @@ import {
   type ChatMenuState,
   type FolderMenuState,
   type PromptState,
+  type SidebarAction,
 } from './SidebarUtils';
 import {
   SidebarActionSheet,
@@ -82,6 +100,7 @@ export default function Sidebar({
   const ui = useMemo(() => buildSidebarUi(colors, resolved === 'dark'), [colors, resolved]);
 
   const history = useChatStore((state) => state.history);
+  const pinnedChats = useChatStore((state) => state.pinnedChats);
   const folders = useChatStore((state) => state.folders);
   const refreshSidebarData = useChatStore((state) => state.refreshSidebarData);
   const startNewChat = useChatStore((state) => state.startNewChat);
@@ -102,6 +121,7 @@ export default function Sidebar({
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [foldersSectionExpanded, setFoldersSectionExpanded] = useState(true);
+  const [pinnedSectionExpanded, setPinnedSectionExpanded] = useState(true);
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
   const [folderChatsById, setFolderChatsById] = useState<Record<string, ChatSummary[]>>({});
   const [folderChatsLoading, setFolderChatsLoading] = useState<Record<string, boolean>>({});
@@ -110,6 +130,13 @@ export default function Sidebar({
   const [chatMenu, setChatMenu] = useState<ChatMenuState>({ visible: false, chat: null });
   const [folderMenu, setFolderMenu] = useState<FolderMenuState>({ visible: false, folder: null });
   const [folderPickerChat, setFolderPickerChat] = useState<ChatSummary | null>(null);
+  const [activeActionChat, setActiveActionChat] = useState<ChatSummary | null>(null);
+  const [isExportMenuVisible, setIsExportMenuVisible] = useState(false);
+  const [pendingExportFormat, setPendingExportFormat] = useState<'json' | 'txt' | 'pdf' | null>(null);
+  const [shareMenuState, setShareMenuState] = useState<{ visible: boolean; hasShareLink: boolean }>({
+    visible: false,
+    hasShareLink: false,
+  });
 
   useEffect(() => {
     if (visible) {
@@ -187,6 +214,7 @@ export default function Sidebar({
     () => new Set(Object.values(folderChatsById).flat().map((chat) => chat.id)),
     [folderChatsById]
   );
+  const pinnedChatIds = useMemo(() => new Set(pinnedChats.map((chat) => chat.id)), [pinnedChats]);
   const getEffectiveChatFolderId = useCallback(
     (chat: ChatSummary) =>
       Object.prototype.hasOwnProperty.call(folderOverrideByChatId, chat.id)
@@ -194,20 +222,20 @@ export default function Sidebar({
         : getChatFolderId(chat),
     [folderOverrideByChatId]
   );
-  const pinnedChats = useMemo(
-    () => history.filter((chat) => chat.pinned && filterChats(chat, query, noTitle)),
-    [history, query, noTitle]
+  const visiblePinnedChats = useMemo(
+    () => pinnedChats.filter((chat) => filterChats(chat, query, noTitle)),
+    [pinnedChats, query, noTitle]
   );
   const rootChats = useMemo(
     () =>
       history.filter(
         (chat) =>
-          !chat.pinned &&
           filterChats(chat, query, noTitle) &&
+          !pinnedChatIds.has(chat.id) &&
           getEffectiveChatFolderId(chat) === null &&
           !knownFolderChatIds.has(chat.id)
       ),
-    [history, query, noTitle, getEffectiveChatFolderId, knownFolderChatIds]
+    [history, query, noTitle, pinnedChatIds, getEffectiveChatFolderId, knownFolderChatIds]
   );
   const recentChatGroups = useMemo(
     () => groupChatsByUpdatedAt(rootChats, i18n.language, t),
@@ -254,6 +282,124 @@ export default function Sidebar({
     setCurrentChatId(chatId);
     onClose();
   };
+
+  const openChatMenu = useCallback(async (chat: ChatSummary) => {
+    setActiveActionChat(chat);
+    setChatMenu({ visible: true, chat });
+
+    try {
+      const pinned = await chatService.getPinChatStatus(chat.id);
+      setChatMenu((prev) => {
+        if (!prev.visible || prev.chat?.id !== chat.id) return prev;
+        return {
+          ...prev,
+          chat: {
+            ...prev.chat,
+            pinned: Boolean(pinned),
+          },
+        };
+      });
+    } catch (error) {
+      console.error('Erreur statut pin chat:', error);
+    }
+  }, []);
+
+  const requireActionChat = useCallback(() => {
+    const chat = activeActionChat ?? chatMenu.chat;
+    if (chat) return chat;
+    Alert.alert('Chat actions', 'Open a chat first.');
+    return null;
+  }, [activeActionChat, chatMenu.chat]);
+
+  const handleOpenShareMenu = useCallback(async () => {
+    const chat = requireActionChat();
+    if (!chat) return;
+
+    try {
+      const details = await chatService.getChatDetails(chat.id);
+      setShareMenuState({ visible: true, hasShareLink: Boolean(details.share_id) });
+    } catch (error) {
+      console.error('Error loading share state:', error);
+      setShareMenuState({ visible: true, hasShareLink: false });
+    }
+  }, [requireActionChat]);
+
+  const handleCopyLink = useCallback(async () => {
+    const chat = requireActionChat();
+    if (!chat) return;
+
+    try {
+      const result = await ensureShareLink(chat.id);
+      setShareMenuState({ visible: false, hasShareLink: true });
+      Alert.alert('Share chat', result.reused ? 'Link copied to clipboard.' : 'Share link created and copied.');
+      await refreshSidebarData();
+    } catch (error) {
+      console.error('Error copying share link:', error);
+      Alert.alert('Share chat', 'Failed to copy the share link.');
+    }
+  }, [refreshSidebarData, requireActionChat]);
+
+  const handleDeleteShare = useCallback(async () => {
+    const chat = requireActionChat();
+    if (!chat) return;
+
+    try {
+      await removeShareLink(chat.id);
+      setShareMenuState({ visible: false, hasShareLink: false });
+      Alert.alert('Share chat', 'Share link deleted.');
+      await refreshSidebarData();
+    } catch (error) {
+      console.error('Error deleting share link:', error);
+      Alert.alert('Share chat', 'Failed to delete the share link.');
+    }
+  }, [refreshSidebarData, requireActionChat]);
+
+  const handleOpenCommunity = useCallback(async () => {
+    try {
+      await openCommunitySharePage();
+      setShareMenuState((prev) => ({ ...prev, visible: false }));
+    } catch (error) {
+      console.error('Error opening Open WebUI community:', error);
+      Alert.alert('Share chat', 'Failed to open Open WebUI community.');
+    }
+  }, []);
+
+  const handleExportChat = useCallback(
+    async (format: 'json' | 'txt' | 'pdf') => {
+      const chat = requireActionChat();
+      if (!chat) return;
+
+      try {
+        await exportSingleChat(chat.id, format);
+      } catch (error) {
+        console.error(`Error exporting chat as ${format}:`, error);
+        Alert.alert('Export chat', `Failed to export this chat as ${format.toUpperCase()}.`);
+      }
+    },
+    [requireActionChat]
+  );
+
+  useEffect(() => {
+    if (isExportMenuVisible || !pendingExportFormat) return;
+
+    const format = pendingExportFormat;
+    setPendingExportFormat(null);
+    void handleExportChat(format);
+  }, [handleExportChat, isExportMenuVisible, pendingExportFormat]);
+
+  const handleCloneChat = useCallback(async () => {
+    const chat = requireActionChat();
+    if (!chat) return;
+
+    try {
+      const cloned = await cloneChat(chat.id, i18n.language);
+      await refreshSidebarData();
+      await setCurrentChatId(cloned.id);
+    } catch (error) {
+      console.error('Error cloning chat:', error);
+      Alert.alert('Clone chat', 'Failed to clone this chat.');
+    }
+  }, [i18n.language, refreshSidebarData, requireActionChat, setCurrentChatId]);
 
   const handleToggleFolder = async (folder: ChatFolder) => {
     const nextExpanded = !expandedFolderIds.has(folder.id);
@@ -302,8 +448,71 @@ export default function Sidebar({
     [folders]
   );
 
+  const exportActions: SidebarAction[] = [
+    {
+      key: 'json',
+      label: 'Download JSON',
+      icon: <FileJson size={18} color={colors.text} />,
+      onPress: () => setPendingExportFormat('json'),
+    },
+    {
+      key: 'txt',
+      label: 'Download TXT',
+      icon: <FileText size={18} color={colors.text} />,
+      onPress: () => setPendingExportFormat('txt'),
+    },
+    {
+      key: 'pdf',
+      label: 'Download PDF',
+      icon: <FileType2 size={18} color={colors.text} />,
+      onPress: () => setPendingExportFormat('pdf'),
+    },
+  ];
+
+  const shareActions: SidebarAction[] = [
+    {
+      key: 'copy-link',
+      label: 'Copy link',
+      icon: <Link2 size={18} color={colors.text} />,
+      onPress: handleCopyLink,
+    },
+    {
+      key: 'open-community',
+      label: 'Open WebUI community',
+      icon: <ExternalLink size={18} color={colors.text} />,
+      onPress: handleOpenCommunity,
+    },
+    ...(shareMenuState.hasShareLink
+      ? [
+          {
+            key: 'delete-link',
+            label: 'Delete link',
+            danger: true,
+            icon: <Link2Off size={18} color={ui.danger} />,
+            onPress: handleDeleteShare,
+          },
+        ]
+      : []),
+  ];
+
   const chatMenuActions = chatMenu.chat
     ? [
+        {
+          key: 'share',
+          label: 'Share',
+          icon: <Share2 size={18} color={colors.text} />,
+          onPress: async () => {
+            await handleOpenShareMenu();
+          },
+        },
+        {
+          key: 'download',
+          label: 'Download',
+          icon: <Download size={18} color={colors.text} />,
+          onPress: () => {
+            setIsExportMenuVisible(true);
+          },
+        },
         {
           key: 'rename',
           label: t('sidebarRename'),
@@ -318,6 +527,22 @@ export default function Sidebar({
                 await renameChat(chatMenu.chat!.id, value);
               },
             }),
+        },
+        {
+          key: 'pin',
+          label: chatMenu.chat.pinned ? t('sidebarUnpin') : t('sidebarPinToTop'),
+          icon: chatMenu.chat.pinned ? <PinOff size={18} color={colors.text} /> : <Pin size={18} color={ui.warning} />,
+          onPress: async () => {
+            await togglePinChat(chatMenu.chat!.id);
+          },
+        },
+        {
+          key: 'clone',
+          label: 'Clone',
+          icon: <CopyPlus size={18} color={colors.text} />,
+          onPress: async () => {
+            await handleCloneChat();
+          },
         },
         {
           key: 'move',
@@ -347,14 +572,6 @@ export default function Sidebar({
           },
         },
         {
-          key: 'pin',
-          label: chatMenu.chat.pinned ? t('sidebarUnpin') : t('sidebarPinToTop'),
-          icon: chatMenu.chat.pinned ? <PinOff size={18} color={colors.text} /> : <Pin size={18} color={ui.warning} />,
-          onPress: async () => {
-            await togglePinChat(chatMenu.chat!.id);
-          },
-        },
-        {
           key: 'delete',
           label: t('sidebarDelete'),
           danger: true,
@@ -368,6 +585,19 @@ export default function Sidebar({
 
   const folderMenuActions = folderMenu.folder
     ? [
+        {
+          key: 'export',
+          label: 'Export (.json)',
+          icon: <FileText size={18} color={colors.text} />,
+          onPress: async () => {
+            try {
+              await exportFolderAsJson(folderMenu.folder!.id, folderMenu.folder!.name);
+            } catch (error) {
+              console.error('Erreur export folder:', error);
+              Alert.alert('Export folder', 'Failed to export this folder.');
+            }
+          },
+        },
         {
           key: 'rename',
           label: t('sidebarRenameFolder'),
@@ -472,7 +702,16 @@ export default function Sidebar({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <TouchableOpacity activeOpacity={0.6} style={styles.notesRow}>
+          <TouchableOpacity
+            activeOpacity={0.6}
+            style={styles.notesRow}
+            onPress={() => {
+              onClose();
+              setTimeout(() => {
+                router.push('/notes');
+              }, 220);
+            }}
+          >
             <View style={[styles.notesIconShell, { backgroundColor: ui.iconBg }]}>
               <FileText size={16} color={colors.subtext} />
             </View>
@@ -538,7 +777,9 @@ export default function Sidebar({
                           chat={chat}
                           selected={currentChatId === chat.id}
                           onPress={() => handleSelectChat(chat.id)}
-                          onOpenMenu={() => setChatMenu({ visible: true, chat })}
+                          onOpenMenu={() => {
+                            void openChatMenu(chat);
+                          }}
                           colors={colors}
                           ui={ui}
                           fallbackTitle={noTitle}
@@ -563,31 +804,65 @@ export default function Sidebar({
 
           <View style={[styles.separator, { backgroundColor: ui.separator }]} />
 
-          {pinnedChats.length > 0 && (
-            <>
+          {visiblePinnedChats.length > 0 && (
+            <View style={styles.pinnedSectionWrap}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: colors.subtext }]}>{t('sidebarPinned')}</Text>
+                <Text style={[styles.sectionTitle, { color: colors.subtext }]}>{t('recentChats')}</Text>
+                {loading && <ActivityIndicator size="small" color={colors.subtext} />}
               </View>
-              {pinnedChats.map((chat) => (
-                <SidebarChatRow
-                  key={chat.id}
-                  chat={chat}
-                  selected={currentChatId === chat.id}
-                  onPress={() => handleSelectChat(chat.id)}
-                  onOpenMenu={() => setChatMenu({ visible: true, chat })}
-                  colors={colors}
-                  ui={ui}
-                  fallbackTitle={noTitle}
-                />
-              ))}
+
+              <TouchableOpacity
+                activeOpacity={0.75}
+                style={[
+                  styles.pinnedToggle,
+                  {
+                    backgroundColor: ui.rowBg,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={() => setPinnedSectionExpanded((prev) => !prev)}
+              >
+                {pinnedSectionExpanded ? (
+                  <ChevronDown size={14} color={colors.subtext} style={styles.sectionChevron} />
+                ) : (
+                  <ChevronRight size={14} color={colors.subtext} style={styles.sectionChevron} />
+                )}
+                <Text style={[styles.pinnedToggleText, { color: colors.text }]}>
+                  {t('sidebarPinned')}
+                </Text>
+              </TouchableOpacity>
+
+              {pinnedSectionExpanded && (
+                <View style={styles.pinnedContent}>
+                  {visiblePinnedChats.map((chat) => (
+                    <SidebarChatRow
+                      key={chat.id}
+                      chat={chat}
+                      selected={currentChatId === chat.id}
+                      onPress={() => handleSelectChat(chat.id)}
+                      onOpenMenu={() => {
+                        void openChatMenu(chat);
+                      }}
+                      colors={colors}
+                      ui={ui}
+                      fallbackTitle={noTitle}
+                    />
+                  ))}
+                </View>
+              )}
+
               <View style={[styles.separator, { backgroundColor: ui.separator }]} />
-            </>
+            </View>
           )}
 
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.subtext }]}>{t('recentChats')}</Text>
-            {loading && <ActivityIndicator size="small" color={colors.subtext} />}
-          </View>
+          {!visiblePinnedChats.length && (
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
+                {t('recentChats')}
+              </Text>
+              {loading && <ActivityIndicator size="small" color={colors.subtext} />}
+            </View>
+          )}
 
           {recentChatGroups.length > 0 ? (
             recentChatGroups.map((group) => (
@@ -601,7 +876,9 @@ export default function Sidebar({
                     chat={chat}
                     selected={currentChatId === chat.id}
                     onPress={() => handleSelectChat(chat.id)}
-                    onOpenMenu={() => setChatMenu({ visible: true, chat })}
+                    onOpenMenu={() => {
+                      void openChatMenu(chat);
+                    }}
                     colors={colors}
                     ui={ui}
                     fallbackTitle={noTitle}
@@ -651,6 +928,24 @@ export default function Sidebar({
         title={chatMenu.chat ? getChatTitle(chatMenu.chat, noTitle) : undefined}
         actions={chatMenuActions}
         onClose={() => setChatMenu({ visible: false, chat: null })}
+        colors={colors}
+        ui={ui}
+      />
+
+      <SidebarActionSheet
+        visible={isExportMenuVisible}
+        title="Export Chat"
+        actions={exportActions}
+        onClose={() => setIsExportMenuVisible(false)}
+        colors={colors}
+        ui={ui}
+      />
+
+      <SidebarActionSheet
+        visible={shareMenuState.visible}
+        title="Share Chat"
+        actions={shareActions}
+        onClose={() => setShareMenuState((prev) => ({ ...prev, visible: false }))}
         colors={colors}
         ui={ui}
       />

@@ -53,7 +53,7 @@ export type SidebarAction = {
   label: string;
   danger?: boolean;
   icon: ReactNode;
-  onPress: () => void;
+  onPress: () => Promise<void> | void;
 };
 
 export type SidebarChatGroup = {
@@ -401,6 +401,26 @@ export const styles = StyleSheet.create({
   groupTitle: {
     fontSize: 13,
     fontWeight: '700',
+  },
+  pinnedSectionWrap: {
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  pinnedToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  pinnedToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  pinnedContent: {
+    paddingTop: 10,
+    paddingLeft: 12,
   },
   footer: {
     borderTopWidth: 1,

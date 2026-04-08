@@ -147,16 +147,17 @@ describe('Header multi-model page indicator', () => {
 });
 
 describe('Header more menu items', () => {
-  it('has 4 menu actions', () => {
+  it('has 5 menu actions', () => {
     const menuItems = [
       { key: 'chatControls', destructive: false },
       { key: 'shareChat', destructive: false },
       { key: 'exportChat', destructive: false },
+      { key: 'cloneChat', destructive: false },
       { key: 'deleteChat', destructive: true },
     ];
 
-    expect(menuItems).toHaveLength(4);
+    expect(menuItems).toHaveLength(5);
     expect(menuItems.filter(m => m.destructive)).toHaveLength(1);
-    expect(menuItems[3].key).toBe('deleteChat');
+    expect(menuItems[4].key).toBe('deleteChat');
   });
 });

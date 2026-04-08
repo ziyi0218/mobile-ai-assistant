@@ -9,9 +9,11 @@ import type { ChatFolder, ChatSummary } from '../../types/api';
 
 export interface ChatHistorySlice {
   history: ChatSummary[];
+  pinnedChats: ChatSummary[];
   archivedChats: ChatSummary[];
   folders: ChatFolder[];
   fetchHistory: () => Promise<void>;
+  fetchPinnedChats: () => Promise<void>;
   fetchFolders: () => Promise<void>;
   refreshSidebarData: () => Promise<void>;
   fetchArchivedChats: () => Promise<void>;
@@ -30,6 +32,7 @@ export interface ChatHistorySlice {
 
 export const createChatHistorySlice = (set: any, get: any): ChatHistorySlice => ({
   history: [],
+  pinnedChats: [],
   archivedChats: [],
   folders: [],
 
@@ -40,6 +43,16 @@ export const createChatHistorySlice = (set: any, get: any): ChatHistorySlice => 
       set({ history: list });
     } catch (error) {
       console.error('Erreur historique:', error);
+    }
+  },
+
+  fetchPinnedChats: async () => {
+    try {
+      const data = await chatService.getPinnedChats();
+      const list = Array.isArray(data) ? data : [];
+      set({ pinnedChats: list });
+    } catch (error) {
+      console.error('Erreur pinned chats:', error);
     }
   },
 
@@ -59,6 +72,7 @@ export const createChatHistorySlice = (set: any, get: any): ChatHistorySlice => 
   refreshSidebarData: async () => {
     await Promise.all([
       get().fetchHistory(),
+      get().fetchPinnedChats(),
       get().fetchFolders(),
     ]);
   },

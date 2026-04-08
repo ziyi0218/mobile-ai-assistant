@@ -4,43 +4,81 @@
  * @github https://github.com/assinscreedFC
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, Pressable, Modal, Alert, Image } from 'react-native';
-import { Menu, ChevronDown, Plus, User, Edit3, MoreVertical, SlidersHorizontal, Share2, Download, Trash2 } from 'lucide-react-native';
+import {
+  Menu,
+  ChevronDown,
+  Plus,
+  User,
+  Edit3,
+  MoreVertical,
+  Map,
+  Share2,
+  Download,
+  Trash2,
+  CopyPlus,
+  FileJson,
+  FileText,
+  FileType2,
+  Link2,
+  Link2Off,
+  ExternalLink,
+} from 'lucide-react-native';
 import ModelSelector from './ModelSelector';
 import Sidebar from './sidebar/Sidebar';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { TranslationKey } from '../i18n';
 import { useChatStore } from '../store/chatStore';
+import { chatService } from '../services/chatService';
 import { compteService } from '../services/compteService';
+import { useI18n } from '../i18n/useI18n';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useResolvedTheme } from '../utils/theme';
+import { buildSidebarUi, type SidebarAction } from './sidebar/SidebarUtils';
+import { SidebarActionSheet } from './sidebar/SidebarModals';
+import {
+  cloneChat,
+  ensureShareLink,
+  exportSingleChat,
+  openCommunitySharePage,
+  removeShareLink,
+} from '../utils/chatActions';
 
 interface HeaderProps {
   currentIndex: number;
   onOpenChatControls?: () => void;
-  onExportChat?: () => void;
   t: (key: TranslationKey) => string;
 }
 
 export default function Header({
   currentIndex,
   onOpenChatControls = () => { },
-  onExportChat = () => { },
   t,
 }: HeaderProps) {
   const [isSelectorVisible, setIsSelectorVisible] = useState(false);
   const [isSwitchSelectorVisible, setIsSwitchSelectorVisible] = useState(false);
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [isMoreMenuVisible, setIsMoreMenuVisible] = useState(false);
+  const [isExportMenuVisible, setIsExportMenuVisible] = useState(false);
+  const [shareMenuState, setShareMenuState] = useState<{ visible: boolean; hasShareLink: boolean }>({
+    visible: false,
+    hasShareLink: false,
+  });
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const router = useRouter();
+  const { i18n } = useI18n();
 
   const activeModels = useChatStore((state) => state.activeModels);
   const addModel = useChatStore((state) => state.addModel);
   const switchModel = useChatStore((state) => state.switchModel);
   const startNewChat = useChatStore((state) => state.startNewChat);
   const deleteChat = useChatStore((state) => state.deleteChat);
+  const currentChatId = useChatStore((state) => state.currentChatId);
+  const history = useChatStore((state) => state.history);
+  const pinnedChats = useChatStore((state) => state.pinnedChats);
+  const fetchHistory = useChatStore((state) => state.fetchHistory);
+  const setCurrentChatId = useChatStore((state) => state.setCurrentChatId);
 
   const handleDeleteChat = () => {
     Alert.alert(
@@ -65,6 +103,7 @@ export default function Header({
 
   const themeMode = useSettingsStore(state => state.themeMode);
   const { colors, resolved } = useResolvedTheme(themeMode);
+  const ui = useMemo(() => buildSidebarUi(colors, resolved === 'dark'), [colors, resolved]);
 
   const isDark = resolved === 'dark';
 
@@ -77,6 +116,139 @@ export default function Header({
     switchModel(currentIndex, newModel);
     useChatStore.getState().setModelVision(newModel, vision ?? false);
   };
+
+  const requireCurrentChat = useCallback(() => {
+    if (currentChatId) return currentChatId;
+    Alert.alert('Chat actions', 'Open a chat first.');
+    return null;
+  }, [currentChatId]);
+
+  const handleCloneChat = useCallback(async () => {
+    const chatId = requireCurrentChat();
+    if (!chatId) return;
+
+    try {
+      const cloned = await cloneChat(chatId, i18n.language);
+      await fetchHistory();
+      await setCurrentChatId(cloned.id);
+    } catch (error) {
+      console.error('Error cloning chat:', error);
+      Alert.alert('Clone chat', 'Failed to clone this chat.');
+    }
+  }, [fetchHistory, i18n.language, requireCurrentChat, setCurrentChatId]);
+
+  const handleExportChat = useCallback(
+    async (format: 'json' | 'txt' | 'pdf') => {
+      const chatId = requireCurrentChat();
+      if (!chatId) return;
+
+      try {
+        await exportSingleChat(chatId, format);
+      } catch (error) {
+        console.error(`Error exporting chat as ${format}:`, error);
+        Alert.alert('Export chat', `Failed to export this chat as ${format.toUpperCase()}.`);
+      }
+    },
+    [requireCurrentChat]
+  );
+
+  const handleOpenShareMenu = useCallback(async () => {
+    const chatId = requireCurrentChat();
+    if (!chatId) return;
+
+    try {
+      const details = await chatService.getChatDetails(chatId);
+      setShareMenuState({ visible: true, hasShareLink: Boolean(details.share_id) });
+    } catch (error) {
+      console.error('Error loading share state:', error);
+      setShareMenuState({ visible: true, hasShareLink: false });
+    }
+  }, [requireCurrentChat]);
+
+  const handleCopyLink = useCallback(async () => {
+    const chatId = requireCurrentChat();
+    if (!chatId) return;
+
+    try {
+      const result = await ensureShareLink(chatId);
+      setShareMenuState({ visible: false, hasShareLink: true });
+      Alert.alert('Share chat', result.reused ? 'Link copied to clipboard.' : 'Share link created and copied.');
+    } catch (error) {
+      console.error('Error copying share link:', error);
+      Alert.alert('Share chat', 'Failed to copy the share link.');
+    }
+  }, [requireCurrentChat]);
+
+  const handleDeleteShare = useCallback(async () => {
+    const chatId = requireCurrentChat();
+    if (!chatId) return;
+
+    try {
+      await removeShareLink(chatId);
+      setShareMenuState({ visible: false, hasShareLink: false });
+      Alert.alert('Share chat', 'Share link deleted.');
+    } catch (error) {
+      console.error('Error deleting share link:', error);
+      Alert.alert('Share chat', 'Failed to delete the share link.');
+    }
+  }, [requireCurrentChat]);
+
+  const handleOpenCommunity = useCallback(async () => {
+    try {
+      await openCommunitySharePage();
+      setShareMenuState((prev) => ({ ...prev, visible: false }));
+    } catch (error) {
+      console.error('Error opening Open WebUI community:', error);
+      Alert.alert('Share chat', 'Failed to open Open WebUI community.');
+    }
+  }, []);
+
+  const exportActions: SidebarAction[] = [
+    {
+      key: 'json',
+      label: 'Download JSON',
+      icon: <FileJson size={18} color={colors.text} />,
+      onPress: () => handleExportChat('json'),
+    },
+    {
+      key: 'txt',
+      label: 'Download TXT',
+      icon: <FileText size={18} color={colors.text} />,
+      onPress: () => handleExportChat('txt'),
+    },
+    {
+      key: 'pdf',
+      label: 'Download PDF',
+      icon: <FileType2 size={18} color={colors.text} />,
+      onPress: () => handleExportChat('pdf'),
+    },
+  ];
+
+  const shareActions: SidebarAction[] = [
+    {
+      key: 'copy-link',
+      label: 'Copy link',
+      icon: <Link2 size={18} color={colors.text} />,
+      onPress: handleCopyLink,
+    },
+    {
+      key: 'open-community',
+      label: 'Open WebUI community',
+      icon: <ExternalLink size={18} color={colors.text} />,
+      onPress: handleOpenCommunity,
+    },
+    ...(shareMenuState.hasShareLink
+      ? [
+          {
+            key: 'delete-link',
+            label: 'Delete link',
+            danger: true,
+            icon: <Link2Off size={18} color={ui.danger} />,
+            onPress: handleDeleteShare,
+          },
+        ]
+      : []),
+  ];
 
   useFocusEffect(
     useCallback(() => {
@@ -143,35 +315,54 @@ export default function Header({
             style={{ elevation: 8, backgroundColor: colors.card, borderColor: colors.border }}
           >
             <TouchableOpacity
-              onPress={() => handleMenuAction(onOpenChatControls)}
+              onPress={() => handleMenuAction(() => {})}
               activeOpacity={0.6}
               className="flex-row items-center py-3 px-[14px] rounded-[10px]"
             >
-              <SlidersHorizontal color={colors.subtext} size={17} />
+              <Map color={colors.subtext} size={17} />
               <Text className="ml-3 text-[14px] font-medium" style={{ color: colors.text }}>
-                {t('chatControls')}
+                Overview
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => handleMenuAction(() => { })}
+              onPress={() =>
+                handleMenuAction(() => {
+                  void handleOpenShareMenu();
+                })
+              }
               activeOpacity={0.6}
               className="flex-row items-center py-3 px-[14px] rounded-[10px]"
             >
               <Share2 color={colors.subtext} size={17} />
               <Text className="ml-3 text-[14px] font-medium" style={{ color: colors.text }}>
-                {t('shareChat')}
+                Share
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => handleMenuAction(onExportChat)}
+              onPress={() =>
+                handleMenuAction(() => {
+                  setIsExportMenuVisible(true);
+                })
+              }
               activeOpacity={0.6}
               className="flex-row items-center py-3 px-[14px] rounded-[10px]"
             >
               <Download color={colors.subtext} size={17} />
               <Text className="ml-3 text-[14px] font-medium" style={{ color: colors.text }}>
-                {t('exportChat')}
+                Download
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => handleMenuAction(() => { void handleCloneChat(); })}
+              activeOpacity={0.6}
+              className="flex-row items-center py-3 px-[14px] rounded-[10px]"
+            >
+              <CopyPlus color={colors.subtext} size={17} />
+              <Text className="ml-3 text-[14px] font-medium" style={{ color: colors.text }}>
+                Copy
               </Text>
             </TouchableOpacity>
 
@@ -188,6 +379,24 @@ export default function Header({
           </View>
         </View>
       </Modal>
+
+      <SidebarActionSheet
+        visible={isExportMenuVisible}
+        title="Export Chat"
+        actions={exportActions}
+        onClose={() => setIsExportMenuVisible(false)}
+        colors={colors}
+        ui={ui}
+      />
+
+      <SidebarActionSheet
+        visible={shareMenuState.visible}
+        title="Share Chat"
+        actions={shareActions}
+        onClose={() => setShareMenuState((prev) => ({ ...prev, visible: false }))}
+        colors={colors}
+        ui={ui}
+      />
 
       <View className="flex-row items-center justify-between px-4 overflow-hidden">
         <View className="flex-1 flex-row items-center min-w-0 mr-3">

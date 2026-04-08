@@ -104,7 +104,7 @@ export function SidebarActionSheet({
   ui: SidebarUi;
 }) {
   return (
-    <Modal transparent visible={visible} animationType="fade">
+    <Modal transparent visible={visible} animationType="none">
       <View style={[styles.overlay, { backgroundColor: ui.overlay }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={[styles.sheet, { backgroundColor: ui.dialogBg, borderColor: colors.border }]}>
@@ -116,7 +116,11 @@ export function SidebarActionSheet({
               activeOpacity={0.75}
               onPress={() => {
                 onClose();
-                setTimeout(action.onPress, 120);
+                requestAnimationFrame(() => {
+                  requestAnimationFrame(() => {
+                    void action.onPress();
+                  });
+                });
               }}
             >
               <View style={styles.sheetItemLeft}>

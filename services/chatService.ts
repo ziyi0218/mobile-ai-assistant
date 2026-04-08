@@ -163,7 +163,36 @@ export const chatService = {
   },
 
   togglePinChat: async (chatId: string) => {
+    const response = await apiClient.post(`/chats/${chatId}/pin`);
+    invalidateCache('/chats');
+    invalidateCache('/chats/pinned');
+    return response.data;
+  },
+
+  getPinChatStatus: async (chatId: string) => {
     const response = await apiClient.get(`/chats/${chatId}/pinned`);
+    return response.data;
+  },
+
+  getPinnedChats: async () => {
+    const response = await apiClient.get('/chats/pinned');
+    return Array.isArray(response.data) ? response.data : [];
+  },
+
+  cloneChat: async (chatId: string, title: string) => {
+    const response = await apiClient.post(`/chats/${chatId}/clone`, { title });
+    invalidateCache('/chats');
+    return response.data;
+  },
+
+  createShareLink: async (chatId: string) => {
+    const response = await apiClient.post(`/chats/${chatId}/share`);
+    invalidateCache('/chats');
+    return response.data;
+  },
+
+  deleteShareLink: async (chatId: string) => {
+    const response = await apiClient.delete(`/chats/${chatId}/share`);
     invalidateCache('/chats');
     return response.data;
   },
@@ -207,6 +236,11 @@ export const chatService = {
   exportAllArchivedChats: async () => {
     const response = await apiClient.get("/chats/all/archived");
     return response.data;
+  },
+
+  exportFolder: async (folderId: string) => {
+    const response = await apiClient.get(`/chats/folder/${folderId}`);
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   importChats: async (chats: any[]) => {

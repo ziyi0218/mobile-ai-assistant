@@ -56,16 +56,44 @@ jest.mock('@react-native-async-storage/async-storage', () => {
 });
 
 // --- expo-file-system ---
-jest.mock('expo-file-system', () => ({
+const expoFileSystemMock = {
   readAsStringAsync: jest.fn(async () => ''),
   writeAsStringAsync: jest.fn(async () => {}),
   deleteAsync: jest.fn(async () => {}),
-  getInfoAsync: jest.fn(async () => ({ exists: false })),
+  getInfoAsync: jest.fn(async () => ({ exists: true })),
   makeDirectoryAsync: jest.fn(async () => {}),
   documentDirectory: '/mock/documents/',
   cacheDirectory: '/mock/cache/',
   EncodingType: { UTF8: 'utf8', Base64: 'base64' },
+};
+
+jest.mock('expo-file-system', () => expoFileSystemMock);
+jest.mock('expo-file-system/legacy', () => expoFileSystemMock);
+
+// --- expo-sharing ---
+jest.mock('expo-sharing', () => ({
+  isAvailableAsync: jest.fn(async () => true),
+  shareAsync: jest.fn(async () => {}),
 }));
+
+// --- expo-linking ---
+jest.mock('expo-linking', () => ({
+  openURL: jest.fn(async () => true),
+  getInitialURL: jest.fn(async () => null),
+  addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+  parse: jest.fn((url: string) => {
+    const match = url.match(/chat\/([^/?#]+)/);
+    return {
+      path: match ? `chat/${match[1]}` : undefined,
+      queryParams: {},
+    };
+  }),
+}));
+
+// --- expo-print ---
+jest.mock('expo-print', () => ({
+  printToFileAsync: jest.fn(async () => ({ uri: '/mock/documents/chat.pdf' })),
+}), { virtual: true });
 
 // --- expo-constants ---
 jest.mock('expo-constants', () => ({

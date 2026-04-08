@@ -184,11 +184,63 @@ describe('chatService', () => {
     });
 
     it('toggles chat pin', async () => {
-      (mockApi.get as jest.Mock).mockResolvedValue({ data: { pinned: true } });
+      (mockApi.post as jest.Mock).mockResolvedValue({ data: { pinned: true } });
 
       const result = await chatService.togglePinChat('c1');
-      expect(mockApi.get).toHaveBeenCalledWith('/chats/c1/pinned');
+      expect(mockApi.post).toHaveBeenCalledWith('/chats/c1/pin');
       expect(result).toEqual({ pinned: true });
+    });
+  });
+
+  describe('pin status', () => {
+    it('gets current pin status', async () => {
+      (mockApi.get as jest.Mock).mockResolvedValue({ data: true });
+
+      const result = await chatService.getPinChatStatus('c1');
+      expect(mockApi.get).toHaveBeenCalledWith('/chats/c1/pinned');
+      expect(result).toBe(true);
+    });
+
+    it('gets pinned chats list', async () => {
+      (mockApi.get as jest.Mock).mockResolvedValue({ data: [{ id: 'c1' }] });
+
+      const result = await chatService.getPinnedChats();
+      expect(mockApi.get).toHaveBeenCalledWith('/chats/pinned');
+      expect(result).toEqual([{ id: 'c1' }]);
+    });
+  });
+
+  describe('clone / share / folder export', () => {
+    it('clones a chat', async () => {
+      (mockApi.post as jest.Mock).mockResolvedValue({ data: { id: 'clone-1' } });
+
+      const result = await chatService.cloneChat('c1', 'Clone of Chat');
+      expect(mockApi.post).toHaveBeenCalledWith('/chats/c1/clone', { title: 'Clone of Chat' });
+      expect(result).toEqual({ id: 'clone-1' });
+    });
+
+    it('creates a share link', async () => {
+      (mockApi.post as jest.Mock).mockResolvedValue({ data: { id: 'share-1' } });
+
+      const result = await chatService.createShareLink('c1');
+      expect(mockApi.post).toHaveBeenCalledWith('/chats/c1/share');
+      expect(result).toEqual({ id: 'share-1' });
+    });
+
+    it('deletes a share link', async () => {
+      (mockApi.delete as jest.Mock).mockResolvedValue({ data: true });
+
+      const result = await chatService.deleteShareLink('c1');
+      expect(mockApi.delete).toHaveBeenCalledWith('/chats/c1/share');
+      expect(result).toBe(true);
+    });
+
+    it('exports a folder', async () => {
+      (mockApi.get as jest.Mock).mockResolvedValue({ data: [{ id: 'c1' }] });
+
+      const result = await chatService.exportFolder('folder-1');
+      expect(mockApi.get).toHaveBeenCalledWith('/chats/folder/folder-1');
+      expect(result).toEqual([{ id: 'c1' }]);
     });
   });
 
