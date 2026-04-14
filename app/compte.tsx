@@ -191,12 +191,10 @@ export default function CompteScreen() {
       Alert.alert(t("errorTitle"), t("accountPasswordFillAll"));
       return;
     }
-
     if (newPassword !== confirmPassword) {
       Alert.alert(t("errorTitle"), t("accountPasswordMismatch"));
       return;
     }
-
     try {
       setIsUpdatingPassword(true);
 
@@ -205,7 +203,6 @@ export default function CompteScreen() {
         newPassword,
         confirmPassword,
       });
-
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");

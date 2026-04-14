@@ -5,6 +5,7 @@
  */
 
 import { Attachment } from '../../utils/messageHelpers';
+import useInterfaceSettingsStore from '../interfaceSettingsStore';
 
 /** All LLM generation parameters (null = not sent / use server default) */
 export interface LLMParams {
@@ -82,12 +83,12 @@ export const createSettingsSlice = (set: any, get: any): SettingsSlice => ({
   ...DEFAULT_PARAMS,
   attachments: [],
   modelVision: {},
-  webSearchEnabled: false,
+  webSearchEnabled: useInterfaceSettingsStore.getState().optionsList['25'].value, //iface_web_search_always
   codeInterpreterEnabled: false,
 
   setSystemPrompt: (v) => set({ systemPrompt: v }),
   setParam: (key, value) => set({ [key]: value }),
-  resetToDefaults: () => set({ ...DEFAULT_PARAMS, systemPrompt: '' }),
+  resetToDefaults: () => set({ ...DEFAULT_PARAMS, systemPrompt: '', webSearchEnabled: useInterfaceSettingsStore.getState().optionsList['25'].value, codeInterpreterEnabled: false, }),
 
   // Legacy setters
   setTemperature: (v) => set({ temperature: v }),

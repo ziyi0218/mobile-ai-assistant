@@ -16,6 +16,8 @@ import { useChatStore, Attachment } from '../store/chatStore';
 import { chatService } from '../services/chatService';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useResolvedTheme } from '../utils/theme';
+import { useLocation } from '../hooks/useLocation';
+import useInterfaceSettingsStore from '../store/interfaceSettingsStore';
 
 interface InputBarProps {
   t?: (key: TranslationKey) => string;
@@ -50,6 +52,9 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
   const { colors, resolved } = useResolvedTheme(themeMode);
   const isDark = resolved === 'dark';
   const { showActionSheetWithOptions } = useActionSheet();
+  const location = useLocation();
+  const enterSends = useInterfaceSettingsStore(state => state.optionsList['27'].value); //iface_enter_is_send
+
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -89,7 +94,7 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
     if (isTyping) {
       stopGeneration();
     } else if (inputText.trim().length > 0 || attachments.length > 0) {
-      sendMessage(inputText.trim());
+      sendMessage(inputText.trim(), location);
       setInputText('');
       if (isExpanded) handleCollapse();
     }
@@ -177,6 +182,12 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
           style={[s.expandedInput, { color: colors.text }]}
           value={inputText}
           onChangeText={setInputText}
+          submitBehavior={enterSends?'submit':'newline'}
+                    onSubmitEditing={() => {
+                        if (enterSends && !isTyping) {
+                          handleAction();
+                        }
+                      }}
         />
         <View style={[s.expandedActions, { borderTopColor: colors.border }]}>
           <TouchableOpacity onPress={handleCollapse} style={[s.collapseBtn, { backgroundColor: colors.card }]}>
@@ -238,6 +249,12 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
           style={[s.textInput, { color: colors.text }]}
           value={inputText}
           onChangeText={setInputText}
+          submitBehavior={enterSends?'submit':'newline'}
+          onSubmitEditing={() => {
+              if (enterSends && !isTyping) {
+                handleAction();
+              }
+            }}
         />
         {isKeyboardVisible && (
           <TouchableOpacity onPress={handleExpand} style={{ padding: 4, marginBottom: 2, marginRight: 4 }}>

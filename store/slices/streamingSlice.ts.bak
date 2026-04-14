@@ -13,6 +13,7 @@ import { ADE_SYSTEM_PROMPT, ADE_MAX_ITERATIONS, processADECalls } from './adeSli
 import type { LLMParams } from './settingsSlice';
 import useInterfaceSettingsStore from '../interfaceSettingsStore';
 import * as Clipboard from 'expo-clipboard';
+
 /** Build API params object from store, omitting null values */
 function buildApiParams(state: LLMParams): Record<string, any> {
   const p: Record<string, any> = {
@@ -280,10 +281,25 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
     if (shouldIncludeADE && !hasImages) {
       parts.push(ADE_SYSTEM_PROMPT);
     }
+<<<<<<< .working
     const effectiveSystemPrompt = parts.length > 0 ? parts.join('\n\n') : '';
     const apiMessages = effectiveSystemPrompt
       ? [{ role: 'system', content: effectiveSystemPrompt }, ...baseMessages]
       : baseMessages;
+||||||| .merge-left.r211
+    const effectiveSystemPrompt = parts.length > 0
+      ? parts.join('\n\n')
+      : 'Tu es un assistant utile. Réponds toujours en français.';
+    const apiMessages = [{ role: 'system', content: effectiveSystemPrompt }, ...baseMessages];
+=======
+    if (location) {
+      parts.push('Location: ' + JSON.stringify(location));
+    }
+    const effectiveSystemPrompt = parts.length > 0
+      ? parts.join('\n\n')
+      : 'Tu es un assistant utile. Réponds toujours en français.';
+    const apiMessages = [{ role: 'system', content: effectiveSystemPrompt }, ...baseMessages];
+>>>>>>> .merge-right.r220
 
     // Pre-generate stable assistant IDs for all (model x userMsg) combos
     // so concurrent stream callbacks all reference the same IDs
@@ -532,7 +548,8 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
                 chatService.generateTitle(currentChatId, modelName, apiMsgs)
                   .then(() => get().fetchHistory())
                   .catch((e: any) => console.error('Erreur titre:', e));
-              }            }
+              }
+            }
           } catch (e) {
             console.error('Erreur persistence chat:', e);
           }
@@ -546,10 +563,11 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
             currentEventSources: [],
             currentTaskIds: [],
           });
-if (useInterfaceSettingsStore.getState().optionsList['15'].value == true){ //iface_autocopy_response
+          if (useInterfaceSettingsStore.getState().optionsList['15'].value == true){ //iface_autocopy_response
             //This will only be executed at most once per finalization.
             await Clipboard.setStringAsync(fullContent);
-          }          get().fetchHistory();
+          }
+          get().fetchHistory();
           const tid = setTimeout(() => get().fetchHistory(), 3000);
           set({ _historyTimeoutId: tid });
         }

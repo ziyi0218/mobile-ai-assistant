@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  ActivityIndicator,
 } from "react-native";
 import { ChevronLeft, Pencil, Trash2 } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -19,13 +20,12 @@ import { useRouter } from "expo-router";
 import { useI18n } from "../i18n/useI18n";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
+import {
+  personnalizationService,
+  type PersonalizationMemory,
+} from "../services/personnalizationService";
 
-type MemoryItem = {
-  id: string;
-  userName: string;
-  updatedAt: string;
-  detail: string;
-};
+type MemoryItem = PersonalizationMemory;
 
 type ViewMode = "list" | "edit" | "confirmClear";
 
@@ -111,20 +111,31 @@ function ManageMemoryModal({
     const trimmedValue = detailText.trim();
     if (!trimmedValue) return;
 
-    const payload = {
-      userName: extractUserName(trimmedValue),
-      detail: trimmedValue,
-      updatedAt: formatCurrentDateTime(),
-    };
-
     setMemories((prev) => {
       if (editingId) {
         return prev.map((memory) =>
-          memory.id === editingId ? { ...memory, ...payload } : memory
+          memory.id === editingId
+            ? {
+                ...memory,
+                userName: extractUserName(trimmedValue),
+                detail: trimmedValue,
+                updatedAt: formatCurrentDateTime(),
+              }
+            : memory
         );
       }
 
-      return [...prev, { id: Date.now().toString(), ...payload }];
+      return [
+        ...prev,
+        {
+          id: `draft-${Date.now()}`,
+          userId: null,
+          userName: extractUserName(trimmedValue),
+          detail: trimmedValue,
+          updatedAt: formatCurrentDateTime(),
+          createdAt: formatCurrentDateTime(),
+        },
+      ];
     });
 
     resetPanels();
@@ -159,9 +170,11 @@ function ManageMemoryModal({
   const renderItem = useCallback(
     ({ item }: { item: MemoryItem }) => (
       <View style={[styles.memoryRow, { borderColor: colors.border }]}>
-        <Text style={[styles.nameColumn, { color: colors.text }]} numberOfLines={2}>
-          {item.userName}
-        </Text>
+        <View style={styles.nameColumnWrap}>
+          <Text style={[styles.nameColumn, { color: colors.text }]} numberOfLines={2}>
+            {item.userName}
+          </Text>
+        </View>
 
         <View style={styles.rightZone}>
           <Text style={[styles.dateColumn, { color: colors.text }]} numberOfLines={1}>
@@ -333,15 +346,79 @@ function ManageMemoryModal({
 
 export default function PersonnalizationScreen() {
   const router = useRouter();
-  const [isMemoryEnabled, setIsMemoryEnabled] = useState(true);
+  const [savedMemoryEnabled, setSavedMemoryEnabled] = useState(false);
+  const [draftMemoryEnabled, setDraftMemoryEnabled] = useState(false);
   const [isManageModalVisible, setIsManageModalVisible] = useState(false);
-  const [memories, setMemories] = useState<MemoryItem[]>([]);
+  const [savedMemories, setSavedMemories] = useState<MemoryItem[]>([]);
+  const [draftMemories, setDraftMemories] = useState<MemoryItem[]>([]);
+  const [isLoadingPersonalization, setIsLoadingPersonalization] = useState(true);
+  const [isSavingPersonalization, setIsSavingPersonalization] = useState(false);
 
   const { t } = useI18n();
   const { themeMode } = useSettingsStore();
   const { colors } = useResolvedTheme(themeMode);
 
-  const isManageDisabled = !isMemoryEnabled;
+  useEffect(() => {
+    let isActive = true;
+
+    const loadPersonalization = async () => {
+      setIsLoadingPersonalization(true);
+
+      try {
+        const personalization = await personnalizationService.getPersonalization();
+
+        if (!isActive) {
+          return;
+        }
+
+        setSavedMemoryEnabled(personalization.memoryEnabled);
+        setDraftMemoryEnabled(personalization.memoryEnabled);
+        setSavedMemories(personalization.memories);
+        setDraftMemories(personalization.memories);
+      } catch {
+        if (isActive) {
+          Alert.alert(t("errorTitle"), t("persoLoadError"));
+        }
+      } finally {
+        if (isActive) {
+          setIsLoadingPersonalization(false);
+        }
+      }
+    };
+
+    loadPersonalization();
+
+    return () => {
+      isActive = false;
+    };
+  }, [t]);
+
+  const isManageDisabled = !draftMemoryEnabled || isLoadingPersonalization || isSavingPersonalization;
+
+  const handleSave = useCallback(async () => {
+    setIsSavingPersonalization(true);
+
+    try {
+      const latest = await personnalizationService.updatePersonalization({
+        memoryEnabled: draftMemoryEnabled,
+        memories: draftMemories,
+        previousMemories: savedMemories,
+      });
+
+      setSavedMemoryEnabled(latest.memoryEnabled);
+      setDraftMemoryEnabled(latest.memoryEnabled);
+      setSavedMemories(latest.memories);
+      setDraftMemories(latest.memories);
+
+      Alert.alert(t("persoSave"), t("persoSaveMessage"));
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message ? error.message : t("persoSaveError");
+      Alert.alert(t("errorTitle"), t(message));
+    } finally {
+      setIsSavingPersonalization(false);
+    }
+  }, [draftMemories, draftMemoryEnabled, savedMemories, t]);
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
@@ -384,13 +461,14 @@ export default function PersonnalizationScreen() {
               </View>
 
               <Switch
-                value={isMemoryEnabled}
-                onValueChange={setIsMemoryEnabled}
+                value={draftMemoryEnabled}
+                onValueChange={setDraftMemoryEnabled}
+                disabled={isLoadingPersonalization || isSavingPersonalization}
                 trackColor={{
                   false: colors.subtext,
                   true: colors.subaccent,
                 }}
-                thumbColor={isMemoryEnabled ? colors.accent : colors.text}
+                thumbColor={draftMemoryEnabled ? colors.accent : colors.text}
                 ios_backgroundColor={colors.subtext}
               />
             </View>
@@ -404,9 +482,13 @@ export default function PersonnalizationScreen() {
               disabled={isManageDisabled}
               onPress={() => setIsManageModalVisible(true)}
             >
-              <Text style={[styles.manageButtonText, { color: colors.text }]}>
-                {t("persoManage")}
-              </Text>
+              {isLoadingPersonalization ? (
+                <ActivityIndicator size="small" color={colors.text} />
+              ) : (
+                <Text style={[styles.manageButtonText, { color: colors.text }]}>
+                  {t("persoManage")}
+                </Text>
+              )}
             </Pressable>
           </View>
 
@@ -414,13 +496,19 @@ export default function PersonnalizationScreen() {
             <Pressable
               style={[
                 styles.saveButton,
+                isSavingPersonalization && styles.disabledButton,
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
-              onPress={() => Alert.alert(t("persoSave"), t("persoSaveMessage"))}
+              disabled={isSavingPersonalization}
+              onPress={handleSave}
             >
-              <Text style={[styles.saveButtonText, { color: colors.text }]}>
-                {t("persoSave")}
-              </Text>
+              {isSavingPersonalization ? (
+                <ActivityIndicator size="small" color={colors.text} />
+              ) : (
+                <Text style={[styles.saveButtonText, { color: colors.text }]}>
+                  {t("persoSave")}
+                </Text>
+              )}
             </Pressable>
           </View>
         </View>
@@ -429,8 +517,8 @@ export default function PersonnalizationScreen() {
       <ManageMemoryModal
         visible={isManageModalVisible}
         onClose={() => setIsManageModalVisible(false)}
-        memories={memories}
-        setMemories={setMemories}
+        memories={draftMemories}
+        setMemories={setDraftMemories}
       />
     </View>
   );
@@ -560,7 +648,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   columnHeaderText: {
-    flex: 1,
+    width: "38%",
     fontSize: 13,
     fontWeight: "800",
     opacity: 0.7,
@@ -571,6 +659,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     opacity: 0.7,
     textAlign: "right",
+    paddingRight: 56,
   },
   listContent: {
     paddingBottom: 20,
@@ -587,27 +676,32 @@ const styles = StyleSheet.create({
   },
   memoryRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     paddingHorizontal: 24,
     paddingVertical: 16,
     borderBottomWidth: 1,
   },
-  nameColumn: {
-    flex: 1,
-    fontSize: 16,
+  nameColumnWrap: {
+    width: "38%",
     paddingRight: 12,
+  },
+  nameColumn: {
+    fontSize: 16,
   },
   rightZone: {
     flex: 1,
+    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
   },
   dateColumn: {
-    maxWidth: 200,
-    marginRight: 14,
+    flex: 1,
+    minWidth: 0,
+    marginRight: 8,
     fontSize: 16,
     opacity: 0.75,
+    textAlign: "right",
   },
   iconButton: {
     paddingHorizontal: 8,
