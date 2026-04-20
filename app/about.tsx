@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -7,21 +7,29 @@ import {
   ScrollView,
   Alert,
   Linking,
+  ActivityIndicator,
+  Modal,
 } from "react-native";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, X } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
 import { useI18n } from "../i18n/useI18n";
+import {
+  aboutService,
+  type AboutReleaseNotesVersion,
+} from "../services/aboutService";
 
 const APP_VERSION = "v0.7.2";
 const OLLAMA_VERSION = "0.14.3";
-const GITHUB_STARS = "128k";
 
 const LINKS = {
+  community: "https://discord.com/invite/5rJgQTnV4s",
+  company: "https://openwebui.com",
   releaseNotes: "https://github.com/open-webui/open-webui/releases",
   github: "https://github.com/open-webui/open-webui",
+  social: "https://x.com/OpenWebUI",
   creator: "https://github.com/tjbck",
 };
 
@@ -76,20 +84,117 @@ export default function AboutScreen() {
   const { t } = useI18n();
   const { themeMode } = useSettingsStore();
   const { colors } = useResolvedTheme(themeMode);
+  const [currentVersion, setCurrentVersion] = useState(APP_VERSION);
+  const [latestVersion, setLatestVersion] = useState(APP_VERSION);
+  const [isLoadingVersion, setIsLoadingVersion] = useState(true);
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+  const [releaseNotes, setReleaseNotes] = useState<Record<string, AboutReleaseNotesVersion>>({});
+  const [isReleaseNotesVisible, setIsReleaseNotesVisible] = useState(false);
 
-  const handleCheckUpdates = () => {
-    Alert.alert(
-      t("aboutCheckUpdates"),
-      t("aboutNoUpdatesMessage", { version: APP_VERSION })
-    );
+  useEffect(() => {
+    let isActive = true;
+
+    const loadVersionUpdates = async () => {
+      try {
+        const [updates, notes] = await Promise.all([
+          aboutService.getVersionUpdates(),
+          aboutService.getReleaseNotes(),
+        ]);
+
+        if (!isActive) return;
+
+        setCurrentVersion(updates.current || APP_VERSION);
+        setLatestVersion(updates.latest || updates.current || APP_VERSION);
+        setReleaseNotes(notes);
+      } catch {
+        if (!isActive) return;
+
+        setCurrentVersion(APP_VERSION);
+        setLatestVersion(APP_VERSION);
+      } finally {
+        if (isActive) {
+          setIsLoadingVersion(false);
+        }
+      }
+    };
+
+    loadVersionUpdates();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const versionStatus = useMemo(() => {
+    if (latestVersion && latestVersion !== currentVersion) {
+      return t("aboutVersionLatestAvailable", {
+        current: currentVersion,
+        latest: latestVersion,
+      });
+    }
+
+    return t("aboutVersionCurrent", { version: currentVersion });
+  }, [currentVersion, latestVersion, t]);
+
+  const orderedReleaseNotes = useMemo(
+    () =>
+      Object.entries(releaseNotes).sort(([versionA], [versionB]) =>
+        versionB.localeCompare(versionA, undefined, { numeric: true, sensitivity: "base" })
+      ),
+    [releaseNotes]
+  );
+
+  const handleCheckUpdates = async () => {
+    setIsCheckingUpdates(true);
+
+    try {
+      const updates = await aboutService.getVersionUpdates();
+      const nextCurrent = updates.current || APP_VERSION;
+      const nextLatest = updates.latest || updates.current || APP_VERSION;
+
+      setCurrentVersion(nextCurrent);
+      setLatestVersion(nextLatest);
+
+      if (nextLatest !== nextCurrent) {
+        Alert.alert(
+          t("aboutCheckUpdates"),
+          t("aboutUpdateAvailableMessage", {
+            current: nextCurrent,
+            latest: nextLatest,
+          })
+        );
+        return;
+      }
+
+      Alert.alert(
+        t("aboutCheckUpdates"),
+        t("aboutNoUpdatesMessage", { version: nextCurrent })
+      );
+    } catch {
+      Alert.alert(t("error"), t("aboutVersionLoadError"));
+    } finally {
+      setIsCheckingUpdates(false);
+    }
   };
 
-  const handleOpenReleaseNotes = async () => {
-    await Linking.openURL(LINKS.releaseNotes);
+  const handleOpenReleaseNotes = () => {
+    setIsReleaseNotesVisible(true);
+  };
+
+  const handleOpenCommunity = async () => {
+    await Linking.openURL(LINKS.community);
+  };
+
+  const handleOpenCompany = async () => {
+    await Linking.openURL(LINKS.company);
   };
 
   const handleOpenGithub = async () => {
     await Linking.openURL(LINKS.github);
+  };
+
+  const handleOpenSocial = async () => {
+    await Linking.openURL(LINKS.social);
   };
 
   const handleOpenCreator = async () => {
@@ -97,11 +202,9 @@ export default function AboutScreen() {
   };
 
   const chips = [
-    { key: "discord", label: t("aboutDiscord") },
-    { key: "open-webui", label: t("aboutOpenWebUI") },
-    { key: "follow", label: t("aboutFollowOpenWebUI") },
+    { key: "community", label: t("aboutDiscordOpenWebUI"), onPress: handleOpenCommunity },
+    { key: "follow", label: t("aboutFollowOpenWebUI"), onPress: handleOpenSocial },
     { key: "github", label: t("aboutStarGithub"), onPress: handleOpenGithub },
-    { key: "stars", label: GITHUB_STARS, compact: true },
   ];
 
   return (
@@ -132,7 +235,7 @@ export default function AboutScreen() {
               </Text>
 
               <Text style={[styles.versionValue, { color: colors.text }]}>
-                {t("aboutVersionStatus", { version: APP_VERSION })}
+                {isLoadingVersion ? t("loading") : versionStatus}
               </Text>
 
               <Pressable onPress={handleOpenReleaseNotes} hitSlop={6}>
@@ -148,10 +251,15 @@ export default function AboutScreen() {
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
               onPress={handleCheckUpdates}
+              disabled={isCheckingUpdates}
             >
-              <Text style={[styles.updateButtonText, { color: colors.text }]}>
-                {t("aboutCheckUpdates")}
-              </Text>
+              {isCheckingUpdates ? (
+                <ActivityIndicator size="small" color={colors.text} />
+              ) : (
+                <Text style={[styles.updateButtonText, { color: colors.text }]}>
+                  {t("aboutCheckUpdates")}
+                </Text>
+              )}
             </Pressable>
           </View>
         </SectionCard>
@@ -170,7 +278,6 @@ export default function AboutScreen() {
                 key={chip.key}
                 label={chip.label}
                 colors={colors}
-                compact={chip.compact}
                 onPress={chip.onPress}
               />
             ))}
@@ -180,7 +287,14 @@ export default function AboutScreen() {
             {t("aboutEmojiCredit")}
           </Text>
           <Text style={[styles.metaText, { color: colors.subtext }]}>
-            {t("aboutCopyright")}
+            {t("aboutCopyrightPrefix")}
+            <Text
+              style={[styles.metaLink, { color: colors.subtext }]}
+              onPress={handleOpenCompany}
+            >
+              {t("aboutCopyrightName")}
+            </Text>
+            {t("aboutCopyrightSuffix")}
           </Text>
           <Text style={[styles.metaText, { color: colors.subtext }]}>
             {t("aboutCreatedByPrefix")}
@@ -195,6 +309,78 @@ export default function AboutScreen() {
         </SectionCard>
 
       </ScrollView>
+
+      <Modal
+        visible={isReleaseNotesVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsReleaseNotesVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                {t("aboutReleaseNotes")}
+              </Text>
+              <Pressable
+                onPress={() => setIsReleaseNotesVisible(false)}
+                style={styles.modalCloseButton}
+              >
+                <X size={22} color={colors.text} strokeWidth={2.2} />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              contentContainerStyle={styles.modalContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {orderedReleaseNotes.map(([version, note]) => (
+                <View key={version} style={styles.releaseVersionBlock}>
+                  <Text style={[styles.releaseVersionTitle, { color: colors.text }]}>
+                    {version}
+                  </Text>
+                  <Text style={[styles.releaseDate, { color: colors.subtext }]}>
+                    {note.date}
+                  </Text>
+
+                  {(["added", "fixed", "changed"] as const).map((sectionKey) => {
+                    const items = note[sectionKey];
+
+                    if (!items || items.length === 0) return null;
+
+                    return (
+                      <View key={sectionKey} style={styles.releaseSection}>
+                        <Text style={[styles.releaseSectionTitle, { color: colors.text }]}>
+                          {t(
+                            sectionKey === "added"
+                              ? "aboutReleaseNotesAdded"
+                              : sectionKey === "fixed"
+                                ? "aboutReleaseNotesFixed"
+                                : "aboutReleaseNotesChanged"
+                          )}
+                        </Text>
+                        {items.map((item, index) => (
+                          <Text
+                            key={`${sectionKey}-${index}`}
+                            style={[styles.releaseItem, { color: colors.subtext }]}
+                          >
+                            • {item.content}
+                          </Text>
+                        ))}
+                      </View>
+                    );
+                  })}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -307,5 +493,65 @@ const styles = StyleSheet.create({
   },
   metaLink: {
     textDecorationLine: "underline",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "flex-end",
+  },
+  modalCard: {
+    maxHeight: "88%",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    paddingTop: 18,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  modalTitle: {
+    flex: 1,
+    fontSize: 22,
+    fontWeight: "700",
+    paddingRight: 12,
+  },
+  modalCloseButton: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    alignSelf: "flex-start",
+  },
+  modalContent: {
+    paddingBottom: 20,
+  },
+  releaseVersionBlock: {
+    marginBottom: 24,
+  },
+  releaseVersionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  releaseDate: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  releaseSection: {
+    marginTop: 14,
+  },
+  releaseSectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  releaseItem: {
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 8,
   },
 });

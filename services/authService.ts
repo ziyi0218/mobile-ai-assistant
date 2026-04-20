@@ -6,7 +6,7 @@
 
 import apiClient from './apiClient';
 import * as SecureStore from 'expo-secure-store';
-import { loginSchema, validate, ValidationError } from '../utils/validation';
+import { loginSchema, signUpSchema, validate, ValidationError } from '../utils/validation';
 
 /**
  * Fonction pour se connecter
@@ -43,6 +43,35 @@ export const login = async (email: string, password: string) => {
       console.error('[Auth Service] Erreur:', error.message);
     }
 
+    throw error;
+  }
+};
+
+/**
+ * Fonction pour s'inscrire
+ * Envoie les informations au serveur et redirige vers l'ecran d'attente.
+ */
+export const signup = async (name: string, email: string, password: string) => {
+  const validation = validate(signUpSchema, { name: name.trim(), email: email.trim(), password });
+  if (!validation.success) {
+    const [field, message] = Object.entries(validation.errors!)[0]!;
+    throw new ValidationError(message, field);
+  }
+
+  try {
+    await apiClient.post('/auths/signup', {
+      name: validation.data!.name,
+      email: validation.data!.email,
+      password: validation.data!.password,
+    });
+    return true;
+  } catch (error: any) {
+    if (error.response) {
+      const detail = error.response.data?.detail;
+      throw new Error(typeof detail === 'string' ? detail : 'Inscription echouee.');
+    } else if (error.request) {
+      throw new Error('Aucune reponse du serveur.');
+    }
     throw error;
   }
 };

@@ -3,7 +3,7 @@
 
 describe('Header add model limit', () => {
   it('disables add button when 4 models active', () => {
-    const activeModels = ['gpt-4', 'llama-3', 'mistral', 'claude'];
+    const activeModels = ['gpt-4', 'llama-3', 'mistral', 'gemini-pro'];
     const disabled = activeModels.length >= 4;
     expect(disabled).toBe(true);
   });
@@ -100,10 +100,10 @@ describe('Header handleSwitchModel', () => {
       setModelVision(newModel, vision ?? false);
     }
 
-    handleSwitchModel('claude-3-opus', true);
+    handleSwitchModel('gemini-pro-vision', true);
 
-    expect(switchModel).toHaveBeenCalledWith(1, 'claude-3-opus');
-    expect(setModelVision).toHaveBeenCalledWith('claude-3-opus', true);
+    expect(switchModel).toHaveBeenCalledWith(1, 'gemini-pro-vision');
+    expect(setModelVision).toHaveBeenCalledWith('gemini-pro-vision', true);
   });
 
   it('defaults vision to false when undefined', () => {

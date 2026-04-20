@@ -6,10 +6,74 @@
 
 import * as FileSystem from 'expo-file-system';
 import { chatService } from '../../services/chatService';
+import apiClient from '../../services/apiClient';
 import { personnalizationService } from '../../services/personnalizationService';
 import { generateUUID } from '../../utils/uuid';
 import { Message, buildModelItem, buildHistoryPayload, getDisplayText } from '../../utils/messageHelpers';
 import { ADE_SYSTEM_PROMPT, ADE_MAX_ITERATIONS, processADECalls } from './adeSlice';
+import { parseMemoryBlock } from '../../utils/memoryParser';
+
+const CLARIFICATION_INSTRUCTION = `When you are unsure about the user's intent, output your clarification request followed by a \`\`\`clarification block containing a JSON object with "mode" and "options".
+
+- Use "mode": "single" when only one answer makes sense (radio buttons).
+- Use "mode": "multi" when multiple answers could apply (checkboxes).
+
+Each option must have an "id" (short string) and a "label" (button text). Maximum 4 options.
+
+Example (single choice):
+
+Could you clarify what you mean?
+
+\`\`\`clarification
+{ "mode": "single", "options": [{ "id": "a", "label": "Option A" }, { "id": "b", "label": "Option B" }] }
+\`\`\`
+
+Example (multiple choices):
+
+Which topics interest you?
+
+\`\`\`clarification
+{ "mode": "multi", "options": [{ "id": "a", "label": "Math" }, { "id": "b", "label": "Physics" }, { "id": "c", "label": "CS" }] }
+\`\`\`
+
+Only use this format when genuinely unsure. Do not use it for every message.`;
+
+const EXPORT_INSTRUCTION = `IMPORTANT — Code block naming rule:
+Every time you write a code block, you MUST use the format \`\`\`download:filename.ext instead of \`\`\`language.
+NEVER use \`\`\`python, \`\`\`javascript, \`\`\`java etc. ALWAYS use \`\`\`download:filename.ext.
+The interface will display a download button on each block so the user can save the file.
+
+- Do NOT say you cannot create files.
+- Choose a descriptive filename with the correct extension (.py, .md, .txt, .java, .js, .ts, .html, .css, .json, .sql, .sh, .c, .cpp, .go, .rs, .rb, .php, .swift, .kt, etc.)
+
+Examples:
+\`\`\`download:fibonacci.py
+def fibonacci(n):
+    a, b = 0, 1
+    for _ in range(n):
+        a, b = b, a + b
+    return a
+\`\`\`
+
+\`\`\`download:style.css
+body { margin: 0; font-family: sans-serif; }
+\`\`\`
+
+You can include multiple blocks in a single response. Add explanations outside the blocks.`;
+
+const MEMORY_INSTRUCTION = `When the user explicitly asks you to remember, memorize, or retain information (e.g. "retiens que...", "memorise ca", "remember that..."), extract the key facts and output them in a \`\`\`memory block:
+
+\`\`\`memory
+["fact 1", "fact 2"]
+\`\`\`
+
+Or for a single fact:
+
+\`\`\`memory
+The user prefers dark mode
+\`\`\`
+
+Write a brief confirmation before the block (e.g. "Compris, je memorise."). Only use this when the user explicitly asks to memorize. Do NOT memorize information from normal conversation.`;
 import type { LLMParams } from './settingsSlice';
 import useInterfaceSettingsStore from '../interfaceSettingsStore';
 import * as Clipboard from 'expo-clipboard';
@@ -114,7 +178,7 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
     if (isTyping || (!text.trim() && attachments.length === 0)) return;
 
     // Auto-detect persona if auto mode is enabled
-    let shouldIncludeADE = true; // default: include ADE when no auto-persona
+    let shouldIncludeADE = false; // default: no ADE unless explicitly detected
     const { autoPersona, personas: allPersonas, activePersonaId } = get();
     if (autoPersona && text.trim()) {
       try {
@@ -280,6 +344,12 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
     if (shouldIncludeADE && !hasImages) {
       parts.push(ADE_SYSTEM_PROMPT);
     }
+    if (location) {
+      parts.push('Location: ' + JSON.stringify(location));
+    }
+    parts.push(CLARIFICATION_INSTRUCTION);
+    parts.push(EXPORT_INSTRUCTION);
+    parts.push(MEMORY_INSTRUCTION);
     const effectiveSystemPrompt = parts.length > 0 ? parts.join('\n\n') : '';
     const apiMessages = effectiveSystemPrompt
       ? [{ role: 'system', content: effectiveSystemPrompt }, ...baseMessages]
@@ -547,9 +617,20 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
             currentTaskIds: [],
           });
 if (useInterfaceSettingsStore.getState().optionsList['15'].value == true){ //iface_autocopy_response
-            //This will only be executed at most once per finalization.
             await Clipboard.setStringAsync(fullContent);
-          }          get().fetchHistory();
+          }
+          // Auto-save memories if LLM emitted a ```memory block
+          const memoryFacts = parseMemoryBlock(fullContent);
+          if (memoryFacts) {
+            for (const fact of memoryFacts) {
+              try {
+                await apiClient.post('/memories/add', { content: fact });
+              } catch (e) {
+                console.warn('[Memory] Failed to save:', fact, e);
+              }
+            }
+          }
+          get().fetchHistory();
           const tid = setTimeout(() => get().fetchHistory(), 3000);
           set({ _historyTimeoutId: tid });
         }

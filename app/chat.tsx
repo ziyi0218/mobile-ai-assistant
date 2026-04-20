@@ -25,6 +25,9 @@ import { useNotifications } from '../hooks/useNotifications';
 import { router } from 'expo-router';
 import { biometricService, biometricSession } from '../services/biometricService';
 import { useDeepLink } from '../hooks/useDeepLink';
+import { parseDownloadBlocks, stripDownloadHeaders } from '../utils/exportDetector';
+import { parseClarification, stripClarificationBlock } from '../utils/clarificationParser';
+import { ClarificationButtons } from '../components/ClarificationButtons';
 
 const ActionBtn = React.memo(({ icon: Icon, size = 15, color = '#AAA', onPress }: {
   icon: any; size?: number; color?: string; onPress: () => void;
@@ -56,8 +59,10 @@ export default function ChatScreen() {
   const userMessages = useChatStore((state) => state.userMessages);
   const modelResponses = useChatStore((state) => state.modelResponses);
   const isTyping = useChatStore((state) => state.isTyping);
+  const sendMessage = useChatStore((state) => state.sendMessage);
 
   const [isChatControlsVisible, setIsChatControlsVisible] = useState(false);
+  const [dismissedClarifications, setDismissedClarifications] = useState<Set<string>>(new Set());
 
   const systemPrompt = useChatStore((state) => state.systemPrompt);
   const setSystemPrompt = useChatStore((state) => state.setSystemPrompt);
@@ -204,7 +209,13 @@ export default function ChatScreen() {
                   const isUser = msg.role === 'user';
                   const isEditing = editingMsgId === msg.id;
                   const isCopied = copiedMsgId === msg.id;
-                  const displayText = getDisplayText(msg.content);
+                  const rawContent = getDisplayText(msg.content);
+                  const clarification = !isUser ? parseClarification(rawContent) : null;
+                  const downloadBlocks = !isUser ? parseDownloadBlocks(rawContent) : null;
+                  let displayText = rawContent;
+                  if (!isUser && clarification) displayText = stripClarificationBlock(displayText);
+                  if (!isUser && downloadBlocks) displayText = stripDownloadHeaders(displayText);
+                  const showClarification = clarification !== null && !dismissedClarifications.has(msg.id) && !isTyping;
                   const images = getImageUrls(msg.content);
 
                   return (
@@ -226,7 +237,7 @@ export default function ChatScreen() {
                               </View>
                             </View>
                           ) : (
-                            <MessageBubble content={displayText} isUser={isUser} images={isUser ? [] : images} />
+                            <MessageBubble content={displayText} isUser={isUser} images={isUser ? [] : images} downloadBlocks={downloadBlocks} />
                           )}
                         </View>
                       </View>
@@ -246,6 +257,16 @@ export default function ChatScreen() {
                             </>
                           )}
                         </View>
+                      )}
+                      {showClarification && clarification && (
+                        <ClarificationButtons
+                          mode={clarification.mode}
+                          options={clarification.options}
+                          onSelect={(label: string) => {
+                            setDismissedClarifications((prev) => new Set(prev).add(msg.id));
+                            sendMessage(label);
+                          }}
+                        />
                       )}
                     </View>
                   );

@@ -43,10 +43,8 @@ yarn-error.*
 /ios
 /android
 
-# Claude / AI tooling
-CLAUDE.md
-.claude/
-*.claude*
+# Local dev config
+.planning/
 
 # Plans internes (pas versionnés)
 OFFLINE_LLM_PLAN.md

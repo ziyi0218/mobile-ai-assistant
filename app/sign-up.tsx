@@ -8,8 +8,10 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
+import { signup } from "../services/authService";
 
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
@@ -25,6 +27,23 @@ export default function SignUp() {
   const [nameValue, setNameValue] = useState("");
   const [emailValue, setEmailValue] = useState("");
   const [passwordValue, setPasswordValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSignUp = async () => {
+    if (!nameValue || !emailValue || !passwordValue) {
+      Alert.alert(t("error"), t("fillAllFields"));
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await signup(nameValue, emailValue, passwordValue);
+      router.replace("/pending");
+    } catch (e: any) {
+      Alert.alert(t("error"), e.message || t("signUpFailed"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -68,10 +87,13 @@ export default function SignUp() {
           />
 
           <Pressable
-            style={styles.primaryBtn}
-            onPress={() => router.replace("/pending")}
+            style={[styles.primaryBtn, isLoading && { opacity: 0.7 }]}
+            onPress={handleSignUp}
+            disabled={isLoading}
           >
-            <Text style={styles.primaryText}>{t("signUp")}</Text>
+            <Text style={styles.primaryText}>
+              {isLoading ? t("connecting") : t("signUp")}
+            </Text>
           </Pressable>
 
           <Pressable onPress={() => router.back()}>

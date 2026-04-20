@@ -1,12 +1,12 @@
 import { useEffect } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import { checkAuthStatus } from '../services/authService';
 
 export default function Index() {
   useEffect(() => {
-    SecureStore.getItemAsync('token').then((token) => {
-      router.replace(token ? '/chat' : '/sign-in');
+    checkAuthStatus().then((isValid) => {
+      router.replace(isValid ? '/chat' : '/sign-in');
     });
   }, []);
 

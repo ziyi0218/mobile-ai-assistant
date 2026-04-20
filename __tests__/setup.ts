@@ -56,7 +56,8 @@ jest.mock('@react-native-async-storage/async-storage', () => {
 });
 
 // --- expo-file-system ---
-const expoFileSystemMock = {
+// Variable must be prefixed with "mock" to be accessible inside jest.mock()
+const mockExpoFileSystem = {
   readAsStringAsync: jest.fn(async () => ''),
   writeAsStringAsync: jest.fn(async () => {}),
   deleteAsync: jest.fn(async () => {}),
@@ -67,8 +68,8 @@ const expoFileSystemMock = {
   EncodingType: { UTF8: 'utf8', Base64: 'base64' },
 };
 
-jest.mock('expo-file-system', () => expoFileSystemMock);
-jest.mock('expo-file-system/legacy', () => expoFileSystemMock);
+jest.mock('expo-file-system', () => mockExpoFileSystem);
+jest.mock('expo-file-system/legacy', () => mockExpoFileSystem);
 
 // --- expo-sharing ---
 jest.mock('expo-sharing', () => ({

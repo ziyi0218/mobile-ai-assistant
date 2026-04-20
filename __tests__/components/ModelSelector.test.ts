@@ -6,7 +6,7 @@ describe('ModelSelector search filtering', () => {
     { id: 'gpt-4-turbo', name: 'gpt-4-turbo', size: '70B', vision: true },
     { id: 'llama-3-8b', name: 'llama-3-8b', size: '8B', vision: false },
     { id: 'mistral-7b', name: 'mistral-7b', size: '7B', vision: false },
-    { id: 'claude-3-opus', name: 'claude-3-opus', size: '', vision: true },
+    { id: 'gemini-pro-vision', name: 'gemini-pro-vision', size: '', vision: true },
   ];
 
   function filterModels(query: string) {
@@ -31,7 +31,7 @@ describe('ModelSelector search filtering', () => {
   });
 
   it('matches multiple results', () => {
-    // Both gpt-4 and claude-3 contain '3'
+    // Both gpt-4 and gemini-pro contain common substrings
     const result = filterModels('3');
     expect(result.length).toBeGreaterThan(1);
   });

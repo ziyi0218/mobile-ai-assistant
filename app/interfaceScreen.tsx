@@ -1,5 +1,4 @@
-import { SafeAreaView, View, Text, Pressable, FlatList, Switch, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, Pressable, FlatList, Switch, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react'
@@ -16,7 +15,6 @@ import { ChevronLeft } from "lucide-react-native";
 import { useCommonDesign } from '../hooks/useCommonDesign';
 
 export default function InterfaceScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const optionsList = useInterfaceSettingsStore(state => state.optionsList);
   const setOptionsList = useInterfaceSettingsStore(state => state.setOptionsList);
@@ -46,92 +44,99 @@ export default function InterfaceScreen() {
     haptics('heavy');
   };
 
+  const interfaceItems = useMemo(
+    () => Object.entries(draftOptionsList).map(([key, value]) => ({ ...value, id: key })),
+    [draftOptionsList]
+  );
+
 
 
   return (
-    <SafeAreaView className="flex-1" style={{ paddingTop: insets.top, paddingBottom: insets.bottom}}>
-      <View className="flex-1" style={{ backgroundColor: colors.bg }}>
-        {/* Back button */}
-        <View className="flex-row items-center px-2.5">
-          <Pressable onPress={() => {haptics('light'); router.back()}}
-                     style={styles.backButton}
-          >
-            <ChevronLeft size={scaled22} color={colors.text} strokeWidth={2.5} />
-          </Pressable>
-        </View>
+    <View className="flex-1" style={{ backgroundColor: colors.bg }}>
+      <View style={styles.screen}>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Pressable onPress={() => {haptics('light'); router.back()}}
+                       style={styles.backButton}
+            >
+              <ChevronLeft size={scaled22} color={colors.text} strokeWidth={2.5} />
+            </Pressable>
+          </View>
 
-        {/* List of options */}
-        <View style={styles.content}>
-          <FlatList
-            className="px-5 pt-5"
-            data={Object.entries(draftOptionsList).map(([key, value]) => ({...value, id: key,}))}
-            keyExtractor={item => item.id}
-            renderItem={({ item }) => {
-              if (item.type == 'separator'){
-                return (
-                      <Text style={styles.title}>— {t(item.textKey)} —</Text>
-                    );
-              }
-              else{
-              /* item is not a separator */
-              const Interactable = item.type === 'switch' ? Switch : (item.type ==='NumberInput' ? NumberInput : ActionSheetTrigger) /*TODO generalise this*/;
-              let switchThumbColor = item.type === 'switch' ? (item.value? colors.accent : colors.text) : undefined;
+          <Text style={styles.title}>— {t("interface")} —</Text>
 
-              return (
-              <View style={[styles.item, { paddingVertical: 14 }]}>
+          <View style={styles.content}>
+            <View style={interfaceStyles.listWrapper}>
+              <FlatList
+                contentContainerStyle={interfaceStyles.listContent}
+                data={interfaceItems}
+                keyExtractor={item => item.id}
+                renderItem={({ item }) => {
+                  if (item.type == 'separator'){
+                    return (
+                          <Text style={styles.title}>— {t(item.textKey)} —</Text>
+                        );
+                  }
+                  else{
+                  /* item is not a separator */
+                  const Interactable = item.type === 'switch' ? Switch : (item.type ==='NumberInput' ? NumberInput : ActionSheetTrigger) /*TODO generalise this*/;
+                  let switchThumbColor = item.type === 'switch' ? (item.value? colors.accent : colors.text) : undefined;
 
-                <Text minimumFontScale={0.8}
-                      ellipsizeMode="tail"
-                      style={[styles.label, {marginRight: 10}]}>
-                     {t(item.textKey)}
-                </Text>
+                  return (
+                  <View style={styles.item}>
 
-                <Interactable
-                    style = {{marginLeft: 'auto'}}
-                    value={item.value}
-                    {...(item.type === 'switch' ? {
-                        trackColor: {
-                             false: colors.subtext,
-                             true: colors.subaccent,
-                        },
-                        thumbColor: switchThumbColor,
-                        onValueChange: (value) => {updateDraftOptionsList(item.id, value); haptics('medium')},
-                        style: {transform: [{scale: scaleFactor}]}
-                      } : (item.type==='NumberInput'?{
-                        onSubmitEditing: (value) => {updateDraftOptionsList(item.id, value); haptics('medium')},
-                        style: {
-                          color: colors.text,
-                          fontSize: scaled22,
-                          fontWeight: 'bold',
-                          width: scaled40,
-                          height: scaled40,
-                          minWidth: 36,
-                          minHeight: 36,
-                          paddingVertical: 0,
-                          textAlign: 'center',
-                        }, //without the minimas, it can get impossible to recover from scaling it down too far.
-                        defaultValue: 100,
-                        minValue: 9,
-                        maxValue: 500
-                      } : /* it is action-sheet*/ {
-                          value: item.value,
-                          validValues: item.validValues,
-                          setter:updateDraftOptionsList, id: item.id,
-                          backgroundColor:colors.subaccent,
-                          style: {fontWeight: 700, fontSize: scaled16*0.66, maxWidth:scaled48}
-                        })
-                      )
-                    }
-                    className="mr-5"
-                />
+                    <Text minimumFontScale={0.8}
+                          ellipsizeMode="tail"
+                          style={[styles.label, interfaceStyles.itemLabel]}>
+                         {t(item.textKey)}
+                    </Text>
 
-              </View>
-              );
-              }
-            }}
-          />
-        </View>
-        <View style={[styles.footer, {marginTop: 5}]}>
+                    <Interactable
+                        style = {{marginLeft: 'auto'}}
+                        value={item.value}
+                        {...(item.type === 'switch' ? {
+                            trackColor: {
+                                 false: colors.subtext,
+                                 true: colors.subaccent,
+                            },
+                            thumbColor: switchThumbColor,
+                            onValueChange: (value) => {updateDraftOptionsList(item.id, value); haptics('medium')},
+                            style: {transform: [{scale: scaleFactor}]}
+                          } : (item.type==='NumberInput'?{
+                            onSubmitEditing: (value) => {updateDraftOptionsList(item.id, value); haptics('medium')},
+                            style: {
+                              color: colors.text,
+                              fontSize: scaled22,
+                              fontWeight: 'bold',
+                              width: scaled40,
+                              height: scaled40,
+                              minWidth: 36,
+                              minHeight: 36,
+                              paddingVertical: 0,
+                              textAlign: 'center',
+                            }, //without the minimas, it can get impossible to recover from scaling it down too far.
+                            defaultValue: 100,
+                            minValue: 9,
+                            maxValue: 500
+                          } : /* it is action-sheet*/ {
+                              value: item.value,
+                              validValues: item.validValues,
+                              setter:updateDraftOptionsList, id: item.id,
+                              backgroundColor:colors.subaccent,
+                              style: {fontWeight: 700, fontSize: scaled16*0.66, maxWidth:scaled48}
+                            })
+                          )
+                        }
+                    />
+
+                  </View>
+                  );
+                  }
+                }}
+              />
+            </View>
+          </View>
+          <View style={styles.footer}>
             <Pressable
               style={styles.saveButton}
               onPress = {handleSave}
@@ -140,8 +145,22 @@ export default function InterfaceScreen() {
                 {t("generalSave")}
               </Text>
             </Pressable>
+          </View>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
+
+const interfaceStyles = StyleSheet.create({
+  listWrapper: {
+    flex: 1,
+    width: "100%",
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
+  itemLabel: {
+    marginRight: 10,
+  },
+});

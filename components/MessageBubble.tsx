@@ -4,11 +4,15 @@
  * @github https://github.com/assinscreedFC
  */
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, Text, Image, StyleSheet, Platform } from 'react-native';
+import { View, Text, Image, StyleSheet, Platform, TouchableOpacity, ScrollView } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { WebView } from 'react-native-webview';
+import { Copy, Download, Check } from 'lucide-react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useResolvedTheme } from '../utils/theme';
+import type { DownloadBlock } from '../utils/exportDetector';
+import { exportFile } from '../utils/fileExport';
 
 //                                                              
 // Types
@@ -18,6 +22,7 @@ interface MessageBubbleProps {
   isUser: boolean;
   images?: string[];
   bubbleWidth?: number;
+  downloadBlocks?: DownloadBlock[] | null;
 }
 
 //                                                              
@@ -83,8 +88,9 @@ function buildKatexHtml(latex: string, displayMode: boolean, textColor: string):
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { color: ${textColor}; background: transparent; display: flex; justify-content: ${displayMode ? 'center' : 'flex-start'}; align-items: center; min-height: 1px; padding: ${displayMode ? '8px 4px' : '2px 0'}; }
-  .katex { font-size: ${displayMode ? '26px' : '22px'}; color: ${textColor}; }
+  body { color: ${textColor}; background: transparent; display: flex; justify-content: ${displayMode ? 'center' : 'flex-start'}; align-items: center; min-height: 1px; padding: ${displayMode ? '8px 4px' : '2px 0'}; overflow-x: auto; }
+  .katex { font-size: ${displayMode ? '22px' : '18px'}; color: ${textColor}; }
+  .katex-display { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
   .error { color: #D63384; font-family: monospace; font-size: 14px; }
 </style>
 </head><body>
@@ -116,7 +122,7 @@ const KaTeXBlock = React.memo(({ math, block, textColor }: { math: string; block
       <WebView
         source={{ html }}
         style={{ flex: 1, backgroundColor: 'transparent' }}
-        scrollEnabled={false}
+        scrollEnabled={true}
         originWhitelist={['*']}
         onMessage={onMessage}
         showsVerticalScrollIndicator={false}
@@ -167,9 +173,122 @@ const createMdStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   image: { borderRadius: 8, marginVertical: 6 },
 });
 
-//                                                              
+//
+// Code block with copy/download buttons
+//
+const MONO_FONT = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
+
+const MAX_CODE_HEIGHT = 300;
+
+function CodeBlockWithActions({ content, language, downloadBlock, isDark, colors }: {
+  content: string;
+  language: string;
+  downloadBlock: DownloadBlock | null;
+  isDark: boolean;
+  colors: Record<string, string>;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await Clipboard.setStringAsync(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const lineCount = content.split('\n').length;
+  const naturalHeight = lineCount * 20 + 24;
+  const needsScroll = naturalHeight > MAX_CODE_HEIGHT;
+  const hasDownload = downloadBlock !== null;
+  const label = downloadBlock?.filename || language || 'code';
+
+  return (
+    <View style={[cb.wrapper, { borderColor: colors.border }]}>
+      {/* Header bar */}
+      <View style={[cb.header, { backgroundColor: isDark ? '#0D0D14' : '#E8E8ED' }]}>
+        <Text style={[cb.lang, { color: colors.subtext }]} numberOfLines={1}>{label}</Text>
+        <View style={cb.actions}>
+          <TouchableOpacity onPress={handleCopy} style={cb.btn} activeOpacity={0.6}>
+            {copied
+              ? <Check color="#34C759" size={16} />
+              : <Copy color={colors.subtext} size={16} />
+            }
+          </TouchableOpacity>
+          {hasDownload && (
+            <TouchableOpacity
+              onPress={() => exportFile(content, downloadBlock!.filename)}
+              style={cb.btn}
+              activeOpacity={0.6}
+            >
+              <Download color="#007AFF" size={16} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+      {/* Code content — ScrollView for long blocks, plain View for short */}
+      {needsScroll ? (
+        <ScrollView
+          style={[cb.codeScroll, { backgroundColor: isDark ? '#1A1A24' : '#1E1E2E' }]}
+          showsVerticalScrollIndicator
+          nestedScrollEnabled
+        >
+          <Text style={cb.code} selectable>{content}</Text>
+        </ScrollView>
+      ) : (
+        <View style={[cb.codeWrap, { backgroundColor: isDark ? '#1A1A24' : '#1E1E2E' }]}>
+          <Text style={cb.code} selectable>{content}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const cb = StyleSheet.create({
+  wrapper: {
+    marginVertical: 8,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 0.5,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  lang: {
+    fontSize: 12,
+    fontFamily: MONO_FONT,
+    flex: 1,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  btn: {
+    padding: 4,
+  },
+  codeScroll: {
+    maxHeight: 300,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  codeWrap: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  code: {
+    color: '#CDD6F4',
+    fontFamily: MONO_FONT,
+    fontSize: 13,
+    lineHeight: 20,
+  },
+});
+
+//
 // Main Component
-//                                                              
+//
 function ImageGrid({ urls, single }: { urls: string[]; single?: boolean }) {
   if (single || urls.length === 1) {
     return (
@@ -185,11 +304,38 @@ function ImageGrid({ urls, single }: { urls: string[]; single?: boolean }) {
   );
 }
 
-function MessageBubble({ content, isUser, images }: MessageBubbleProps) {
+function MessageBubble({ content, isUser, images, downloadBlocks }: MessageBubbleProps) {
   const themeMode = useSettingsStore(state => state.themeMode);
   const { colors, resolved } = useResolvedTheme(themeMode);
   const isDark = resolved === 'dark';
   const mdStyles = useMemo(() => createMdStyles(colors, isDark), [colors, isDark]);
+
+  // Track which download block index we're rendering
+  const blockIndexRef = React.useRef(0);
+
+  // All code blocks get syntax highlighting + copy/download buttons
+  const mdRules = useMemo(() => {
+    if (isUser) return undefined;
+    return {
+      fence: (node: any) => {
+        const codeContent = node.content || '';
+        const language = node.sourceInfo || '';
+        const matchingBlock = downloadBlocks?.find((b) =>
+          codeContent.trim() === b.content.trim()
+        ) || null;
+        return (
+          <CodeBlockWithActions
+            key={node.key}
+            content={codeContent}
+            language={language}
+            downloadBlock={matchingBlock}
+            isDark={isDark}
+            colors={colors}
+          />
+        );
+      },
+    };
+  }, [isUser, downloadBlocks, isDark, colors]);
 
   // Hooks must be called unconditionally before any early return
   const blocks = useMemo(() => parseContent(content || ''), [content]);
@@ -209,7 +355,7 @@ function MessageBubble({ content, isUser, images }: MessageBubbleProps) {
   if (!hasMath) {
     return (
       <View style={s.aiContainer}>
-        <Markdown style={mdStyles}>{content || ''}</Markdown>
+        <Markdown style={mdStyles} rules={mdRules}>{content || ''}</Markdown>
       </View>
     );
   }
@@ -220,7 +366,7 @@ function MessageBubble({ content, isUser, images }: MessageBubbleProps) {
         if (block.type === 'text') {
           const trimmed = block.value.trim();
           if (!trimmed) return null;
-          return <Markdown key={`md-${i}`} style={mdStyles}>{block.value}</Markdown>;
+          return <Markdown key={`md-${i}`} style={mdStyles} rules={mdRules}>{block.value}</Markdown>;
         }
         return (
           <KaTeXBlock
@@ -244,6 +390,6 @@ const s = StyleSheet.create({
   singleImage: { width: 220, height: 280, borderRadius: 14, marginBottom: 8 },
   imageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 8 },
   multiImage: { width: 120, height: 120, borderRadius: 10 },
-  mathBlockWrap: { width: '100%', minHeight: 30, marginVertical: 6, borderRadius: 8, overflow: 'hidden' },
-  mathInlineWrap: { minHeight: 20, marginVertical: 2, overflow: 'hidden' },
+  mathBlockWrap: { width: '100%', minHeight: 30, marginVertical: 6, borderRadius: 8 },
+  mathInlineWrap: { minHeight: 20, marginVertical: 2 },
 });
