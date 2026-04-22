@@ -1,14 +1,23 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Check, ChevronLeft, ChevronUp, MessageCircle, Undo2, Redo2 } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import NoteEditor from '../../components/notes/NoteEditor';
+import * as SecureStore from 'expo-secure-store';
+import NativeCollabEditorHost from '../../components/notes/NativeCollabEditorHost';
+import NoteChatModal from '../../components/notes/NoteChatModal';
 import NoteToolbar, { type NoteToolbarAction } from '../../components/notes/NoteToolbar';
 import { useI18n } from '../../i18n/useI18n';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useNoteStore } from '../../store/useNoteStore';
 import { useResolvedTheme } from '../../utils/theme';
+
+const LAB_TOOLBAR_ACTIONS: NoteToolbarAction[] = ['h1', 'h2', 'h3', 'bullet', 'numbered', 'bold', 'italic', 'strike', 'code'];
+const TITLE_SAVE_DEBOUNCE_MS = 500;
+
+function normalizeNoteTitle(value: string, fallback: string) {
+  return value.trim() || fallback;
+}
 
 function formatUpdatedLabel(timestamp: number, language: string) {
   const safeTimestamp = Number.isFinite(timestamp)
@@ -39,6 +48,10 @@ export default function NoteDetailScreen() {
   const updateNoteLocal = useNoteStore((state) => state.updateNoteLocal);
   const updateNoteTitle = useNoteStore((state) => state.updateNoteTitle);
   const titleInputRef = useRef<TextInput>(null);
+  const titleSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const titleSaveInFlightRef = useRef(false);
+  const queuedTitleRef = useRef<string | null>(null);
+  const lastSyncedTitleRef = useRef(note?.title ?? '');
   const [title, setTitle] = useState(note?.title ?? '');
   const [contentText, setContentText] = useState(note?.content ?? '');
   const [contentHtml, setContentHtml] = useState(note?.contentHtml ?? '');
@@ -48,6 +61,11 @@ export default function NoteDetailScreen() {
   const [toolbarTop, setToolbarTop] = useState(180);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [token, setToken] = useState<string | null>(null);
+  const [isTokenResolved, setIsTokenResolved] = useState(Platform.OS === 'web');
+  const [isChatVisible, setIsChatVisible] = useState(false);
+  const [isTitleFocused, setIsTitleFocused] = useState(false);
+  const [editorErrorMessage, setEditorErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!note) return;
@@ -55,12 +73,55 @@ export default function NoteDetailScreen() {
     setContentText(note.content);
     setContentHtml(note.contentHtml ?? '');
     setEditorSeedHtml(note.contentHtml ?? '');
+    lastSyncedTitleRef.current = note.title;
+    queuedTitleRef.current = null;
+    titleSaveInFlightRef.current = false;
+    if (titleSaveTimeoutRef.current) {
+      clearTimeout(titleSaveTimeoutRef.current);
+      titleSaveTimeoutRef.current = null;
+    }
+    setPendingCommand(null);
+    setIsToolbarExpanded(false);
+    setIsTitleFocused(false);
+    setEditorErrorMessage(null);
   }, [note?.id]);
+
+  useEffect(() => {
+    if (!note) return;
+
+    lastSyncedTitleRef.current = note.title;
+    if (!isTitleFocused) {
+      setTitle(note.title);
+    }
+  }, [isTitleFocused, note?.id, note?.title]);
 
   useEffect(() => {
     if (note || !id) return;
     void fetchNotes('', 1);
   }, [fetchNotes, id, note]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    SecureStore.getItemAsync('token')
+      .then((storedToken) => {
+        if (isMounted) {
+          setToken(storedToken);
+        }
+      })
+      .catch((error) => {
+        console.error('Erreur lecture token note editor:', error);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsTokenResolved(true);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!note) return;
@@ -102,23 +163,82 @@ export default function NoteDetailScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (titleSaveTimeoutRef.current) {
+        clearTimeout(titleSaveTimeoutRef.current);
+        titleSaveTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   const applyAction = (action: NoteToolbarAction) => {
     setPendingCommand(action);
     setIsToolbarExpanded(true);
   };
 
-  const handleTitleEndEditing = async () => {
+  const persistTitle = async (rawTitle: string) => {
     if (!note) return;
-    const normalizedTitle = title.trim() || t('notesUntitled');
-    if (normalizedTitle === note.title) return;
+
+    const normalizedTitle = normalizeNoteTitle(rawTitle, t('notesUntitled'));
+    if (normalizedTitle === lastSyncedTitleRef.current) return;
+
+    if (titleSaveInFlightRef.current) {
+      queuedTitleRef.current = normalizedTitle;
+      return;
+    }
+
+    titleSaveInFlightRef.current = true;
+    queuedTitleRef.current = null;
 
     try {
       await updateNoteTitle(note.id, normalizedTitle);
-      setTitle(normalizedTitle);
     } catch (error) {
-      console.error('Erreur update note title:', error);
-      setTitle(note.title);
+      console.error('Erreur sync note title:', error);
+    } finally {
+      titleSaveInFlightRef.current = false;
+
+      const queuedTitle = queuedTitleRef.current;
+      queuedTitleRef.current = null;
+
+      if (queuedTitle && queuedTitle !== lastSyncedTitleRef.current) {
+        void persistTitle(queuedTitle);
+      }
     }
+  };
+
+  const scheduleTitleSave = (rawTitle: string) => {
+    if (!note) return;
+
+    const normalizedTitle = normalizeNoteTitle(rawTitle, t('notesUntitled'));
+    if (normalizedTitle === lastSyncedTitleRef.current) return;
+
+    if (titleSaveTimeoutRef.current) {
+      clearTimeout(titleSaveTimeoutRef.current);
+    }
+
+    titleSaveTimeoutRef.current = setTimeout(() => {
+      titleSaveTimeoutRef.current = null;
+      void persistTitle(normalizedTitle);
+    }, TITLE_SAVE_DEBOUNCE_MS);
+  };
+
+  const handleTitleChange = (value: string) => {
+    setTitle(value);
+    scheduleTitleSave(value);
+  };
+
+  const handleTitleEndEditing = async () => {
+    const normalizedTitle = normalizeNoteTitle(title, t('notesUntitled'));
+    setIsTitleFocused(false);
+    setTitle(normalizedTitle);
+
+    if (titleSaveTimeoutRef.current) {
+      clearTimeout(titleSaveTimeoutRef.current);
+      titleSaveTimeoutRef.current = null;
+    }
+
+    await persistTitle(normalizedTitle);
   };
 
   const handleDismissKeyboard = () => {
@@ -181,106 +301,151 @@ export default function NoteDetailScreen() {
               <Redo2 size={18} color={colors.subtext} strokeWidth={2.2} />
             </Pressable>
 
-            <Pressable style={styles.headerActionButton} hitSlop={8}>
+            <Pressable
+              onPress={() => setIsChatVisible(true)}
+              style={styles.headerActionButton}
+              hitSlop={8}
+            >
               <MessageCircle size={18} color={colors.subtext} strokeWidth={2.2} />
             </Pressable>
           </View>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          <View
-            onLayout={(event) => {
-              const { y, height } = event.nativeEvent.layout;
-              setToolbarTop(Math.max(148, y + height - 12));
-            }}
-          >
-            <TextInput
-              ref={titleInputRef}
-              value={title}
-              onChangeText={setTitle}
-              onFocus={() => {
-                setKeyboardVisible(true);
-              }}
-              onEndEditing={() => {
-                void handleTitleEndEditing();
-              }}
-              placeholder={t('notesUntitled')}
-              placeholderTextColor={colors.subtext}
-              style={[styles.titleInput, { color: colors.text }]}
-            />
-
-            <Text style={[styles.meta, { color: colors.subtext }]}>
-              {formatUpdatedLabel(note.updatedAt, i18n.language)}   {t('notesPrivate')}   {wordCount} {t('notesWords')}   {characterCount} {t('notesCharacters')}
-            </Text>
-          </View>
-
-          <View style={styles.editorWrap}>
-            <NoteEditor
-              initialHtml={editorSeedHtml}
-              colors={colors}
-              pendingCommand={pendingCommand}
-              onCommandHandled={() => setPendingCommand(null)}
-              onContentChange={({ html, text }) => {
-                setContentHtml(html);
-                setContentText(text);
-              }}
-              onFocusChange={(isFocused) => {
-                if (isFocused) {
-                  setPendingCommand(null);
-                  setKeyboardVisible(true);
-                }
-              }}
-            />
-          </View>
-        </ScrollView>
-
-        <View pointerEvents="box-none" style={[styles.floatingToolbarLayer, { top: toolbarTop }]}>
-          {isToolbarExpanded ? (
-            <View style={styles.floatingToolbarWrap}>
-              <View style={[styles.floatingToolbarCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <NoteToolbar colors={colors} onAction={applyAction} />
-              </View>
-
-              <Pressable
-                onPress={() => setIsToolbarExpanded(false)}
-                style={[styles.toolbarDockExpanded, { backgroundColor: colors.card, borderColor: colors.border }]}
-              >
-                <Text style={[styles.toolbarDockText, { color: colors.text }]}>›</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <Pressable
-              onPress={() => setIsToolbarExpanded(true)}
-              style={[styles.toolbarDockCollapsed, { backgroundColor: colors.card, borderColor: colors.border }]}
-            >
-              <Text style={[styles.toolbarDockText, { color: colors.text }]}>‹</Text>
-            </Pressable>
-          )}
-        </View>
-
-        {keyboardVisible ? (
-          <View
-            style={[
-              styles.keyboardBar,
-              {
-                backgroundColor: colors.bg,
-                borderColor: colors.border,
-                bottom: Platform.OS === 'ios' ? Math.max(keyboardHeight - insets.bottom, 0) : 0,
-              },
-            ]}
-          >
-            <View style={styles.keyboardBarLeft}>
-              <Pressable onPress={handleJumpToTitle} style={styles.keyboardBarButton}>
-                <ChevronUp size={22} color={colors.text} />
-              </Pressable>
-            </View>
-
-            <Pressable onPress={handleDismissKeyboard} style={styles.keyboardBarButton}>
-              <Check size={24} color={colors.text} strokeWidth={2.4} />
-            </Pressable>
+        {editorErrorMessage ? (
+          <View style={[styles.noticeCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.noticeText, { color: colors.subtext }]}>{editorErrorMessage}</Text>
           </View>
         ) : null}
+
+        <View
+          onLayout={(event) => {
+            const { y, height } = event.nativeEvent.layout;
+            setToolbarTop(Math.max(148, y + height - 12));
+          }}
+        >
+          <TextInput
+            ref={titleInputRef}
+            value={title}
+            onChangeText={handleTitleChange}
+            onFocus={() => {
+              setIsTitleFocused(true);
+              setKeyboardVisible(true);
+            }}
+            onEndEditing={() => {
+              void handleTitleEndEditing();
+            }}
+            placeholder={t('notesUntitled')}
+            placeholderTextColor={colors.subtext}
+            style={[styles.titleInput, { color: colors.text }]}
+          />
+
+          <Text style={[styles.meta, { color: colors.subtext }]}>
+            {formatUpdatedLabel(note.updatedAt, i18n.language)}   {t('notesPrivate')}   {wordCount} {t('notesWords')}   {characterCount} {t('notesCharacters')}
+          </Text>
+        </View>
+
+        {Platform.OS === 'web' ? (
+          <View style={[styles.noticeCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.noticeText, { color: colors.subtext }]}>
+              Native collaborative note editing is currently available in the mobile app only.
+            </Text>
+          </View>
+        ) : !isTokenResolved ? (
+          <View style={[styles.noticeCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.noticeText, { color: colors.subtext }]}>
+              Preparing collaborative editor...
+            </Text>
+          </View>
+        ) : !token ? (
+          <View style={[styles.noticeCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.noticeText, { color: colors.subtext }]}>
+              Unable to load your session token. Collaborative note sync is temporarily unavailable.
+            </Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.labEditorWrap}>
+              <NativeCollabEditorHost
+                noteId={note.id}
+                initialHtml={contentHtml || editorSeedHtml}
+                token={token}
+                userId={note.userId}
+                userName={note.author || 'Koumi'}
+                colors={colors}
+                pendingCommand={pendingCommand}
+                onCommandHandled={() => setPendingCommand(null)}
+                onContentChange={({ html, text }) => {
+                  setContentHtml(html);
+                  setContentText(text);
+                }}
+                onFocusChange={(isFocused) => {
+                  if (isFocused) {
+                    setPendingCommand(null);
+                    setKeyboardVisible(true);
+                  }
+                }}
+                onFatalError={(message) => {
+                  setEditorErrorMessage(message);
+                }}
+              />
+            </View>
+
+            <View pointerEvents="box-none" style={[styles.floatingToolbarLayer, { top: toolbarTop }]}>
+              {isToolbarExpanded ? (
+                <View style={styles.floatingToolbarWrap}>
+                  <View style={[styles.floatingToolbarCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    <NoteToolbar colors={colors} onAction={applyAction} actions={LAB_TOOLBAR_ACTIONS} />
+                  </View>
+
+                  <Pressable
+                    onPress={() => setIsToolbarExpanded(false)}
+                    style={[styles.toolbarDockExpanded, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  >
+                    <Text style={[styles.toolbarDockText, { color: colors.text }]}>...</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <Pressable
+                  onPress={() => setIsToolbarExpanded(true)}
+                  style={[styles.toolbarDockCollapsed, { backgroundColor: colors.card, borderColor: colors.border }]}
+                >
+                  <Text style={[styles.toolbarDockText, { color: colors.text }]}>...</Text>
+                </Pressable>
+              )}
+            </View>
+
+            {keyboardVisible ? (
+              <View
+                style={[
+                  styles.keyboardBar,
+                  {
+                    backgroundColor: colors.bg,
+                    borderColor: colors.border,
+                    bottom: Platform.OS === 'ios' ? Math.max(keyboardHeight - insets.bottom, 0) : 0,
+                  },
+                ]}
+              >
+                <View style={styles.keyboardBarLeft}>
+                  <Pressable onPress={handleJumpToTitle} style={styles.keyboardBarButton}>
+                    <ChevronUp size={22} color={colors.text} />
+                  </Pressable>
+                </View>
+
+                <Pressable onPress={handleDismissKeyboard} style={styles.keyboardBarButton}>
+                  <Check size={24} color={colors.text} strokeWidth={2.4} />
+                </Pressable>
+              </View>
+            ) : null}
+          </>
+        )}
       </View>
+
+      <NoteChatModal
+        visible={isChatVisible}
+        noteTitle={title.trim() || t('notesUntitled')}
+        noteContent={contentText}
+        onClose={() => setIsChatVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -319,8 +484,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
   },
-  scrollContent: {
-    paddingBottom: 180,
+  noticeCard: {
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 14,
+  },
+  noticeText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   titleInput: {
     fontSize: 38,
@@ -331,8 +504,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 18,
   },
-  editorWrap: {
+  labEditorWrap: {
+    flex: 1,
     marginTop: 14,
+    paddingBottom: 12,
   },
   floatingToolbarLayer: {
     position: 'absolute',

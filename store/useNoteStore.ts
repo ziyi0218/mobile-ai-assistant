@@ -60,7 +60,7 @@ const sanitizeNote = (note: Partial<NoteItem>): NoteItem => {
     title: typeof note.title === 'string' && note.title.trim() ? note.title : 'Untitled note',
     content: typeof note.content === 'string' ? note.content : '',
     contentHtml: typeof note.contentHtml === 'string' ? note.contentHtml : '',
-    author: typeof note.author === 'string' && note.author.trim() ? note.author : 'Koumi',
+    author: typeof note.author === 'string' ? note.author.trim() : '',
     createdAt,
     updatedAt,
   };
@@ -97,7 +97,7 @@ export const useNoteStore = create<NoteState>()(
               title: item.title?.trim() || 'Untitled note',
               content: item.data?.content?.md ?? '',
               contentHtml: item.data?.content?.html ?? '',
-              author: 'Koumi',
+              author: item.user?.name ?? '',
               createdAt: item.created_at as number | undefined,
               updatedAt: item.updated_at as number | undefined,
             });
@@ -120,7 +120,7 @@ export const useNoteStore = create<NoteState>()(
           title: created.title,
           content: created.data?.content?.md ?? '',
           contentHtml: created.data?.content?.html ?? '',
-          author: 'Koumi',
+          author: created.user?.name ?? '',
           createdAt: created.created_at as number | undefined,
           updatedAt: created.updated_at as number | undefined,
         });
@@ -153,7 +153,7 @@ export const useNoteStore = create<NoteState>()(
           title: updated.title,
           content: updated.data?.content?.md,
           contentHtml: updated.data?.content?.html,
-          author: 'Koumi',
+          author: updated.user?.name ?? '',
           createdAt: updated.created_at as number | undefined,
           updatedAt: updated.updated_at as number | undefined,
         });
@@ -165,6 +165,7 @@ export const useNoteStore = create<NoteState>()(
                 ? {
                     ...note,
                     ...updatedNote,
+                    author: updatedNote.author || note.author,
                     content: updated.data?.content?.md ?? note.content,
                     contentHtml: updated.data?.content?.html ?? note.contentHtml,
                   }

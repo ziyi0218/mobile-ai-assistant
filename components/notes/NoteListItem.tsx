@@ -17,6 +17,8 @@ type NoteListItemProps = {
 };
 
 export default function NoteListItem({ note, colors, relativeLabel, onPress, onOpenMenu }: NoteListItemProps) {
+  const metaText = note.author ? `${relativeLabel}  By ${note.author}` : relativeLabel;
+
   return (
     <TouchableOpacity
       activeOpacity={0.8}
@@ -28,7 +30,7 @@ export default function NoteListItem({ note, colors, relativeLabel, onPress, onO
           {note.title}
         </Text>
         <Text numberOfLines={1} style={[styles.meta, { color: colors.subtext }]}>
-          {relativeLabel}  By {note.author}
+          {metaText}
         </Text>
       </View>
 

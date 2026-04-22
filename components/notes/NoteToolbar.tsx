@@ -34,9 +34,10 @@ type NoteToolbarProps = {
     text: string;
   };
   onAction: (action: NoteToolbarAction) => void;
+  actions?: NoteToolbarAction[];
 };
 
-const actions: Array<{ key: NoteToolbarAction; render: (color: string) => React.ReactNode }> = [
+const toolbarActions: Array<{ key: NoteToolbarAction; render: (color: string) => React.ReactNode }> = [
   { key: 'h1', render: (color) => <Heading1 size={18} color={color} /> },
   { key: 'h2', render: (color) => <Heading2 size={18} color={color} /> },
   { key: 'h3', render: (color) => <Heading3 size={18} color={color} /> },
@@ -50,11 +51,15 @@ const actions: Array<{ key: NoteToolbarAction; render: (color: string) => React.
   { key: 'code', render: (color) => <Code2 size={18} color={color} /> },
 ];
 
-export default function NoteToolbar({ colors, onAction }: NoteToolbarProps) {
+export default function NoteToolbar({ colors, onAction, actions }: NoteToolbarProps) {
+  const visibleActions = actions?.length
+    ? toolbarActions.filter((action) => actions.includes(action.key))
+    : toolbarActions;
+
   return (
     <View style={[styles.wrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.content}>
-        {actions.map((action) => (
+        {visibleActions.map((action) => (
           <TouchableOpacity
             key={action.key}
             activeOpacity={0.75}

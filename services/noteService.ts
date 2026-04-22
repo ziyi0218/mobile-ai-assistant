@@ -6,6 +6,10 @@ export type NoteSearchItem = {
   title: string;
   created_at?: number | string;
   updated_at?: number | string;
+  user?: {
+    id?: string;
+    name?: string;
+  };
   data?: {
     content?: {
       md?: string;

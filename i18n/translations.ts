@@ -23,20 +23,13 @@ export const resources = {
       /* ===== About ===== */
       about: "À propos",
       aboutProductVersionLabel: "PLEIADE MATH-INFO (Open WebUI) Version :",
-      aboutVersionCurrent: "{{version}} (version actuelle)",
-      aboutVersionLatestAvailable: "{{current}} (dernière disponible : {{latest}})",
+      aboutVersionStatus: "{{version}} (dernière version)",
       aboutReleaseNotes: "Découvrez les nouvelles fonctionnalités",
-      aboutReleaseNotesAdded: "Ajouts",
-      aboutReleaseNotesFixed: "Correctifs",
-      aboutReleaseNotesChanged: "Changements",
       aboutCheckUpdates: "Vérifier les mises à jour disponibles",
       aboutNoUpdatesMessage: "Aucune mise à jour disponible. Version actuelle : {{version}}.",
-      aboutUpdateAvailableMessage: "Une mise à jour est disponible. Version actuelle : {{current}}. Dernière version : {{latest}}.",
-      aboutVersionLoadError: "Impossible de récupérer les informations de version.",
       aboutOllamaVersion: "Version d'Ollama",
       aboutDiscord: "Discord",
       aboutOpenWebUI: "Open WebUI",
-      aboutDiscordOpenWebUI: "Discord / Open WebUI",
       aboutFollowOpenWebUI: "Follow @OpenWebUI",
       aboutStarGithub: "Star us on GitHub",
       aboutEmojiCredit: "Emoji graphics provided by Twemoji, licensed under CC-BY 4.0.",
@@ -205,9 +198,7 @@ export const resources = {
       cameraPermission: "L'accès à la caméra est nécessaire.",
       galleryPermission: "L'accès à la galerie est nécessaire.",
 
-      // Sidebar (extra)
-      newChatSidebar: "Nouveau chat",
-      searchConversations: "Rechercher des conversations...",
+      /* ===== Notes ===== */
       notes: "Notes",
       notesNewNote: "Nouvelle note",
       notesSearchPlaceholder: "Rechercher des notes",
@@ -223,6 +214,14 @@ export const resources = {
       notesYesterday: "Hier",
       notesLast7Days: "Derniers 7 jours",
       notesLast30Days: "Derniers 30 jours",
+      notesChatTitle: "Discussion (temporaire)",
+      notesChatSubtitle: "Posez une question sur cette note",
+      notesChatEmpty: "Demandez n'importe quoi à propos de cette note",
+      notesChatError: "Impossible d'obtenir une réponse pour le moment.",
+
+      /* ===== Sidebar ===== */
+      newChatSidebar: "Nouveau chat",
+      searchConversations: "Rechercher des conversations...",
       addFolder: "Ajouter",
       noTitle: "Conversation sans titre",
       sidebarRename: "Renommer",
@@ -248,6 +247,17 @@ export const resources = {
       sidebarYesterday: "Hier",
       sidebarLast7Days: "Derniers 7 jours",
       sidebarLast30Days: "Derniers 30 jours",
+
+      /* ===== Chat Overview ===== */
+      chatOverview: "Aperçu du chat",
+      chatOverviewEmpty: "Ce chat ne contient encore aucun message à afficher.",
+      overviewOpenChatFirst: "Ouvrez d'abord un chat.",
+      overviewTapHint: "Zoomez sur l'aperçu et touchez une bulle pour voir le message complet.",
+      overviewYou: "Vous",
+      overviewAssistant: "Assistant",
+      overviewLatest: "Dernier",
+      overviewMediaOnly: "[Pièce jointe ou contenu non textuel]",
+
       /* ===== Interface ===== */
       iface_sep_ui: "IU",
       iface_ui_scale: "Échelle de l'interface",
@@ -471,20 +481,13 @@ export const resources = {
       /* ===== About ===== */
       about: "About",
       aboutProductVersionLabel: "PLEIADE MATH-INFO (Open WebUI) Version:",
-      aboutVersionCurrent: "{{version}} (current version)",
-      aboutVersionLatestAvailable: "{{current}} (latest available: {{latest}})",
+      aboutVersionStatus: "{{version}} (latest version)",
       aboutReleaseNotes: "Discover what's new",
-      aboutReleaseNotesAdded: "Added",
-      aboutReleaseNotesFixed: "Fixed",
-      aboutReleaseNotesChanged: "Changed",
       aboutCheckUpdates: "Check for available updates",
       aboutNoUpdatesMessage: "No update available. Current version: {{version}}.",
-      aboutUpdateAvailableMessage: "An update is available. Current version: {{current}}. Latest version: {{latest}}.",
-      aboutVersionLoadError: "Unable to load version information.",
       aboutOllamaVersion: "Ollama Version",
       aboutDiscord: "Discord",
       aboutOpenWebUI: "Open WebUI",
-      aboutDiscordOpenWebUI: "Discord / Open WebUI",
       aboutFollowOpenWebUI: "Follow @OpenWebUI",
       aboutStarGithub: "Star us on GitHub",
       aboutEmojiCredit: "Emoji graphics provided by Twemoji, licensed under CC-BY 4.0.",
@@ -629,8 +632,7 @@ export const resources = {
       permissionRequired: "Permission required",
       cameraPermission: "Camera access is required.",
       galleryPermission: "Gallery access is required.",
-      newChatSidebar: "New Chat",
-      searchConversations: "Search conversations...",
+      /* ===== Notes ===== */
       notes: "Notes",
       notesNewNote: "New Note",
       notesSearchPlaceholder: "Search notes",
@@ -646,6 +648,14 @@ export const resources = {
       notesYesterday: "Yesterday",
       notesLast7Days: "Last 7 days",
       notesLast30Days: "Last 30 days",
+      notesChatTitle: "Chat (Temporary)",
+      notesChatSubtitle: "Ask a question about this note",
+      notesChatEmpty: "Ask anything about this note",
+      notesChatError: "Unable to get a response right now.",
+
+      /* ===== Sidebar ===== */
+      newChatSidebar: "New Chat",
+      searchConversations: "Search conversations...",
       addFolder: "Add",
       noTitle: "Untitled conversation",
       sidebarRename: "Rename",
@@ -671,7 +681,17 @@ export const resources = {
       sidebarYesterday: "Yesterday",
       sidebarLast7Days: "Last 7 Days",
       sidebarLast30Days: "Last 30 Days",
-      
+
+      /* ===== Chat Overview ===== */
+      chatOverview: "Chat Overview",
+      chatOverviewEmpty: "This chat does not have any messages to display yet.",
+      overviewOpenChatFirst: "Open a chat first.",
+      overviewTapHint: "Zoom the overview and tap a bubble to inspect the full message.",
+      overviewYou: "You",
+      overviewAssistant: "Assistant",
+      overviewLatest: "Latest",
+      overviewMediaOnly: "[Attachment or non-text content]",
+
       /* ===== Interface ===== */
       iface_sep_ui: "UI",
       iface_ui_scale: "UI Scale",
@@ -893,20 +913,13 @@ export const resources = {
       /* ===== About ===== */
       about: "关于",
       aboutProductVersionLabel: "PLEIADE MATH-INFO（Open WebUI）版本：",
-      aboutVersionCurrent: "{{version}}（当前版本）",
-      aboutVersionLatestAvailable: "{{current}}（最新可用版本：{{latest}}）",
+      aboutVersionStatus: "{{version}}（最新版本）",
       aboutReleaseNotes: "查看新功能",
-      aboutReleaseNotesAdded: "新增",
-      aboutReleaseNotesFixed: "修复",
-      aboutReleaseNotesChanged: "变更",
       aboutCheckUpdates: "检查可用更新",
       aboutNoUpdatesMessage: "当前没有可用更新。当前版本：{{version}}。",
-      aboutUpdateAvailableMessage: "有可用更新。当前版本：{{current}}。最新版本：{{latest}}。",
-      aboutVersionLoadError: "无法获取版本信息。",
       aboutOllamaVersion: "Ollama 版本",
       aboutDiscord: "Discord",
       aboutOpenWebUI: "Open WebUI",
-      aboutDiscordOpenWebUI: "Discord / Open WebUI",
       aboutFollowOpenWebUI: "关注 @OpenWebUI",
       aboutStarGithub: "在 GitHub 上 Star",
       aboutEmojiCredit: "Emoji 图形由 Twemoji 提供，并采用 CC-BY 4.0 许可。",
@@ -1050,8 +1063,8 @@ export const resources = {
       permissionRequired: "需要权限",
       cameraPermission: "需要相机权限。",
       galleryPermission: "需要相册权限。",
-      newChatSidebar: "新建对话",
-      searchConversations: "搜索对话...",
+    
+      /* ===== Notes ===== */
       notes: "笔记",
       notesNewNote: "新建笔记",
       notesSearchPlaceholder: "搜索笔记",
@@ -1067,6 +1080,14 @@ export const resources = {
       notesYesterday: "昨天",
       notesLast7Days: "最近 7 天",
       notesLast30Days: "最近 30 天",
+      notesChatTitle: "聊天（临时性）",
+      notesChatSubtitle: "基于当前笔记提问",
+      notesChatEmpty: "你可以围绕这份笔记继续提问",
+      notesChatError: "暂时无法获取回答。",
+
+      /* ===== Sidebar ===== */
+      newChatSidebar: "新建对话",
+      searchConversations: "搜索对话...",
       addFolder: "添加",
       noTitle: "未命名对话",
       sidebarRename: "重命名",
@@ -1092,6 +1113,16 @@ export const resources = {
       sidebarYesterday: "昨天",
       sidebarLast7Days: "过去 7 天",
       sidebarLast30Days: "过去 30 天",
+
+      /* ===== Chat Overview ===== */
+      chatOverview: "聊天总览",
+      chatOverviewEmpty: "这个对话暂时没有可展示的消息。",
+      overviewOpenChatFirst: "请先打开一个对话。",
+      overviewTapHint: "可缩放总览画布，点击气泡查看完整内容。",
+      overviewYou: "你",
+      overviewAssistant: "助手",
+      overviewLatest: "最新",
+      overviewMediaOnly: "[附件或非文本内容]",
       
       /* ===== Interface ===== */
       iface_sep_ui: "UI",
