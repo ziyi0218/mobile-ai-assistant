@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
 import { useI18n } from "../i18n/useI18n";
+import { useUIScale } from "../hooks/useUIScale";
 import {
   aboutService,
   type AboutReleaseNotesVersion,
@@ -57,11 +58,13 @@ function AboutChip({
   colors,
   compact = false,
   onPress,
+  fontSize,
 }: {
   label: string;
   colors: { card: string; border: string; text: string };
   compact?: boolean;
   onPress?: () => void;
+  fontSize: number;
 }) {
   const Container = onPress ? Pressable : View;
 
@@ -74,7 +77,7 @@ function AboutChip({
       ]}
       {...(onPress ? { onPress } : {})}
     >
-      <Text style={[styles.chipText, { color: colors.text }]}>{label}</Text>
+      <Text style={[styles.chipText, { color: colors.text, fontSize }]}>{label}</Text>
     </Container>
   );
 }
@@ -90,6 +93,13 @@ export default function AboutScreen() {
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const [releaseNotes, setReleaseNotes] = useState<Record<string, AboutReleaseNotesVersion>>({});
   const [isReleaseNotesVisible, setIsReleaseNotesVisible] = useState(false);
+  const scaled22 = useUIScale(22);
+  const scaled18 = useUIScale(18);
+  const scaled16 = useUIScale(16);
+  const scaled15 = useUIScale(15);
+  const scaled14 = useUIScale(14);
+  const scaled13 = useUIScale(13);
+  const scaleFactor = useUIScale(1);
 
   useEffect(() => {
     let isActive = true;
@@ -218,28 +228,44 @@ export default function AboutScreen() {
             onPress={() => router.back()}
             style={[
               styles.backButton,
-              { backgroundColor: colors.card, borderColor: colors.border },
+              {
+                width: 40 * scaleFactor,
+                height: 40 * scaleFactor,
+                borderRadius: 20 * scaleFactor,
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
             ]}
           >
-            <ChevronLeft size={22} color={colors.text} strokeWidth={2.5} />
+            <ChevronLeft size={scaled22} color={colors.text} strokeWidth={2.5} />
           </Pressable>
         </View>
 
-        <Text style={[styles.pageTitle, { color: colors.text }]}>{t("about")}</Text>
+        <Text style={[styles.pageTitle, { color: colors.text, fontSize: scaled22 }]}>{t("about")}</Text>
 
         <SectionCard colors={colors}>
           <View style={styles.versionRow}>
             <View style={styles.versionContent}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: colors.text, fontSize: scaled18, lineHeight: scaled18 * 1.44 },
+                ]}
+              >
                 {t("aboutProductVersionLabel")}
               </Text>
 
-              <Text style={[styles.versionValue, { color: colors.text }]}>
+              <Text style={[styles.versionValue, { color: colors.text, fontSize: scaled16 }]}>
                 {isLoadingVersion ? t("loading") : versionStatus}
               </Text>
 
               <Pressable onPress={handleOpenReleaseNotes} hitSlop={6}>
-                <Text style={[styles.inlineLink, { color: colors.subtext }]}>
+                <Text
+                  style={[
+                    styles.inlineLink,
+                    { color: colors.subtext, fontSize: scaled14, lineHeight: scaled14 * 1.43 },
+                  ]}
+                >
                   {t("aboutReleaseNotes")}
                 </Text>
               </Pressable>
@@ -256,7 +282,7 @@ export default function AboutScreen() {
               {isCheckingUpdates ? (
                 <ActivityIndicator size="small" color={colors.text} />
               ) : (
-                <Text style={[styles.updateButtonText, { color: colors.text }]}>
+                <Text style={[styles.updateButtonText, { color: colors.text, fontSize: scaled16 }]}>
                   {t("aboutCheckUpdates")}
                 </Text>
               )}
@@ -265,10 +291,15 @@ export default function AboutScreen() {
         </SectionCard>
 
         <SectionCard colors={colors}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: colors.text, fontSize: scaled18, lineHeight: scaled18 * 1.44 },
+            ]}
+          >
             {t("aboutOllamaVersion")}
           </Text>
-          <Text style={[styles.versionValue, { color: colors.text }]}>{OLLAMA_VERSION}</Text>
+          <Text style={[styles.versionValue, { color: colors.text, fontSize: scaled16 }]}>{OLLAMA_VERSION}</Text>
         </SectionCard>
 
         <SectionCard colors={colors}>
@@ -278,15 +309,26 @@ export default function AboutScreen() {
                 key={chip.key}
                 label={chip.label}
                 colors={colors}
+                fontSize={scaled16}
                 onPress={chip.onPress}
               />
             ))}
           </View>
 
-          <Text style={[styles.metaText, { color: colors.subtext }]}>
+          <Text
+            style={[
+              styles.metaText,
+              { color: colors.subtext, fontSize: scaled14, lineHeight: scaled14 * 1.57 },
+            ]}
+          >
             {t("aboutEmojiCredit")}
           </Text>
-          <Text style={[styles.metaText, { color: colors.subtext }]}>
+          <Text
+            style={[
+              styles.metaText,
+              { color: colors.subtext, fontSize: scaled14, lineHeight: scaled14 * 1.57 },
+            ]}
+          >
             {t("aboutCopyrightPrefix")}
             <Text
               style={[styles.metaLink, { color: colors.subtext }]}
@@ -296,7 +338,12 @@ export default function AboutScreen() {
             </Text>
             {t("aboutCopyrightSuffix")}
           </Text>
-          <Text style={[styles.metaText, { color: colors.subtext }]}>
+          <Text
+            style={[
+              styles.metaText,
+              { color: colors.subtext, fontSize: scaled14, lineHeight: scaled14 * 1.57 },
+            ]}
+          >
             {t("aboutCreatedByPrefix")}
             <Text
               style={[styles.metaLink, { color: colors.subtext }]}
@@ -324,14 +371,14 @@ export default function AboutScreen() {
             ]}
           >
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
+              <Text style={[styles.modalTitle, { color: colors.text, fontSize: scaled22 }]}>
                 {t("aboutReleaseNotes")}
               </Text>
               <Pressable
                 onPress={() => setIsReleaseNotesVisible(false)}
                 style={styles.modalCloseButton}
               >
-                <X size={22} color={colors.text} strokeWidth={2.2} />
+                <X size={scaled22} color={colors.text} strokeWidth={2.2} />
               </Pressable>
             </View>
 
@@ -341,10 +388,10 @@ export default function AboutScreen() {
             >
               {orderedReleaseNotes.map(([version, note]) => (
                 <View key={version} style={styles.releaseVersionBlock}>
-                  <Text style={[styles.releaseVersionTitle, { color: colors.text }]}>
+                  <Text style={[styles.releaseVersionTitle, { color: colors.text, fontSize: scaled18 }]}>
                     {version}
                   </Text>
-                  <Text style={[styles.releaseDate, { color: colors.subtext }]}>
+                  <Text style={[styles.releaseDate, { color: colors.subtext, fontSize: scaled13 }]}>
                     {note.date}
                   </Text>
 
@@ -355,7 +402,7 @@ export default function AboutScreen() {
 
                     return (
                       <View key={sectionKey} style={styles.releaseSection}>
-                        <Text style={[styles.releaseSectionTitle, { color: colors.text }]}>
+                        <Text style={[styles.releaseSectionTitle, { color: colors.text, fontSize: scaled15 }]}>
                           {t(
                             sectionKey === "added"
                               ? "aboutReleaseNotesAdded"
@@ -367,7 +414,10 @@ export default function AboutScreen() {
                         {items.map((item, index) => (
                           <Text
                             key={`${sectionKey}-${index}`}
-                            style={[styles.releaseItem, { color: colors.subtext }]}
+                            style={[
+                              styles.releaseItem,
+                              { color: colors.subtext, fontSize: scaled14, lineHeight: scaled14 * 1.5 },
+                            ]}
                           >
                             • {item.content}
                           </Text>

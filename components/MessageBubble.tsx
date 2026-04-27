@@ -386,7 +386,11 @@ export default React.memo(MessageBubble);
 
 const s = StyleSheet.create({
   userText: { color: '#FFF', fontSize: 16, lineHeight: 22 },
-  aiContainer: { flex: 1 },
+  aiContainer: {
+    width: '100%',
+    flexShrink: 1,
+    alignSelf: 'stretch',
+  },
   singleImage: { width: 220, height: 280, borderRadius: 14, marginBottom: 8 },
   imageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 8 },
   multiImage: { width: 120, height: 120, borderRadius: 10 },

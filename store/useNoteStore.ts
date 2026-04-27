@@ -5,6 +5,7 @@ import { noteService } from '../services/noteService';
 
 export type NoteItem = {
   id: string;
+  userId: string;
   title: string;
   content: string;
   contentHtml: string;
@@ -57,6 +58,7 @@ const sanitizeNote = (note: Partial<NoteItem>): NoteItem => {
 
   return {
     id: typeof note.id === 'string' && note.id.trim() ? note.id : `note-${Date.now()}`,
+    userId: typeof note.userId === 'string' ? note.userId : '',
     title: typeof note.title === 'string' && note.title.trim() ? note.title : 'Untitled note',
     content: typeof note.content === 'string' ? note.content : '',
     contentHtml: typeof note.contentHtml === 'string' ? note.contentHtml : '',
@@ -94,6 +96,7 @@ export const useNoteStore = create<NoteState>()(
           const mapped: NoteItem[] = result.items.map((item) => {
             return sanitizeNote({
               id: item.id,
+              userId: item.user_id,
               title: item.title?.trim() || 'Untitled note',
               content: item.data?.content?.md ?? '',
               contentHtml: item.data?.content?.html ?? '',
@@ -117,6 +120,7 @@ export const useNoteStore = create<NoteState>()(
         const created = await noteService.createNote(seedTitle?.trim() || formatDefaultNoteTitle());
         const note = sanitizeNote({
           id: created.id,
+          userId: created.user_id,
           title: created.title,
           content: created.data?.content?.md ?? '',
           contentHtml: created.data?.content?.html ?? '',
@@ -150,6 +154,7 @@ export const useNoteStore = create<NoteState>()(
         const updated = await noteService.updateNoteTitle(id, title);
         const updatedNote = sanitizeNote({
           id: updated.id,
+          userId: updated.user_id,
           title: updated.title,
           content: updated.data?.content?.md,
           contentHtml: updated.data?.content?.html,

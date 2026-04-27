@@ -48,17 +48,25 @@ export default function PersonasScreen() {
   const { colors } = useResolvedTheme(themeMode);
   const styles = useCommonDesign();
   const { haptics } = useHaptics();
+  const scaled10 = useUIScale(10);
+  const scaled12 = useUIScale(12);
+  const scaled13 = useUIScale(13);
+  const scaled14 = useUIScale(14);
+  const scaled15 = useUIScale(15);
   const scaled16 = useUIScale(16);
   const scaled18 = useUIScale(18);
+  const scaled20 = useUIScale(20);
   const scaled22 = useUIScale(22);
+  const scaled24 = useUIScale(24);
+  const scaleFactor = useUIScale(1);
 
   const pageStyles = useMemo(
     () =>
       StyleSheet.create({
         headerButton: {
-          width: 40,
-          height: 40,
-          borderRadius: 20,
+          width: 40 * scaleFactor,
+          height: 40 * scaleFactor,
+          borderRadius: 20 * scaleFactor,
           backgroundColor: colors.card,
           alignItems: 'center',
           justifyContent: 'center',
@@ -112,7 +120,7 @@ export default function PersonasScreen() {
           color: colors.text,
         },
       }),
-    [colors, scaled16, scaled22]
+    [colors, scaled16, scaled22, scaleFactor]
   );
 
   const personas = useChatStore((s) => s.personas);
@@ -280,7 +288,12 @@ export default function PersonasScreen() {
           <View style={[pageStyles.card, personaStyles.autoPersonaCard]}>
             <View style={personaStyles.autoPersonaTextWrap}>
               <Text style={pageStyles.cardLabel}>{t('autoPersona')}</Text>
-              <Text style={[personaStyles.descriptionText, { color: colors.subtext }]}>
+              <Text
+                style={[
+                  personaStyles.descriptionText,
+                  { color: colors.subtext, fontSize: scaled13 },
+                ]}
+              >
                 {t('autoPersonaDesc')}
               </Text>
             </View>
@@ -292,6 +305,7 @@ export default function PersonasScreen() {
                 haptics('light');
               }}
               trackColor={{ false: colors.border, true: '#007AFF' }}
+              style={{ transform: [{ scale: scaleFactor }] }}
             />
           </View>
 
@@ -307,7 +321,9 @@ export default function PersonasScreen() {
               >
                 <View style={personaStyles.cardStart}>
                   <View style={[personaStyles.iconBox, { backgroundColor: colors.bg }]}>
-                    <Text style={personaStyles.iconText}>{item.icon}</Text>
+                    <Text style={[personaStyles.iconText, { fontSize: scaled20 }]}>
+                      {item.icon}
+                    </Text>
                   </View>
 
                   <View style={personaStyles.cardTextWrap}>
@@ -321,13 +337,18 @@ export default function PersonasScreen() {
 
                       {item.isBuiltIn && (
                         <View style={personaStyles.badge}>
-                          <Text style={personaStyles.badgeText}>{t('builtInPersona')}</Text>
+                          <Text style={[personaStyles.badgeText, { fontSize: scaled10 }]}>
+                            {t('builtInPersona')}
+                          </Text>
                         </View>
                       )}
                     </View>
 
                     <Text
-                      style={[personaStyles.descriptionText, { color: colors.subtext }]}
+                      style={[
+                        personaStyles.descriptionText,
+                        { color: colors.subtext, fontSize: scaled13 },
+                      ]}
                       numberOfLines={1}
                     >
                       {displayDesc(item)}
@@ -397,12 +418,12 @@ export default function PersonasScreen() {
                 borderBottomColor: colors.border,
               }}
             >
-              <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>
+              <Text style={{ fontSize: scaled18, fontWeight: '700', color: colors.text }}>
                 {editingId ? t('editPersona') : t('createPersona')}
               </Text>
               {editingId && (
                 <TouchableOpacity onPress={() => handleDelete(editingId)}>
-                  <Trash2 size={20} color="#FF3B30" />
+                  <Trash2 size={scaled20} color="#FF3B30" />
                 </TouchableOpacity>
               )}
             </View>
@@ -429,7 +450,7 @@ export default function PersonasScreen() {
                     borderWidth: 1,
                     borderColor: colors.border,
                     textAlign: 'center',
-                    fontSize: 24,
+                    fontSize: scaled24,
                     color: colors.text,
                   }}
                 />
@@ -447,7 +468,7 @@ export default function PersonasScreen() {
                     borderWidth: 1,
                     borderColor: colors.border,
                     paddingHorizontal: 14,
-                    fontSize: 16,
+                    fontSize: scaled16,
                     color: colors.text,
                   }}
                 />
@@ -465,7 +486,7 @@ export default function PersonasScreen() {
                   borderColor: colors.border,
                   paddingHorizontal: 14,
                   paddingVertical: 12,
-                  fontSize: 15,
+                  fontSize: scaled15,
                   color: colors.text,
                   marginBottom: 16,
                 }}
@@ -473,7 +494,7 @@ export default function PersonasScreen() {
 
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: scaled13,
                   fontWeight: '600',
                   color: colors.subtext,
                   marginBottom: 8,
@@ -495,7 +516,7 @@ export default function PersonasScreen() {
                   borderColor: colors.border,
                   paddingHorizontal: 14,
                   paddingVertical: 12,
-                  fontSize: 15,
+                  fontSize: scaled15,
                   color: colors.text,
                   minHeight: 120,
                   textAlignVertical: 'top',
@@ -505,7 +526,7 @@ export default function PersonasScreen() {
 
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: scaled13,
                   fontWeight: '600',
                   color: colors.subtext,
                   marginBottom: 8,
@@ -529,22 +550,22 @@ export default function PersonasScreen() {
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Cpu size={16} color={colors.subtext} />
+                  <Cpu size={scaled16} color={colors.subtext} />
                   <Text
                     style={{
-                      fontSize: 15,
+                      fontSize: scaled15,
                       color: selectedModelId ? colors.text : colors.subtext,
                     }}
                   >
                     {selectedModelId || t('personaModelNone')}
                   </Text>
                 </View>
-                <ChevronRight size={16} color={colors.subtext} />
+                <ChevronRight size={scaled16} color={colors.subtext} />
               </TouchableOpacity>
 
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: scaled13,
                   fontWeight: '600',
                   color: colors.subtext,
                   marginBottom: 8,
@@ -555,7 +576,7 @@ export default function PersonasScreen() {
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
                 {(['temperature', 'maxTokens', 'topK', 'topP'] as const).map((key) => (
                   <View key={key} style={{ width: '47%' }}>
-                    <Text style={{ fontSize: 12, color: colors.subtext, marginBottom: 4 }}>
+                    <Text style={{ fontSize: scaled12, color: colors.subtext, marginBottom: 4 }}>
                       {key === 'temperature'
                         ? 'Temperature'
                         : key === 'maxTokens'
@@ -576,7 +597,7 @@ export default function PersonasScreen() {
                         borderWidth: 1,
                         borderColor: colors.border,
                         padding: 10,
-                        fontSize: 14,
+                        fontSize: scaled14,
                         color: colors.text,
                         textAlign: 'center',
                       }}
@@ -596,7 +617,7 @@ export default function PersonasScreen() {
                     alignItems: 'center',
                   }}
                 >
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: colors.subtext }}>
+                  <Text style={{ fontSize: scaled16, fontWeight: '600', color: colors.subtext }}>
                     {t('cancel')}
                   </Text>
                 </TouchableOpacity>
@@ -613,7 +634,7 @@ export default function PersonasScreen() {
                     alignItems: 'center',
                   }}
                 >
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#fff' }}>
+                  <Text style={{ fontSize: scaled16, fontWeight: '600', color: '#fff' }}>
                     {editingId ? t('generalSave') : t('createPersona')}
                   </Text>
                 </TouchableOpacity>
@@ -667,9 +688,11 @@ export default function PersonasScreen() {
                       justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ fontSize: 22 }}>{viewingBuiltIn.icon}</Text>
+                    <Text style={{ fontSize: scaled22 }}>{viewingBuiltIn.icon}</Text>
                   </View>
-                  <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text, flex: 1 }}>
+                  <Text
+                    style={{ fontSize: scaled18, fontWeight: '700', color: colors.text, flex: 1 }}
+                  >
                     {t(viewingBuiltIn.name as TranslationKey)}
                   </Text>
                 </View>
@@ -677,7 +700,7 @@ export default function PersonasScreen() {
                 <ScrollView contentContainerStyle={{ padding: 20 }}>
                   <Text
                     style={{
-                      fontSize: 13,
+                      fontSize: scaled13,
                       fontWeight: '600',
                       color: colors.subtext,
                       marginBottom: 8,
@@ -694,7 +717,13 @@ export default function PersonasScreen() {
                       padding: 14,
                     }}
                   >
-                    <Text style={{ fontSize: 15, color: colors.text, lineHeight: 22 }}>
+                    <Text
+                      style={{
+                        fontSize: scaled15,
+                        color: colors.text,
+                        lineHeight: scaled15 * 1.47,
+                      }}
+                    >
                       {t(viewingBuiltIn.systemPrompt as TranslationKey)}
                     </Text>
                   </View>
@@ -710,7 +739,7 @@ export default function PersonasScreen() {
                       alignItems: 'center',
                     }}
                   >
-                    <Text style={{ fontSize: 16, fontWeight: '600', color: '#fff' }}>
+                    <Text style={{ fontSize: scaled16, fontWeight: '600', color: '#fff' }}>
                       {t('done')}
                     </Text>
                   </TouchableOpacity>
@@ -772,7 +801,6 @@ const personaStyles = StyleSheet.create({
     marginRight: 14,
   },
   iconText: {
-    fontSize: 20,
   },
   cardTextWrap: {
     flex: 1,
@@ -787,7 +815,6 @@ const personaStyles = StyleSheet.create({
     flexShrink: 1,
   },
   descriptionText: {
-    fontSize: 13,
     marginTop: 2,
   },
   badge: {
@@ -797,7 +824,6 @@ const personaStyles = StyleSheet.create({
     borderRadius: 6,
   },
   badgeText: {
-    fontSize: 10,
     fontWeight: '600',
     color: '#007AFF',
   },

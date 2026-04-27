@@ -5,8 +5,8 @@ import { Check, ChevronLeft, ChevronUp, MessageCircle, Undo2, Redo2 } from 'luci
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import NativeCollabEditorHost from '../../components/notes/NativeCollabEditorHost';
-import NoteChatModal from '../../components/notes/NoteChatModal';
 import NoteToolbar, { type NoteToolbarAction } from '../../components/notes/NoteToolbar';
+import NoteChatModal from '../../components/notes/NoteChatModal';
 import { useI18n } from '../../i18n/useI18n';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useNoteStore } from '../../store/useNoteStore';

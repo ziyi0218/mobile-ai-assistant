@@ -59,6 +59,7 @@ export default function ChatScreen() {
   const userMessages = useChatStore((state) => state.userMessages);
   const modelResponses = useChatStore((state) => state.modelResponses);
   const isTyping = useChatStore((state) => state.isTyping);
+  const streamingModels = useChatStore((state) => state.streamingModels);
   const sendMessage = useChatStore((state) => state.sendMessage);
 
   const [isChatControlsVisible, setIsChatControlsVisible] = useState(false);
@@ -216,6 +217,7 @@ export default function ChatScreen() {
                   if (!isUser && clarification) displayText = stripClarificationBlock(displayText);
                   if (!isUser && downloadBlocks) displayText = stripDownloadHeaders(displayText);
                   const showClarification = clarification !== null && !dismissedClarifications.has(msg.id) && !isTyping;
+                  const showWaitingForOthers = clarification !== null && !dismissedClarifications.has(msg.id) && !streamingModels.includes(modelName) && isTyping;
                   const images = getImageUrls(msg.content);
 
                   return (
@@ -267,6 +269,11 @@ export default function ChatScreen() {
                             sendMessage(label);
                           }}
                         />
+                      )}
+                      {showWaitingForOthers && (
+                        <Text style={{ color: colors.subtext, fontStyle: 'italic', fontSize: 13, marginTop: 8, marginLeft: 4 }}>
+                          {t('waitingForOtherModels')}
+                        </Text>
                       )}
                     </View>
                   );

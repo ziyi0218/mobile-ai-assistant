@@ -27,6 +27,7 @@ import {
 } from 'lucide-react-native';
 import ModelSelector from './ModelSelector';
 import Sidebar from './sidebar/Sidebar';
+import ChatOverviewModal from './ChatOverviewModal';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { TranslationKey } from '../i18n';
 import { useChatStore } from '../store/chatStore';
@@ -61,6 +62,7 @@ export default function Header({
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [isMoreMenuVisible, setIsMoreMenuVisible] = useState(false);
   const [isExportMenuVisible, setIsExportMenuVisible] = useState(false);
+  const [isOverviewVisible, setIsOverviewVisible] = useState(false);
   const [shareMenuState, setShareMenuState] = useState<{ visible: boolean; hasShareLink: boolean }>({
     visible: false,
     hasShareLink: false,
@@ -68,6 +70,10 @@ export default function Header({
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const router = useRouter();
   const { i18n } = useI18n();
+  const overviewLabel = i18n.language.startsWith('zh') ? '聊天总览' : t('chatOverview');
+  const overviewOpenFirst = i18n.language.startsWith('zh')
+    ? '请先打开一个对话。'
+    : t('overviewOpenChatFirst');
 
   const activeModels = useChatStore((state) => state.activeModels);
   const addModel = useChatStore((state) => state.addModel);
@@ -203,6 +209,15 @@ export default function Header({
     }
   }, []);
 
+  const handleOpenOverview = useCallback(() => {
+    if (!currentChatId) {
+      Alert.alert(overviewLabel, overviewOpenFirst);
+      return;
+    }
+
+    setIsOverviewVisible(true);
+  }, [currentChatId, overviewLabel, overviewOpenFirst]);
+
   const exportActions: SidebarAction[] = [
     {
       key: 'json',
@@ -315,13 +330,13 @@ export default function Header({
             style={{ elevation: 8, backgroundColor: colors.card, borderColor: colors.border }}
           >
             <TouchableOpacity
-              onPress={() => handleMenuAction(() => {})}
+              onPress={() => handleMenuAction(handleOpenOverview)}
               activeOpacity={0.6}
               className="flex-row items-center py-3 px-[14px] rounded-[10px]"
             >
               <Map color={colors.subtext} size={17} />
               <Text className="ml-3 text-[14px] font-medium" style={{ color: colors.text }}>
-                Overview
+                {overviewLabel}
               </Text>
             </TouchableOpacity>
 
@@ -396,6 +411,13 @@ export default function Header({
         onClose={() => setShareMenuState((prev) => ({ ...prev, visible: false }))}
         colors={colors}
         ui={ui}
+      />
+
+      <ChatOverviewModal
+        visible={isOverviewVisible}
+        chatId={currentChatId}
+        onClose={() => setIsOverviewVisible(false)}
+        t={t}
       />
 
       <View className="flex-row items-center justify-between px-4 overflow-hidden">

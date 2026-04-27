@@ -170,6 +170,7 @@ export const resources = {
 
       // Chat
       askQuestion: "Posez une question",
+      waitingForOtherModels: "En attente des autres modèles...",
 
       // ActionMenu
       actionCamera: "Caméra",
@@ -609,6 +610,7 @@ export const resources = {
       done: "Done",
       resetDefaults: "Default",
       askQuestion: "Ask a question",
+      waitingForOtherModels: "Waiting for other models...",
       actionCamera: "Camera",
       actionPhoto: "Photo",
       actionFile: "File",
@@ -1040,6 +1042,7 @@ export const resources = {
       done: "完成",
       resetDefaults: "恢复默认",
       askQuestion: "提问",
+      waitingForOtherModels: "等待其他模型中...",
       actionCamera: "相机",
       actionPhoto: "照片",
       actionFile: "文件",

@@ -26,12 +26,21 @@ import { compteService, type CompteGenderKey, type CompteProfile } from "../serv
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
 import { useI18n } from "../i18n/useI18n";
+import { useUIScale } from "../hooks/useUIScale";
 
 export default function CompteScreen() {
   const router = useRouter();
   const { t } = useI18n();
   const { themeMode } = useSettingsStore();
   const { colors } = useResolvedTheme(themeMode);
+  const scaled30 = useUIScale(30);
+  const scaled22 = useUIScale(22);
+  const scaled20 = useUIScale(20);
+  const scaled18 = useUIScale(18);
+  const scaled16 = useUIScale(16);
+  const scaled15 = useUIScale(15);
+  const scaled14 = useUIScale(14);
+  const scaleFactor = useUIScale(1);
 
   const [profileId, setProfileId] = useState<string | null>(null);
   const [email, setEmail] = useState("");
@@ -228,14 +237,22 @@ export default function CompteScreen() {
             onPress={() => router.back()}
             style={[
               styles.backButton,
-              { backgroundColor: colors.card, borderColor: colors.border },
+              {
+                width: 40 * scaleFactor,
+                height: 40 * scaleFactor,
+                borderRadius: 20 * scaleFactor,
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
             ]}
           >
-            <ChevronLeft size={22} color={colors.text} strokeWidth={2.5} />
+            <ChevronLeft size={scaled22} color={colors.text} strokeWidth={2.5} />
           </Pressable>
         </View>
 
-        <Text style={[styles.pageTitle, { color: colors.text }]}>— {t("account")} —</Text>
+        <Text style={[styles.pageTitle, { color: colors.text, fontSize: scaled22 }]}>
+          — {t("account")} —
+        </Text>
 
         <View style={styles.content}>
           <ScrollView
@@ -248,10 +265,15 @@ export default function CompteScreen() {
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
             >
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              <Text style={[styles.sectionTitle, { color: colors.text, fontSize: scaled20 }]}>
                 {t("accountPageTitle")}
               </Text>
-              <Text style={[styles.sectionDescription, { color: colors.subtext }]}>
+              <Text
+                style={[
+                  styles.sectionDescription,
+                  { color: colors.subtext, fontSize: scaled14, lineHeight: scaled14 * 1.43 },
+                ]}
+              >
                 {t("accountPageDescription")}
               </Text>
 
@@ -264,7 +286,7 @@ export default function CompteScreen() {
                   {avatarUrl ? (
                     <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
                   ) : (
-                    <Text style={styles.avatarText}>{initials}</Text>
+                    <Text style={[styles.avatarText, { fontSize: scaled30 }]}>{initials}</Text>
                   )}
                   <View
                     style={[
@@ -272,13 +294,13 @@ export default function CompteScreen() {
                       { backgroundColor: colors.card, borderColor: colors.border },
                     ]}
                   >
-                    <Pencil size={14} color={colors.text} />
+                    <Pencil size={scaled14} color={colors.text} />
                   </View>
                 </Pressable>
 
                 <View style={styles.profileFields}>
                   <View style={styles.fieldBlock}>
-                    <Text style={[styles.fieldLabel, { color: colors.text }]}>
+                    <Text style={[styles.fieldLabel, { color: colors.text, fontSize: scaled16 }]}>
                       {t("accountUsername")}
                     </Text>
                     <View
@@ -290,7 +312,7 @@ export default function CompteScreen() {
                       <TextInput
                         value={username}
                         onChangeText={setUsername}
-                        style={[styles.input, { color: colors.text }]}
+                        style={[styles.input, { color: colors.text, fontSize: scaled16 }]}
                         placeholder={t("accountUsername")}
                         placeholderTextColor={colors.subtext}
                         editable={!isSavingProfile}
@@ -299,7 +321,9 @@ export default function CompteScreen() {
                   </View>
 
                   <View style={styles.fieldBlock}>
-                    <Text style={[styles.fieldLabel, { color: colors.text }]}>{t("accountBio")}</Text>
+                    <Text style={[styles.fieldLabel, { color: colors.text, fontSize: scaled16 }]}>
+                      {t("accountBio")}
+                    </Text>
                     <View
                       style={[
                         styles.inputZone,
@@ -313,17 +337,17 @@ export default function CompteScreen() {
                         multiline
                         placeholder={t("accountBioPlaceholder")}
                         placeholderTextColor={colors.subtext}
-                        style={[styles.input, styles.bioInput, { color: colors.text }]}
+                        style={[styles.input, styles.bioInput, { color: colors.text, fontSize: scaled16 }]}
                         editable={!isSavingProfile}
                       />
-                      <Pencil size={16} color={colors.subtext} />
+                      <Pencil size={scaled16} color={colors.subtext} />
                     </View>
                   </View>
                 </View>
               </View>
 
               <View style={styles.fieldBlock}>
-                <Text style={[styles.fieldLabel, { color: colors.text }]}>
+                <Text style={[styles.fieldLabel, { color: colors.text, fontSize: scaled16 }]}>
                   {t("accountGender")}
                 </Text>
                 <Pressable
@@ -337,15 +361,15 @@ export default function CompteScreen() {
                     { backgroundColor: colors.bg, borderColor: colors.border },
                   ]}
                 >
-                  <Text style={[styles.selectValue, { color: colors.text }]}>
+                  <Text style={[styles.selectValue, { color: colors.text, fontSize: scaled16 }]}>
                     {selectedGenderLabel}
                   </Text>
-                  <ChevronDown size={18} color={colors.subtext} />
+                  <ChevronDown size={scaled18} color={colors.subtext} />
                 </Pressable>
               </View>
 
               <View style={styles.fieldBlock}>
-                <Text style={[styles.fieldLabel, { color: colors.text }]}>
+                <Text style={[styles.fieldLabel, { color: colors.text, fontSize: scaled16 }]}>
                   {t("accountBirthDate")}
                 </Text>
                 <View
@@ -357,7 +381,7 @@ export default function CompteScreen() {
                   <TextInput
                     value={birthDate}
                     onChangeText={setBirthDate}
-                    style={[styles.input, { color: colors.text }]}
+                    style={[styles.input, { color: colors.text, fontSize: scaled16 }]}
                     placeholder="DD/MM/YYYY"
                     placeholderTextColor={colors.subtext}
                     editable={!isSavingProfile}
@@ -366,7 +390,7 @@ export default function CompteScreen() {
               </View>
 
               <View style={styles.fieldBlock}>
-                <Text style={[styles.fieldLabel, { color: colors.text }]}>
+                <Text style={[styles.fieldLabel, { color: colors.text, fontSize: scaled16 }]}>
                   {t("accountWebhook")}
                 </Text>
                 <View
@@ -378,7 +402,7 @@ export default function CompteScreen() {
                   <TextInput
                     value={webhookUrl}
                     onChangeText={setWebhookUrl}
-                    style={[styles.input, { color: colors.text }]}
+                    style={[styles.input, { color: colors.text, fontSize: scaled16 }]}
                     placeholder={t("accountWebhookPlaceholder")}
                     placeholderTextColor={colors.subtext}
                     autoCapitalize="none"
@@ -389,11 +413,11 @@ export default function CompteScreen() {
               </View>
 
               <View style={[styles.passwordRow, { borderColor: colors.border }]}>
-                <Text style={[styles.passwordLabel, { color: colors.text }]}>
+                <Text style={[styles.passwordLabel, { color: colors.text, fontSize: scaled16 }]}>
                   {t("accountChangePassword")}
                 </Text>
                 <Pressable onPress={() => setShowPasswordField((prev) => !prev)}>
-                  <Text style={[styles.passwordAction, { color: colors.subtext }]}>
+                  <Text style={[styles.passwordAction, { color: colors.subtext, fontSize: scaled16 }]}>
                     {showPasswordField ? t("accountHide") : t("accountShow")}
                   </Text>
                 </Pressable>
@@ -402,7 +426,7 @@ export default function CompteScreen() {
               {showPasswordField && (
                 <View style={styles.passwordFields}>
                   <View style={styles.passwordFieldBlock}>
-                    <Text style={[styles.passwordFieldLabel, { color: colors.text }]}>
+                    <Text style={[styles.passwordFieldLabel, { color: colors.text, fontSize: scaled15 }]}>
                       {t("accountCurrentPassword")}
                     </Text>
                     <View
@@ -415,23 +439,23 @@ export default function CompteScreen() {
                         value={currentPassword}
                         onChangeText={setCurrentPassword}
                         secureTextEntry={!isCurrentPasswordVisible}
-                        style={[styles.passwordInput, { color: colors.text }]}
+                        style={[styles.passwordInput, { color: colors.text, fontSize: scaled16 }]}
                         placeholder={t("accountCurrentPasswordPlaceholder")}
                         placeholderTextColor={colors.subtext}
                         editable={!isUpdatingPassword}
                       />
                       <Pressable onPress={() => setIsCurrentPasswordVisible((prev) => !prev)}>
                         {isCurrentPasswordVisible ? (
-                          <EyeOff size={20} color={colors.subtext} />
+                          <EyeOff size={scaled20} color={colors.subtext} />
                         ) : (
-                          <Eye size={20} color={colors.subtext} />
+                          <Eye size={scaled20} color={colors.subtext} />
                         )}
                       </Pressable>
                     </View>
                   </View>
 
                   <View style={styles.passwordFieldBlock}>
-                    <Text style={[styles.passwordFieldLabel, { color: colors.text }]}>
+                    <Text style={[styles.passwordFieldLabel, { color: colors.text, fontSize: scaled15 }]}>
                       {t("accountNewPassword")}
                     </Text>
                     <View
@@ -444,23 +468,23 @@ export default function CompteScreen() {
                         value={newPassword}
                         onChangeText={setNewPassword}
                         secureTextEntry={!isNewPasswordVisible}
-                        style={[styles.passwordInput, { color: colors.text }]}
+                        style={[styles.passwordInput, { color: colors.text, fontSize: scaled16 }]}
                         placeholder={t("accountNewPasswordPlaceholder")}
                         placeholderTextColor={colors.subtext}
                         editable={!isUpdatingPassword}
                       />
                       <Pressable onPress={() => setIsNewPasswordVisible((prev) => !prev)}>
                         {isNewPasswordVisible ? (
-                          <EyeOff size={20} color={colors.subtext} />
+                          <EyeOff size={scaled20} color={colors.subtext} />
                         ) : (
-                          <Eye size={20} color={colors.subtext} />
+                          <Eye size={scaled20} color={colors.subtext} />
                         )}
                       </Pressable>
                     </View>
                   </View>
 
                   <View style={styles.passwordFieldBlock}>
-                    <Text style={[styles.passwordFieldLabel, { color: colors.text }]}>
+                    <Text style={[styles.passwordFieldLabel, { color: colors.text, fontSize: scaled15 }]}>
                       {t("accountConfirmPassword")}
                     </Text>
                     <View
@@ -473,16 +497,16 @@ export default function CompteScreen() {
                         value={confirmPassword}
                         onChangeText={setConfirmPassword}
                         secureTextEntry={!isConfirmPasswordVisible}
-                        style={[styles.passwordInput, { color: colors.text }]}
+                        style={[styles.passwordInput, { color: colors.text, fontSize: scaled16 }]}
                         placeholder={t("accountConfirmPasswordPlaceholder")}
                         placeholderTextColor={colors.subtext}
                         editable={!isUpdatingPassword}
                       />
                       <Pressable onPress={() => setIsConfirmPasswordVisible((prev) => !prev)}>
                         {isConfirmPasswordVisible ? (
-                          <EyeOff size={20} color={colors.subtext} />
+                          <EyeOff size={scaled20} color={colors.subtext} />
                         ) : (
-                          <Eye size={20} color={colors.subtext} />
+                          <Eye size={scaled20} color={colors.subtext} />
                         )}
                       </Pressable>
                     </View>
@@ -502,7 +526,7 @@ export default function CompteScreen() {
                         <ActivityIndicator color={colors.text} />
                       ) : (
                         <Text
-                          style={[styles.passwordUpdateButtonText, { color: colors.text }]}
+                          style={[styles.passwordUpdateButtonText, { color: colors.text, fontSize: scaled16 }]}
                         >
                           {t("accountUpdatePassword")}
                         </Text>
@@ -527,7 +551,7 @@ export default function CompteScreen() {
               {isSavingProfile ? (
                 <ActivityIndicator color={colors.text} />
               ) : (
-                <Text style={[styles.saveButtonText, { color: colors.text }]}>
+                <Text style={[styles.saveButtonText, { color: colors.text, fontSize: scaled16 }]}>
                   {t("accountSave")}
                 </Text>
               )}
@@ -548,8 +572,10 @@ export default function CompteScreen() {
                   setIsGenderVisible(false);
                 }}
               >
-                <Text style={[styles.optionText, { color: colors.text }]}>{option.label}</Text>
-                {gender === option.key && <Check size={18} color={colors.text} />}
+                <Text style={[styles.optionText, { color: colors.text, fontSize: scaled16 }]}>
+                  {option.label}
+                </Text>
+                {gender === option.key && <Check size={scaled18} color={colors.text} />}
               </Pressable>
             ))}
           </View>

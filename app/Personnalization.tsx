@@ -20,6 +20,7 @@ import { useRouter } from "expo-router";
 import { useI18n } from "../i18n/useI18n";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
+import { useUIScale } from "../hooks/useUIScale";
 import {
   personnalizationService,
   type PersonalizationMemory,
@@ -64,6 +65,11 @@ function ManageMemoryModal({
   const { t } = useI18n();
   const { themeMode } = useSettingsStore();
   const { colors } = useResolvedTheme(themeMode);
+  const scaled13 = useUIScale(13);
+  const scaled14 = useUIScale(14);
+  const scaled16 = useUIScale(16);
+  const scaled18 = useUIScale(18);
+  const scaled22 = useUIScale(22);
 
   const isEditing = editingId !== null;
 
@@ -151,7 +157,7 @@ function ManageMemoryModal({
           ]}
           onPress={openAdd}
         >
-          <Text style={[styles.secondaryActionText, { color: colors.text }]}>
+          <Text style={[styles.secondaryActionText, { color: colors.text, fontSize: scaled16 }]}>
             {t("persoAddMemory")}
           </Text>
         </Pressable>
@@ -160,38 +166,46 @@ function ManageMemoryModal({
           style={[styles.dangerActionButton, { backgroundColor: colors.card }]}
           onPress={askClearAll}
         >
-          <Text style={styles.dangerActionText}>{t("persoClearMemory")}</Text>
+          <Text style={[styles.dangerActionText, { fontSize: scaled16 }]}>
+            {t("persoClearMemory")}
+          </Text>
         </Pressable>
       </View>
     ),
-    [askClearAll, colors, openAdd, t]
+    [askClearAll, colors, openAdd, scaled16, t]
   );
 
   const renderItem = useCallback(
     ({ item }: { item: MemoryItem }) => (
       <View style={[styles.memoryRow, { borderColor: colors.border }]}>
         <View style={styles.nameColumnWrap}>
-          <Text style={[styles.nameColumn, { color: colors.text }]} numberOfLines={2}>
+          <Text
+            style={[styles.nameColumn, { color: colors.text, fontSize: scaled16 }]}
+            numberOfLines={2}
+          >
             {item.userName}
           </Text>
         </View>
 
         <View style={styles.rightZone}>
-          <Text style={[styles.dateColumn, { color: colors.text }]} numberOfLines={1}>
+          <Text
+            style={[styles.dateColumn, { color: colors.text, fontSize: scaled16 }]}
+            numberOfLines={1}
+          >
             {item.updatedAt}
           </Text>
 
           <Pressable onPress={() => openEdit(item)} style={styles.iconButton} hitSlop={8}>
-            <Pencil size={18} color={colors.text} />
+            <Pencil size={scaled18} color={colors.text} />
           </Pressable>
 
           <Pressable onPress={() => deleteOne(item.id)} style={styles.iconButton} hitSlop={8}>
-            <Trash2 size={18} color={colors.text} />
+            <Trash2 size={scaled18} color={colors.text} />
           </Pressable>
         </View>
       </View>
     ),
-    [colors, deleteOne, openEdit]
+    [colors, deleteOne, openEdit, scaled16, scaled18]
   );
 
   const showOverlay = mode !== "list";
@@ -207,19 +221,19 @@ function ManageMemoryModal({
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
           <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>
+            <Text style={[styles.modalTitle, { color: colors.text, fontSize: scaled22 }]}>
               {t("persoMemoryTitle")}
             </Text>
             <Pressable onPress={closeAll} hitSlop={10}>
-              <Text style={[styles.closeText, { color: colors.text }]}>✕</Text>
+              <Text style={[styles.closeText, { color: colors.text, fontSize: scaled22 }]}>✕</Text>
             </Pressable>
           </View>
 
           <View style={styles.columnHeaderRow}>
-            <Text style={[styles.columnHeaderText, { color: colors.text }]}>
+            <Text style={[styles.columnHeaderText, { color: colors.text, fontSize: scaled13 }]}>
               {t("persoUsernameColumn")}
             </Text>
-            <Text style={[styles.columnHeaderDate, { color: colors.text }]}>
+            <Text style={[styles.columnHeaderDate, { color: colors.text, fontSize: scaled13 }]}>
               {t("persoUpdatedColumn")}
             </Text>
           </View>
@@ -233,7 +247,12 @@ function ManageMemoryModal({
               memories.length === 0 && styles.emptyListContent,
             ]}
             ListEmptyComponent={
-              <Text style={[styles.emptyText, { color: colors.subtext }]}>
+              <Text
+                style={[
+                  styles.emptyText,
+                  { color: colors.subtext, fontSize: scaled14, lineHeight: scaled14 * 1.43 },
+                ]}
+              >
                 {t("persoEmptyState")}
               </Text>
             }
@@ -260,7 +279,7 @@ function ManageMemoryModal({
               >
                 <View style={styles.overlayHeaderRow}>
                   <Pressable onPress={resetPanels} hitSlop={10}>
-                    <Text style={[styles.overlayLink, { color: colors.text }]}>
+                    <Text style={[styles.overlayLink, { color: colors.text, fontSize: scaled14 }]}>
                       {t("cancel")}
                     </Text>
                   </Pressable>
@@ -270,13 +289,15 @@ function ManageMemoryModal({
                   </Pressable>
 
                   <Pressable onPress={upsertMemory} hitSlop={10}>
-                    <Text style={[styles.overlayPrimary, { color: colors.text }]}>
+                    <Text
+                      style={[styles.overlayPrimary, { color: colors.text, fontSize: scaled14 }]}
+                    >
                       {isEditing ? t("persoSave") : t("persoAdd")}
                     </Text>
                   </Pressable>
                 </View>
 
-                <Text style={[styles.overlayTitle, { color: colors.text }]}>
+                <Text style={[styles.overlayTitle, { color: colors.text, fontSize: scaled18 }]}>
                   {isEditing ? t("persoEditMemory") : t("persoAddMemory")}
                 </Text>
 
@@ -286,15 +307,22 @@ function ManageMemoryModal({
                     onChangeText={setDetailText}
                     placeholder={t("persoInputPlaceholder")}
                     placeholderTextColor={colors.subtext}
-                    style={[styles.input, { color: colors.text }]}
+                    style={[styles.input, { color: colors.text, fontSize: scaled16 }]}
                     multiline
                     autoFocus
                   />
                 </View>
 
                 <View style={styles.hintRow}>
-                  <Text style={[styles.hintIcon, { color: colors.subtext }]}>ⓘ</Text>
-                  <Text style={[styles.hintText, { color: colors.subtext }]}>
+                  <Text style={[styles.hintIcon, { color: colors.subtext, fontSize: scaled14 }]}>
+                    ⓘ
+                  </Text>
+                  <Text
+                    style={[
+                      styles.hintText,
+                      { color: colors.subtext, fontSize: scaled13, lineHeight: scaled13 * 1.38 },
+                    ]}
+                  >
                     {t("persoInputHint")}
                   </Text>
                 </View>
@@ -309,11 +337,16 @@ function ManageMemoryModal({
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
             >
-              <Text style={[styles.overlayTitle, { color: colors.text }]}>
+              <Text style={[styles.overlayTitle, { color: colors.text, fontSize: scaled18 }]}>
                 {t("persoClearMemory")}
               </Text>
 
-              <Text style={[styles.clearDescription, { color: colors.subtext }]}>
+              <Text
+                style={[
+                  styles.clearDescription,
+                  { color: colors.subtext, fontSize: scaled14, lineHeight: scaled14 * 1.43 },
+                ]}
+              >
                 {t("persoClearConfirmText")}
               </Text>
 
@@ -322,7 +355,9 @@ function ManageMemoryModal({
                   style={[styles.cancelClearButton, { backgroundColor: colors.border }]}
                   onPress={resetPanels}
                 >
-                  <Text style={[styles.cancelClearText, { color: colors.text }]}>
+                  <Text
+                    style={[styles.cancelClearText, { color: colors.text, fontSize: scaled16 }]}
+                  >
                     {t("cancel")}
                   </Text>
                 </Pressable>
@@ -331,7 +366,9 @@ function ManageMemoryModal({
                   style={[styles.confirmClearButton, { backgroundColor: colors.text }]}
                   onPress={clearAll}
                 >
-                  <Text style={[styles.confirmClearText, { color: colors.bg }]}>
+                  <Text
+                    style={[styles.confirmClearText, { color: colors.bg, fontSize: scaled16 }]}
+                  >
                     {t("persoConfirm")}
                   </Text>
                 </Pressable>
@@ -357,6 +394,11 @@ export default function PersonnalizationScreen() {
   const { t } = useI18n();
   const { themeMode } = useSettingsStore();
   const { colors } = useResolvedTheme(themeMode);
+  const scaled14 = useUIScale(14);
+  const scaled16 = useUIScale(16);
+  const scaled20 = useUIScale(20);
+  const scaled22 = useUIScale(22);
+  const scaleFactor = useUIScale(1);
 
   useEffect(() => {
     let isActive = true;
@@ -428,14 +470,20 @@ export default function PersonnalizationScreen() {
             onPress={() => router.back()}
             style={[
               styles.backButton,
-              { backgroundColor: colors.card, borderColor: colors.border },
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                width: 40 * scaleFactor,
+                height: 40 * scaleFactor,
+                borderRadius: 20 * scaleFactor,
+              },
             ]}
           >
-            <ChevronLeft size={22} color={colors.text} strokeWidth={2.5} />
+            <ChevronLeft size={scaled22} color={colors.text} strokeWidth={2.5} />
           </Pressable>
         </View>
 
-        <Text style={[styles.pageTitle, { color: colors.text }]}>
+        <Text style={[styles.pageTitle, { color: colors.text, fontSize: scaled22 }]}>
           — {t("personalization")} —
         </Text>
 
@@ -448,14 +496,19 @@ export default function PersonnalizationScreen() {
           >
             <View style={styles.cardHeader}>
               <View style={styles.titleGroup}>
-                <Text style={[styles.title, { color: colors.text }]}>
+                <Text style={[styles.title, { color: colors.text, fontSize: scaled20 }]}>
                   {t("persoMemoryTitle")}{" "}
                   <Text style={[styles.experimental, { color: colors.subtext }]}>
                     ({t("persoExperimental")})
                   </Text>
                 </Text>
 
-                <Text style={[styles.description, { color: colors.subtext }]}>
+                <Text
+                  style={[
+                    styles.description,
+                    { color: colors.subtext, fontSize: scaled14, lineHeight: scaled14 * 1.43 },
+                  ]}
+                >
                   {t("persoDescription")}
                 </Text>
               </View>
@@ -470,6 +523,7 @@ export default function PersonnalizationScreen() {
                 }}
                 thumbColor={draftMemoryEnabled ? colors.accent : colors.text}
                 ios_backgroundColor={colors.subtext}
+                style={{ transform: [{ scale: scaleFactor }] }}
               />
             </View>
 
@@ -485,7 +539,7 @@ export default function PersonnalizationScreen() {
               {isLoadingPersonalization ? (
                 <ActivityIndicator size="small" color={colors.text} />
               ) : (
-                <Text style={[styles.manageButtonText, { color: colors.text }]}>
+                <Text style={[styles.manageButtonText, { color: colors.text, fontSize: scaled16 }]}>
                   {t("persoManage")}
                 </Text>
               )}
@@ -505,7 +559,7 @@ export default function PersonnalizationScreen() {
               {isSavingPersonalization ? (
                 <ActivityIndicator size="small" color={colors.text} />
               ) : (
-                <Text style={[styles.saveButtonText, { color: colors.text }]}>
+                <Text style={[styles.saveButtonText, { color: colors.text, fontSize: scaled16 }]}>
                   {t("persoSave")}
                 </Text>
               )}
@@ -541,9 +595,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,
@@ -554,7 +605,6 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   pageTitle: {
-    fontSize: 22,
     fontWeight: "600",
     marginTop: 20,
     marginBottom: 24,
@@ -575,7 +625,6 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   title: {
-    fontSize: 20,
     fontWeight: "700",
   },
   experimental: {
@@ -583,8 +632,6 @@ const styles = StyleSheet.create({
   },
   description: {
     marginTop: 8,
-    fontSize: 14,
-    lineHeight: 20,
   },
   manageButton: {
     marginTop: 20,
@@ -595,7 +642,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   manageButtonText: {
-    fontSize: 16,
     fontWeight: "700",
   },
   disabledButton: {
@@ -612,7 +658,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   saveButtonText: {
-    fontSize: 16,
     fontWeight: "700",
   },
   bottomOverlay: {
@@ -635,11 +680,9 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
   },
   modalTitle: {
-    fontSize: 22,
     fontWeight: "800",
   },
   closeText: {
-    fontSize: 22,
   },
   columnHeaderRow: {
     flexDirection: "row",
@@ -649,13 +692,11 @@ const styles = StyleSheet.create({
   },
   columnHeaderText: {
     width: "38%",
-    fontSize: 13,
     fontWeight: "800",
     opacity: 0.7,
   },
   columnHeaderDate: {
     flex: 1,
-    fontSize: 13,
     fontWeight: "800",
     opacity: 0.7,
     textAlign: "right",
@@ -670,8 +711,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     paddingHorizontal: 24,
-    fontSize: 14,
-    lineHeight: 20,
     textAlign: "center",
   },
   memoryRow: {
@@ -686,7 +725,6 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   nameColumn: {
-    fontSize: 16,
   },
   rightZone: {
     flex: 1,
@@ -699,7 +737,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     marginRight: 8,
-    fontSize: 16,
     opacity: 0.75,
     textAlign: "right",
   },
@@ -779,16 +816,13 @@ const styles = StyleSheet.create({
   },
   overlayTitle: {
     marginBottom: 10,
-    fontSize: 18,
     fontWeight: "800",
   },
   overlayLink: {
-    fontSize: 14,
     fontWeight: "700",
     opacity: 0.75,
   },
   overlayPrimary: {
-    fontSize: 14,
     fontWeight: "900",
   },
   inputZone: {
@@ -798,7 +832,6 @@ const styles = StyleSheet.create({
   },
   input: {
     minHeight: 120,
-    fontSize: 16,
     textAlignVertical: "top",
   },
   hintRow: {
@@ -809,17 +842,12 @@ const styles = StyleSheet.create({
   hintIcon: {
     marginTop: 2,
     marginRight: 8,
-    fontSize: 14,
   },
   hintText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
   },
   clearDescription: {
     marginTop: 10,
-    fontSize: 14,
-    lineHeight: 20,
   },
   clearButtonsRow: {
     marginTop: 18,
@@ -835,7 +863,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cancelClearText: {
-    fontSize: 16,
     fontWeight: "800",
   },
   confirmClearButton: {
@@ -846,7 +873,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   confirmClearText: {
-    fontSize: 16,
     fontWeight: "800",
   },
 });

@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import { resources, type TranslationKey } from "../i18n/translations";
 import { useSettingsStore, type Language } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
+import { useUIScale } from "../hooks/useUIScale";
 
 function resolvePreviewLanguage(language: Language) {
   if (language !== "systeme") return language;
@@ -67,6 +68,12 @@ export default function General() {
 
   const { colors } = useResolvedTheme(draftThemeMode);
 
+  const scaled22 = useUIScale(22);
+  const scaled18 = useUIScale(18);
+  const scaled16 = useUIScale(16);
+  const scaled14 = useUIScale(14);
+  const scaleFactor = useUIScale(1);
+
   const themes = useMemo(
     () =>
       [
@@ -74,7 +81,7 @@ export default function General() {
         { key: "clair", label: t("light") },
         { key: "sombre", label: t("dark") },
       ] as const,
-    [t]
+    [previewTranslations]
   );
 
   const langues = useMemo(
@@ -85,7 +92,7 @@ export default function General() {
         { key: "en", label: t("english") },
         { key: "fr", label: t("french") },
       ] as const,
-    [t]
+    [previewTranslations]
   );
 
   const themeLabel =
@@ -120,14 +127,22 @@ export default function General() {
             onPress={() => router.back()}
             style={[
               styles.backButton,
-              { backgroundColor: colors.card, borderColor: colors.border },
+              {
+                width: 40 * scaleFactor,
+                height: 40 * scaleFactor,
+                borderRadius: 20 * scaleFactor,
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
             ]}
           >
-            <ChevronLeft size={22} color={colors.text} strokeWidth={2.5} />
+            <ChevronLeft size={scaled22} color={colors.text} strokeWidth={2.5} />
           </Pressable>
         </View>
 
-        <Text style={[styles.title, { color: colors.text }]}>— {t("general")} —</Text>
+        <Text style={[styles.title, { color: colors.text, fontSize: scaled22 }]}>
+          — {t("general")} —
+        </Text>
 
         <View style={styles.content}>
           <View>
@@ -135,10 +150,14 @@ export default function General() {
               style={[styles.item, { backgroundColor: colors.card }]}
               onPress={() => setThemeVisible(true)}
             >
-              <Text style={[styles.label, { color: colors.text }]}>{t("theme")}</Text>
+              <Text style={[styles.label, { color: colors.text, fontSize: scaled16 }]}>
+                {t("theme")}
+              </Text>
               <View style={styles.right}>
-                <Text style={[styles.value, { color: colors.subtext }]}>{themeLabel}</Text>
-                <ChevronRight size={18} color={colors.subtext} />
+                <Text style={[styles.value, { color: colors.subtext, fontSize: scaled14 }]}>
+                  {themeLabel}
+                </Text>
+                <ChevronRight size={scaled18} color={colors.subtext} />
               </View>
             </TouchableOpacity>
 
@@ -146,15 +165,21 @@ export default function General() {
               style={[styles.item, { backgroundColor: colors.card }]}
               onPress={() => setLangVisible(true)}
             >
-              <Text style={[styles.label, { color: colors.text }]}>{t("language")}</Text>
+              <Text style={[styles.label, { color: colors.text, fontSize: scaled16 }]}>
+                {t("language")}
+              </Text>
               <View style={styles.right}>
-                <Text style={[styles.value, { color: colors.subtext }]}>{langLabel}</Text>
-                <ChevronRight size={18} color={colors.subtext} />
+                <Text style={[styles.value, { color: colors.subtext, fontSize: scaled14 }]}>
+                  {langLabel}
+                </Text>
+                <ChevronRight size={scaled18} color={colors.subtext} />
               </View>
             </TouchableOpacity>
 
             <View style={[styles.item, { backgroundColor: colors.card }]}>
-              <Text style={[styles.label, { color: colors.text }]}>{t("notifications")}</Text>
+              <Text style={[styles.label, { color: colors.text, fontSize: scaled16 }]}>
+                {t("notifications")}
+              </Text>
               <Switch
                 value={draftNotificationsEnabled}
                 onValueChange={(value) => {
@@ -167,6 +192,7 @@ export default function General() {
                 }}
                 thumbColor={draftNotificationsEnabled ? colors.accent : colors.text}
                 ios_backgroundColor={colors.subtext}
+                style={{ transform: [{ scale: scaleFactor }] }}
               />
             </View>
           </View>
@@ -179,7 +205,7 @@ export default function General() {
               ]}
               onPress={handleSave}
             >
-              <Text style={[styles.saveButtonText, { color: colors.text }]}>
+              <Text style={[styles.saveButtonText, { color: colors.text, fontSize: scaled16 }]}>
                 {t("generalSave")}
               </Text>
             </Pressable>
@@ -200,8 +226,12 @@ export default function General() {
                   setThemeVisible(false);
                 }}
               >
-                <Text style={[styles.optionText, { color: colors.text }]}>{item.label}</Text>
-                {draftThemeMode === item.key && <Check size={18} color={colors.text} />}
+                <Text style={[styles.optionText, { color: colors.text, fontSize: scaled16 }]}>
+                  {item.label}
+                </Text>
+                {draftThemeMode === item.key && (
+                  <Check size={scaled18} color={colors.text} />
+                )}
               </Pressable>
             ))}
           </View>
@@ -221,8 +251,12 @@ export default function General() {
                   setLangVisible(false);
                 }}
               >
-                <Text style={[styles.optionText, { color: colors.text }]}>{item.label}</Text>
-                {draftLanguage === item.key && <Check size={18} color={colors.text} />}
+                <Text style={[styles.optionText, { color: colors.text, fontSize: scaled16 }]}>
+                  {item.label}
+                </Text>
+                {draftLanguage === item.key && (
+                  <Check size={scaled18} color={colors.text} />
+                )}
               </Pressable>
             ))}
           </View>
@@ -249,9 +283,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
@@ -264,7 +295,6 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   title: {
-    fontSize: 22,
     fontWeight: "600",
     marginTop: 20,
     marginBottom: 24,
@@ -280,7 +310,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   label: {
-    fontSize: 16,
     fontWeight: "500",
   },
   right: {
@@ -288,9 +317,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  value: {
-    fontSize: 14,
-  },
+  value: {},
   footer: {
     paddingBottom: 20,
     alignItems: "center",
@@ -302,7 +329,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   saveButtonText: {
-    fontSize: 16,
     fontWeight: "700",
   },
   overlay: {
@@ -322,7 +348,5 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  optionText: {
-    fontSize: 16,
-  },
+  optionText: {},
 });

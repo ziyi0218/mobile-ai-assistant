@@ -132,6 +132,7 @@ export interface StreamingSlice {
   modelResponses: Record<string, Record<string, string>>;
   activeModels: string[];
   isTyping: boolean;
+  streamingModels: string[];
   currentTaskIds: string[];
   currentEventSources: any[];
   _stopRequested: boolean;
@@ -150,6 +151,7 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
   modelResponses: {},
   activeModels: ['athene-v2:latest'],
   isTyping: false,
+  streamingModels: [],
   currentTaskIds: [],
   currentEventSources: [],
   _stopRequested: false,
@@ -163,6 +165,7 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
       userMessages: [],
       modelResponses: {},
       isTyping: false,
+      streamingModels: [],
       currentTaskIds: [],
       currentEventSources: [],
       attachments: [],
@@ -204,6 +207,7 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
 
     set({
       isTyping: true,
+      streamingModels: [...activeModels],
       currentTaskIds: [],
       currentEventSources: [],
     });
@@ -439,6 +443,9 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
         (err: any) => {
           console.error(`Stream error (${modelName}):`, err);
           streamState.count--;
+          set((state: any) => ({
+            streamingModels: state.streamingModels.filter((m: string) => m !== modelName),
+          }));
           if (streamState.count <= 0 && !streamState.finalized) {
             streamState.finalized = true;
             set({ isTyping: false });
@@ -544,6 +551,9 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
         // --- Fin ADE loop ---
 
         streamState.count--;
+        set((state: any) => ({
+          streamingModels: state.streamingModels.filter((m: string) => m !== modelName),
+        }));
 
         // Skip persistence if user pressed Stop
         if (!get()._stopRequested && currentChatId && fullContent) {
@@ -641,7 +651,7 @@ if (useInterfaceSettingsStore.getState().optionsList['15'].value == true){ //ifa
   stopGeneration: async () => {
     const { currentEventSources, currentTaskIds } = get();
     // Set flag BEFORE closing so es.close callbacks skip persistence
-    set({ _stopRequested: true, isTyping: false, currentTaskIds: [], currentEventSources: [] });
+    set({ _stopRequested: true, isTyping: false, streamingModels: [], currentTaskIds: [], currentEventSources: [] });
     currentEventSources.forEach((es: any) => {
       if (es && typeof es.close === 'function') {
         es.close();
