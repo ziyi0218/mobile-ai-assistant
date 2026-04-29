@@ -626,8 +626,11 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
             currentEventSources: [],
             currentTaskIds: [],
           });
-if (useInterfaceSettingsStore.getState().optionsList['15'].value == true){ //iface_autocopy_response
+          if (useInterfaceSettingsStore.getState().optionsList['15'].value == true){ //iface_autocopy_response
             await Clipboard.setStringAsync(fullContent);
+          }
+          if (useInterfaceSettingsStore.getState().optionsList['40'].value == true) {//iface_auto_tts
+              useReadAloud(currentId, fullContent)
           }
           // Auto-save memories if LLM emitted a ```memory block
           const memoryFacts = parseMemoryBlock(fullContent);

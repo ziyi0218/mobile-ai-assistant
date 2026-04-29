@@ -9,7 +9,6 @@ import {
   Platform, TouchableOpacity, TextInput, Keyboard, StyleSheet, KeyboardAvoidingView
 } from 'react-native';
 import { Copy, RefreshCw, Pencil, Volume2, Check, X, VolumeX, MessageCircle } from 'lucide-react-native';
-import * as Speech from 'expo-speech';
 import * as Clipboard from 'expo-clipboard';
 import Header from '../components/Header';
 import InputBar from '../components/InputBar';
@@ -28,6 +27,7 @@ import { useDeepLink } from '../hooks/useDeepLink';
 import { parseDownloadBlocks, stripDownloadHeaders } from '../utils/exportDetector';
 import { parseClarification, stripClarificationBlock } from '../utils/clarificationParser';
 import { ClarificationButtons } from '../components/ClarificationButtons';
+import { useReadAloud } from '../hooks/useReadAloud'
 
 const ActionBtn = React.memo(({ icon: Icon, size = 15, color = '#AAA', onPress }: {
   icon: any; size?: number; color?: string; onPress: () => void;
@@ -37,12 +37,14 @@ const ActionBtn = React.memo(({ icon: Icon, size = 15, color = '#AAA', onPress }
   </TouchableOpacity>
 ));
 
+
 export default function ChatScreen() {
   const { t } = useI18n();
   useNotifications();
   useDeepLink();
   const { width } = useWindowDimensions();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const {speakingMsgId, toggleSpeech} = useReadAloud();
 
   // Biometric lock: redirect to biometric-lock screen if enabled and not yet verified
   useEffect(() => {
@@ -84,7 +86,6 @@ export default function ChatScreen() {
     think: state.think, streamResponse: state.streamResponse,
   })));
 
-  const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
@@ -123,19 +124,6 @@ export default function ChatScreen() {
   useEffect(() => {
     return () => { if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current); };
   }, []);
-
-  const handleReadAloud = useCallback(async (msgId: string, text: string) => {
-    try {
-      if (speakingMsgId === msgId) { await Speech.stop(); setSpeakingMsgId(null); return; }
-      await Speech.stop();
-      setSpeakingMsgId(msgId);
-      Speech.speak(text, {
-        onDone: () => setSpeakingMsgId(null),
-        onStopped: () => setSpeakingMsgId(null),
-        onError: () => setSpeakingMsgId(null),
-      });
-    } catch (e) { setSpeakingMsgId(null); }
-  }, [speakingMsgId]);
 
   const handleConfirmEdit = useCallback(() => {
     if (!editingMsgId || !editText.trim()) return;
@@ -255,7 +243,7 @@ export default function ChatScreen() {
                             <>
                               <ActionBtn icon={isCopied ? Check : Copy} color={isCopied ? '#34C759' : '#AAA'} onPress={() => handleCopy(msg.id, displayText)} />
                               <ActionBtn icon={RefreshCw} onPress={() => handleRegenerate(msg.id, modelName)} />
-                              <ActionBtn icon={speakingMsgId === msg.id ? VolumeX : Volume2} color={speakingMsgId === msg.id ? '#007AFF' : '#AAA'} onPress={() => handleReadAloud(msg.id, displayText)} />
+                              <ActionBtn icon={speakingMsgId === msg.id ? VolumeX : Volume2} color={speakingMsgId === msg.id ? '#007AFF' : '#AAA'} onPress={() => toggleSpeech(msg.id, displayText)} />
                             </>
                           )}
                         </View>

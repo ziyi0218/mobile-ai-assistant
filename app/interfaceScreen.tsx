@@ -1,4 +1,4 @@
-import { View, Text, Pressable, FlatList, Switch, StyleSheet } from 'react-native';
+import { View, Text, Pressable, FlatList, Switch, StyleSheet, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react'
@@ -66,7 +66,7 @@ export default function InterfaceScreen() {
           <Text style={styles.title}>— {t("interface")} —</Text>
 
           <View style={styles.content}>
-            <View style={interfaceStyles.listWrapper}>
+            <View style={interfaceStyles.listWrapper} onPress={Keyboard.dismiss}>
               <FlatList
                 contentContainerStyle={interfaceStyles.listContent}
                 data={interfaceItems}
@@ -83,7 +83,7 @@ export default function InterfaceScreen() {
                   let switchThumbColor = item.type === 'switch' ? (item.value? colors.accent : colors.text) : undefined;
 
                   return (
-                  <View style={styles.item}>
+                  <View style={[styles.item, {paddingVertical: 8*scaleFactor}]}>
 
                     <Text minimumFontScale={0.8}
                           ellipsizeMode="tail"

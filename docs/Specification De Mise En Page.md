@@ -130,7 +130,69 @@ return (
   </View>
 );
 
-## 7. Boutons D'Action
+## 7. Regle De Taille Des Textes Et Des Icones
+
+Toutes les pages de settings doivent respecter le reglage global de taille d'interface. Les tailles de texte, les icones importantes, le bouton retour et les interrupteurs ne doivent pas rester figes avec une valeur numerique finale. Chaque page doit utiliser `useUIScale` pour calculer les tailles affichees a partir d'une taille de reference.
+
+Les tailles de reference restent les memes pour garder une hierarchie visuelle stable :
+
+- `22` pour les titres de page et les icones principales
+- `18` pour les icones secondaires ou les sous-titres
+- `16` pour les textes de ligne, boutons, champs et actions principales
+- `14` pour les descriptions et textes secondaires
+- `13` ou `12` pour les metadonnees, badges ou aides courtes
+- `1` pour obtenir un facteur d'echelle general applique aux elements non textuels
+
+Code :
+
+```tsx
+const scaled22 = useUIScale(22);
+const scaled18 = useUIScale(18);
+const scaled16 = useUIScale(16);
+const scaled14 = useUIScale(14);
+const scaled13 = useUIScale(13);
+const scaleFactor = useUIScale(1);
+```
+
+Exemples d'utilisation :
+
+```tsx
+<Text style={[styles.title, { color: colors.text, fontSize: scaled22 }]}>
+  {t("pageTitle")}
+</Text>
+
+<Text style={[styles.label, { color: colors.text, fontSize: scaled16 }]}>
+  {label}
+</Text>
+
+<Text style={[styles.description, { color: colors.subtext, fontSize: scaled14 }]}>
+  {description}
+</Text>
+
+<ChevronLeft size={scaled22} color={colors.text} strokeWidth={2.5} />
+```
+
+Pour les elements dont la taille est definie par une largeur, une hauteur ou un rayon, le facteur `scaleFactor` doit etre applique sur la valeur de reference. Cela concerne surtout le bouton retour, certains boutons d'icone et les interrupteurs.
+
+Code :
+
+```tsx
+backButton: {
+  width: 40 * scaleFactor,
+  height: 40 * scaleFactor,
+  borderRadius: 20 * scaleFactor,
+}
+
+<Switch
+  value={value}
+  onValueChange={onChange}
+  style={{ transform: [{ scale: scaleFactor }] }}
+/>
+```
+
+Une page est consideree comme correctement connectee au reglage global si aucun texte visible n'utilise encore directement `fontSize: 16`, `fontSize: 14` ou toute autre taille fixe dans le rendu final. Les valeurs fixes peuvent rester dans `StyleSheet` uniquement si elles sont systematiquement remplacees au moment du rendu par une valeur calculee avec `useUIScale`.
+
+## 8. Boutons D'Action
 
 Les pages de settings peuvent contenir des boutons d'action directement dans le contenu principal. Ces boutons doivent utiliser une forme en pilule, une bordure simple et une integration complete avec le theme actif. Ils servent en general a ouvrir un panneau, lancer une action secondaire ou declencher une etape de parametrage.
 
@@ -157,7 +219,7 @@ manageButton: {
 </Pressable>
 
 
-## 8. Bouton Principal De Sauvegarde En Bas De Page
+## 9. Bouton Principal De Sauvegarde En Bas De Page
 
 Toutes les pages de settings doivent contenir un bouton principal de sauvegarde place en bas, au centre de l'ecran. Ce bouton sert a valider explicitement les modifications de la page. Il doit reprendre une forme en pilule, un espacement interieur large et une apparence entierement pilotee par le theme actif. La reference de position et de style est le bouton `Enregistrer` de la page `general`.
 
@@ -207,7 +269,7 @@ saveButtonText: {
 </View>
 
 
-## 9. Etat Desactive Du Bouton
+## 10. Etat Desactive Du Bouton
 
 Lorsqu'une action n'est pas disponible, le bouton doit exprimer son indisponibilite de facon visuelle et fonctionnelle. La presentation recommandee repose sur une baisse d'opacite, combinee a l'utilisation de la propriete `disabled` sur le composant interactif.
 
@@ -231,7 +293,7 @@ disabledButton: {
 </Pressable>
 
 
-## 10. Boutons Secondaires Et Bouton D'Alerte
+## 11. Boutons Secondaires Et Bouton D'Alerte
 
 Dans les panneaux ou les modales de settings, il est possible d'utiliser une paire de boutons secondaires pour les actions auxiliaires. Le bouton secondaire standard garde le style du theme avec une bordure visible. Le bouton d'alerte conserve la meme structure generale, mais met davantage l'accent sur la nature sensible de l'action.
 
@@ -274,7 +336,7 @@ dangerActionButton: {
 </View>
 
 
-## 11. Boutons De Confirmation Dans Une Modale
+## 12. Boutons De Confirmation Dans Une Modale
 
 Lorsqu'une modale de settings demande une confirmation explicite, les deux actions doivent etre clairement separees. Le bouton de gauche correspond a l'annulation, tandis que le bouton de droite correspond a la validation finale. La hierarchie visuelle doit rendre la decision lisible en un coup d'oeil.
 
@@ -316,7 +378,7 @@ confirmClearButton: {
 </View>
 
 
-## 12. Cartes De Ligne Pour Les Options
+## 13. Cartes De Ligne Pour Les Options
 
 Dans une page de settings, chaque option peut etre presentee sous la forme d'une carte de ligne. Cette carte sert a regrouper une action ou un parametre dans un bloc clair, lisible et facilement cliquable. Elle doit utiliser un fond lie au theme, un rayon modere, un espacement interieur confortable et une structure horizontale permettant d'aligner le texte principal avec une valeur, une icone ou un controle secondaire.
 
@@ -344,7 +406,7 @@ item: {
 </TouchableOpacity>
 
 
-## 13. Titre Centre De La Page
+## 14. Titre Centre De La Page
 
 Lorsqu'un titre de page doit etre centre, il peut etre affiche sous la forme `— Titre —` avec un alignement horizontal centre. Dans ce cas, les autres parametres deja definis, comme les marges et les espacements verticaux, restent inchanges. La modification porte uniquement sur le contenu du titre et sur `textAlign: "center"`.
 
@@ -363,7 +425,7 @@ title: {
 </Text>
 
 
-## 14. Parametres Des Interrupteurs
+## 15. Parametres Des Interrupteurs
 
 Lorsqu'une page de settings contient un interrupteur, les parametres visuels doivent etre definis explicitement. Le rail inactif utilise `colors.subtext`, le rail actif utilise `colors.subaccent`, et le bouton mobile utilise `colors.accent` lorsqu'il est actif, sinon `colors.text`. Cette specification ne modifie pas les autres regles de mise en page de la ligne ou de la page.
 
@@ -381,7 +443,7 @@ Code :
 />
 
 
-## 15. Validation Differee Des Modifications
+## 16. Validation Differee Des Modifications
 
 Les pages de settings ne doivent pas enregistrer automatiquement une modification des qu'un parametre est change. Toute modification doit d'abord etre stockee dans un etat temporaire local a la page. L'enregistrement global ne doit se produire qu'au moment du clic sur le bouton de sauvegarde en bas de page. Si l'utilisateur quitte directement la page sans appuyer sur ce bouton, les changements ne doivent pas etre conserves.
 

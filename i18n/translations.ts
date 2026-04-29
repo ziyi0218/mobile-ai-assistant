@@ -300,6 +300,8 @@ export const resources = {
       iface_emoji_in_call: "Afficer les emojis en appel",
       iface_sep_image: "Image",
       iface_image_compression: "Compression des images",
+      iface_auto_tts: "Lire la réponse automatiquement",
+
       
       /* ===== Personnalization ===== */
       persoMemoryTitle: "Mémoire",
@@ -735,6 +737,7 @@ export const resources = {
       iface_emoji_in_call: "Display Emoji in Call",
       iface_sep_image: "Image",
       iface_image_compression: "Image Compression",
+      iface_auto_tts: "Always Read Response Aloud",
       /* ===== Personnalization ===== */
       persoMemoryTitle: "Memory",
       persoExperimental: "Experimental",
@@ -1168,6 +1171,8 @@ export const resources = {
       iface_emoji_in_call: "通话中显示表情符号",
       iface_sep_image: "图片",
       iface_image_compression: "图片压缩",
+      iface_auto_tts: "自动朗读回答",
+
 
       /* ===== Personnalization ===== */
       persoMemoryTitle: "记忆",

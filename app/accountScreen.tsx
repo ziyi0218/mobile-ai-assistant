@@ -111,6 +111,9 @@ export default function AccountScreen() {
   const scaledFontSize = useUIScale(24);
   const scaled22 = useUIScale(22);
   const scaledChevronSize = useUIScale(18);
+  const scaled16 = useUIScale(16);
+  const scaled14 = useUIScale(14);
+  const scaled13 = useUIScale(13);
   const scaleFactor = useUIScale(1);
   const { haptics } = useHaptics();
   const styles = useCommonDesign();
@@ -284,10 +287,10 @@ export default function AccountScreen() {
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <Text style={{ color: colors.text, fontSize: 16, fontWeight: "600" }}>
+                        <Text style={{ color: colors.text, fontSize: scaled16, fontWeight: "600" }}>
                           {t("biometricLock")}
                         </Text>
-                        <Text style={{ color: colors.subtext, fontSize: 13, marginTop: 2 }}>
+                        <Text style={{ color: colors.subtext, fontSize: scaled13, marginTop: 2 }}>
                           {t("biometricLockDescription")}
                         </Text>
                       </View>
@@ -316,7 +319,7 @@ export default function AccountScreen() {
                     <Text
                       style={{
                         color: "#4CAF50",
-                        fontSize: 16,
+                        fontSize: scaled16,
                         textAlign: "center",
                         marginBottom: 10,
                       }}
@@ -325,7 +328,7 @@ export default function AccountScreen() {
                     </Text>
                   ) : (
                     <View>
-                      <Text style={{ color: colors.subtext, fontSize: 13, marginBottom: 8 }}>
+                      <Text style={{ color: colors.subtext, fontSize: scaled13, marginBottom: 8 }}>
                         {t("adeCasDescription")}
                       </Text>
                       <TextInput
@@ -342,7 +345,7 @@ export default function AccountScreen() {
                           padding: 12,
                           color: colors.text,
                           marginBottom: 10,
-                          fontSize: 14,
+                          fontSize: scaled14,
                         }}
                       />
                       <TextInput
@@ -360,7 +363,7 @@ export default function AccountScreen() {
                           padding: 12,
                           color: colors.text,
                           marginBottom: 10,
-                          fontSize: 14,
+                          fontSize: scaled14,
                         }}
                       />
                       <Pressable
@@ -376,7 +379,7 @@ export default function AccountScreen() {
                         {adeLoading ? (
                           <ActivityIndicator color="#fff" />
                         ) : (
-                          <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
+                          <Text style={{ color: "#fff", fontWeight: "bold", fontSize: scaled16 }}>
                             {t("adeConnect")}
                           </Text>
                         )}

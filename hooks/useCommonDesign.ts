@@ -81,6 +81,7 @@ export const useCommonDesign = () => {
                      fontSize: scaled16,
                      fontWeight: "500",
                      textAlign: "left",
+                     flex:1,
                      color: colors.text
                    },
                    right: {
