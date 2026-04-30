@@ -8,6 +8,7 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { type NoteItem, useNoteStore } from '../../store/useNoteStore';
 import { useResolvedTheme } from '../../utils/theme';
 import { useUIScale } from '../../hooks/useUIScale';
+import { exportNote, type NoteExportFormat } from '../../utils/noteExport';
 import NoteListItem from '../../components/notes/NoteListItem';
 import { SidebarActionSheet } from '../../components/sidebar/SidebarModals';
 import { buildSidebarUi, type SidebarAction } from '../../components/sidebar/SidebarUtils';
@@ -94,6 +95,7 @@ export default function NotesScreen() {
   const isLoading = useNoteStore((state) => state.isLoading);
   const total = useNoteStore((state) => state.total);
   const fetchNotes = useNoteStore((state) => state.fetchNotes);
+  const fetchNoteById = useNoteStore((state) => state.fetchNoteById);
   const createNote = useNoteStore((state) => state.createNote);
   const deleteNote = useNoteStore((state) => state.deleteNote);
   const [search, setSearch] = useState('');
@@ -176,6 +178,18 @@ export default function NotesScreen() {
     );
   };
 
+  const handleExportNote = async (format: NoteExportFormat) => {
+    if (!selectedNote) return;
+
+    try {
+      const freshNote = await fetchNoteById(selectedNote.id);
+      await exportNote(freshNote ?? selectedNote, format);
+    } catch (error) {
+      console.error(`Erreur export note ${format}:`, error);
+      Alert.alert(t('download'), error instanceof Error ? error.message : t('notesChatError'));
+    }
+  };
+
   const noteActions: SidebarAction[] = [
     {
       key: 'download',
@@ -209,19 +223,25 @@ export default function NotesScreen() {
       key: 'txt',
       label: t('notesExportTxt'),
       icon: <FileText size={scaled18} color={colors.text} />,
-      onPress: () => {},
+      onPress: () => {
+        void handleExportNote('txt');
+      },
     },
     {
       key: 'md',
       label: t('notesExportMd'),
       icon: <FileCode2 size={scaled18} color={colors.text} />,
-      onPress: () => {},
+      onPress: () => {
+        void handleExportNote('md');
+      },
     },
     {
       key: 'pdf',
       label: t('notesExportPdf'),
       icon: <FileType2 size={scaled18} color={colors.text} />,
-      onPress: () => {},
+      onPress: () => {
+        void handleExportNote('pdf');
+      },
     },
   ];
 

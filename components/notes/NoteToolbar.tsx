@@ -13,6 +13,7 @@ import {
   Strikethrough,
   Underline,
 } from 'lucide-react-native';
+import { useUIScale } from '../../hooks/useUIScale';
 
 export type NoteToolbarAction =
   | 'h1'
@@ -37,36 +38,59 @@ type NoteToolbarProps = {
   actions?: NoteToolbarAction[];
 };
 
-const toolbarActions: Array<{ key: NoteToolbarAction; render: (color: string) => React.ReactNode }> = [
-  { key: 'h1', render: (color) => <Heading1 size={18} color={color} /> },
-  { key: 'h2', render: (color) => <Heading2 size={18} color={color} /> },
-  { key: 'h3', render: (color) => <Heading3 size={18} color={color} /> },
-  { key: 'bullet', render: (color) => <List size={18} color={color} /> },
-  { key: 'numbered', render: (color) => <ListOrdered size={18} color={color} /> },
-  { key: 'check', render: (color) => <ListChecks size={18} color={color} /> },
-  { key: 'bold', render: (color) => <Bold size={18} color={color} /> },
-  { key: 'italic', render: (color) => <Italic size={18} color={color} /> },
-  { key: 'underline', render: (color) => <Underline size={18} color={color} /> },
-  { key: 'strike', render: (color) => <Strikethrough size={18} color={color} /> },
-  { key: 'code', render: (color) => <Code2 size={18} color={color} /> },
+const toolbarActions: Array<{ key: NoteToolbarAction; render: (color: string, size: number) => React.ReactNode }> = [
+  { key: 'h1', render: (color, size) => <Heading1 size={size} color={color} /> },
+  { key: 'h2', render: (color, size) => <Heading2 size={size} color={color} /> },
+  { key: 'h3', render: (color, size) => <Heading3 size={size} color={color} /> },
+  { key: 'bullet', render: (color, size) => <List size={size} color={color} /> },
+  { key: 'numbered', render: (color, size) => <ListOrdered size={size} color={color} /> },
+  { key: 'check', render: (color, size) => <ListChecks size={size} color={color} /> },
+  { key: 'bold', render: (color, size) => <Bold size={size} color={color} /> },
+  { key: 'italic', render: (color, size) => <Italic size={size} color={color} /> },
+  { key: 'underline', render: (color, size) => <Underline size={size} color={color} /> },
+  { key: 'strike', render: (color, size) => <Strikethrough size={size} color={color} /> },
+  { key: 'code', render: (color, size) => <Code2 size={size} color={color} /> },
 ];
 
 export default function NoteToolbar({ colors, onAction, actions }: NoteToolbarProps) {
+  const iconSize = useUIScale(18);
+  const actionSize = useUIScale(34);
+  const actionRadius = useUIScale(10);
+  const wrapRadius = useUIScale(18);
+  const verticalPadding = useUIScale(8);
+  const horizontalPadding = useUIScale(6);
+  const contentPadding = useUIScale(2);
+  const contentGap = useUIScale(4);
   const visibleActions = actions?.length
     ? toolbarActions.filter((action) => actions.includes(action.key))
     : toolbarActions;
 
   return (
-    <View style={[styles.wrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.content}>
+    <View
+      style={[
+        styles.wrap,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          borderRadius: wrapRadius,
+          paddingVertical: verticalPadding,
+          paddingHorizontal: horizontalPadding,
+        },
+      ]}
+    >
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={[styles.content, { paddingHorizontal: contentPadding, gap: contentGap }]}
+      >
         {visibleActions.map((action) => (
           <TouchableOpacity
             key={action.key}
             activeOpacity={0.75}
-            style={styles.action}
+            style={[styles.action, { width: actionSize, height: actionSize, borderRadius: actionRadius }]}
             onPress={() => onAction(action.key)}
           >
-            {action.render(colors.text)}
+            {action.render(colors.text, iconSize)}
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -77,19 +101,11 @@ export default function NoteToolbar({ colors, onAction, actions }: NoteToolbarPr
 const styles = StyleSheet.create({
   wrap: {
     borderWidth: 1,
-    borderRadius: 18,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
   },
   content: {
     alignItems: 'center',
-    paddingHorizontal: 2,
-    gap: 4,
   },
   action: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },

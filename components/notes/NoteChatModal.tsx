@@ -22,6 +22,7 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { useResolvedTheme } from '../../utils/theme';
 import { buildModelItem } from '../../utils/messageHelpers';
 import { generateUUID } from '../../utils/uuid';
+import { useUIScale } from '../../hooks/useUIScale';
 
 type NoteChatModalProps = {
   visible: boolean;
@@ -120,6 +121,26 @@ export default function NoteChatModal({
   const insets = useSafeAreaInsets();
   const themeMode = useSettingsStore((state) => state.themeMode);
   const { colors } = useResolvedTheme(themeMode);
+  const s2 = useUIScale(2);
+  const s4 = useUIScale(4);
+  const s8 = useUIScale(8);
+  const s10 = useUIScale(10);
+  const s12 = useUIScale(12);
+  const s13 = useUIScale(13);
+  const s14 = useUIScale(14);
+  const s15 = useUIScale(15);
+  const s16 = useUIScale(16);
+  const s18 = useUIScale(18);
+  const s20 = useUIScale(20);
+  const s22 = useUIScale(22);
+  const s24 = useUIScale(24);
+  const s26 = useUIScale(26);
+  const s28 = useUIScale(28);
+  const s34 = useUIScale(34);
+  const s40 = useUIScale(40);
+  const s42 = useUIScale(42);
+  const s96 = useUIScale(96);
+  const s140 = useUIScale(140);
   const scrollRef = useRef<ScrollView>(null);
   const activeModel = useChatStore((state) => state.activeModels[0] || 'athene-v2:latest');
   const modelVision = useChatStore((state) => state.modelVision);
@@ -346,18 +367,24 @@ export default function NoteChatModal({
             styles.header,
             {
               borderBottomColor: colors.border,
-              paddingTop: insets.top + 8,
+              paddingTop: insets.top + s8,
               backgroundColor: colors.bg,
+              paddingHorizontal: s18,
+              paddingBottom: s14,
             },
           ]}
         >
-          <Pressable onPress={onClose} style={styles.closeButton} hitSlop={10}>
-            <X size={24} color={colors.text} strokeWidth={2.2} />
+          <Pressable
+            onPress={onClose}
+            style={[styles.closeButton, { width: s34, height: s34, marginRight: s10 }]}
+            hitSlop={10}
+          >
+            <X size={s24} color={colors.text} strokeWidth={2.2} />
           </Pressable>
 
           <View style={styles.headerTextWrap}>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('notesChatTitle')}</Text>
-            <Text style={[styles.headerSubtitle, { color: colors.subtext }]} numberOfLines={1}>
+            <Text style={[styles.headerTitle, { color: colors.text, fontSize: s18 }]}>{t('notesChatTitle')}</Text>
+            <Text style={[styles.headerSubtitle, { color: colors.subtext, fontSize: s13, marginTop: s2 }]} numberOfLines={1}>
               {t('notesChatSubtitle')}
             </Text>
           </View>
@@ -368,6 +395,11 @@ export default function NoteChatModal({
           style={styles.scrollView}
           contentContainerStyle={[
             styles.content,
+            {
+              paddingHorizontal: s18,
+              paddingTop: s20,
+              paddingBottom: s20,
+            },
             messages.length === 0 ? styles.emptyContent : null,
           ]}
           keyboardDismissMode="interactive"
@@ -399,10 +431,23 @@ export default function NoteChatModal({
           showsVerticalScrollIndicator={false}
         >
           {messages.length === 0 ? (
-            <View style={styles.emptyWrap}>
-              <MessageCircle size={42} color={colors.subtext} strokeWidth={1.8} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('notesChatEmpty')}</Text>
-              <Text style={[styles.emptyText, { color: colors.subtext }]}>
+            <View style={[styles.emptyWrap, { paddingTop: s96, paddingHorizontal: s20 }]}>
+              <MessageCircle size={s42} color={colors.subtext} strokeWidth={1.8} />
+              <Text
+                style={[
+                  styles.emptyTitle,
+                  {
+                    color: colors.text,
+                    fontSize: s20,
+                    lineHeight: s26,
+                    marginTop: s16,
+                    marginBottom: s8,
+                  },
+                ]}
+              >
+                {t('notesChatEmpty')}
+              </Text>
+              <Text style={[styles.emptyText, { color: colors.subtext, fontSize: s14, lineHeight: s20 }]}>
                 {noteContent.trim() ? noteTitle.trim() || t('notesUntitled') : t('notesEmptyPreview')}
               </Text>
             </View>
@@ -410,8 +455,8 @@ export default function NoteChatModal({
             messages.map((message) => {
               const isUser = message.role === 'user';
               return (
-                <View key={message.id} style={styles.messageBlock}>
-                  <Text style={[styles.roleLabel, { color: colors.subtext }]}>
+                <View key={message.id} style={[styles.messageBlock, { marginBottom: s24 }]}>
+                  <Text style={[styles.roleLabel, { color: colors.subtext, fontSize: s12, marginBottom: s10 }]}>
                     {isUser ? 'USER' : 'ASSISTANT'}
                   </Text>
                   <View
@@ -424,8 +469,8 @@ export default function NoteChatModal({
                       style={[
                       isUser ? styles.userBubble : styles.assistantBubble,
                       isUser
-                        ? { backgroundColor: colors.accent }
-                        : { backgroundColor: 'transparent' },
+                        ? { backgroundColor: colors.accent, paddingHorizontal: s14, paddingVertical: s12, borderRadius: s22 }
+                        : { backgroundColor: 'transparent', paddingRight: s4 },
                     ]}
                     >
                       <MessageBubble content={message.content || (isTyping && !isUser ? '...' : '')} isUser={isUser} />
@@ -437,7 +482,7 @@ export default function NoteChatModal({
           )}
 
           {errorText ? (
-            <Text style={[styles.errorText, { color: colors.subtext }]}>{errorText}</Text>
+            <Text style={[styles.errorText, { color: colors.subtext, fontSize: s13, lineHeight: s18, marginTop: s4 }]}>{errorText}</Text>
           ) : null}
         </ScrollView>
 
@@ -445,9 +490,11 @@ export default function NoteChatModal({
           style={[
             styles.inputDock,
             {
-              paddingBottom: Math.max(insets.bottom, 12),
+              paddingBottom: Math.max(insets.bottom, s12),
               backgroundColor: colors.bg,
               borderTopColor: colors.border,
+              paddingHorizontal: s16,
+              paddingTop: s10,
             },
           ]}
         >
@@ -457,6 +504,10 @@ export default function NoteChatModal({
               {
                 backgroundColor: colors.card,
                 borderColor: colors.border,
+                borderRadius: s28,
+                paddingHorizontal: s16,
+                paddingTop: s12,
+                paddingBottom: s12,
               },
             ]}
           >
@@ -470,13 +521,13 @@ export default function NoteChatModal({
               }}
               placeholder={t('placeholder')}
               placeholderTextColor={colors.subtext}
-              style={[styles.input, { color: colors.text }]}
+              style={[styles.input, { color: colors.text, minHeight: s42, maxHeight: s140, fontSize: s16 }]}
               submitBehavior="newline"
               value={inputText}
             />
 
-            <View style={styles.inputFooter}>
-              <Text style={[styles.modelText, { color: colors.text }]} numberOfLines={1}>
+            <View style={[styles.inputFooter, { marginTop: s10 }]}>
+              <Text style={[styles.modelText, { color: colors.text, fontSize: s15, marginRight: s12 }]} numberOfLines={1}>
                 {activeModel}
               </Text>
 
@@ -493,13 +544,16 @@ export default function NoteChatModal({
                   styles.sendButton,
                   {
                     backgroundColor: isTyping || inputText.trim() ? colors.text : colors.border,
+                    width: s40,
+                    height: s40,
+                    borderRadius: s20,
                   },
                 ]}
               >
                 {isTyping ? (
-                  <Square size={16} color={colors.bg} fill={colors.bg} />
+                  <Square size={s16} color={colors.bg} fill={colors.bg} />
                 ) : (
-                  <Send size={18} color={colors.bg} strokeWidth={2.2} />
+                  <Send size={s18} color={colors.bg} strokeWidth={2.2} />
                 )}
               </Pressable>
             </View>
@@ -517,32 +571,21 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingBottom: 14,
     borderBottomWidth: 1,
   },
   closeButton: {
-    width: 34,
-    height: 34,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
   },
   headerTextWrap: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
     fontWeight: '700',
   },
   headerSubtitle: {
-    fontSize: 13,
-    marginTop: 2,
   },
   content: {
-    paddingHorizontal: 18,
-    paddingTop: 20,
-    paddingBottom: 20,
   },
   emptyContent: {
     flexGrow: 1,
@@ -554,55 +597,34 @@ const styles = StyleSheet.create({
   emptyWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 96,
-    paddingHorizontal: 20,
   },
   emptyTitle: {
-    fontSize: 20,
     fontWeight: '700',
-    marginTop: 16,
-    marginBottom: 8,
+    textAlign: 'center',
+    alignSelf: 'stretch',
   },
   emptyText: {
-    fontSize: 14,
     textAlign: 'center',
-    lineHeight: 20,
   },
   messageBlock: {
-    marginBottom: 24,
   },
   roleLabel: {
-    fontSize: 12,
     fontWeight: '700',
-    marginBottom: 10,
   },
   userBubble: {
     maxWidth: '88%',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 22,
   },
   assistantBubble: {
     width: '100%',
     maxWidth: '100%',
-    paddingRight: 4,
   },
   errorText: {
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 4,
   },
   inputDock: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
     borderTopWidth: 1,
   },
   inputCard: {
     borderWidth: 1,
-    borderRadius: 28,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 14,
@@ -610,27 +632,18 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   input: {
-    minHeight: 42,
-    maxHeight: 140,
-    fontSize: 16,
     textAlignVertical: 'top',
   },
   inputFooter: {
-    marginTop: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   modelText: {
     flex: 1,
-    fontSize: 15,
     fontWeight: '500',
-    marginRight: 12,
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },

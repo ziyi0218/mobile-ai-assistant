@@ -519,7 +519,7 @@ function main() {
       ...(provider ? [provider.getEditorExtension()] : []),
     ],
     content: normalizedInitialContent,
-    autofocus: true,
+    autofocus: false,
     editorProps: {
       attributes: {
         class: 'tiptap bundled-lab-editor',

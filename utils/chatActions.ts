@@ -1,6 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Linking from 'expo-linking';
+import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { chatService } from '../services/chatService';
 import type { ChatData } from '../types/api';
@@ -10,10 +11,6 @@ export type ChatExportFormat = 'json' | 'txt' | 'pdf';
 export type ChatExportResult = {
   uri: string;
   sharingAvailable: boolean;
-};
-
-type PrintModuleLike = {
-  printToFileAsync(options: { html: string }): Promise<{ uri: string }>;
 };
 
 const API_BASE_URL =
@@ -72,7 +69,7 @@ function renderMessageHtml(text: string) {
         html += '<ol>';
         listType = 'ol';
       }
-      html += `<li>${escapeHtml(ordered[2])}</li>`;
+      html += `<li>${escapeHtml(ordered[2] ?? '')}</li>`;
       return;
     }
 
@@ -82,7 +79,7 @@ function renderMessageHtml(text: string) {
         html += '<ul>';
         listType = 'ul';
       }
-      html += `<li>${escapeHtml(unordered[1])}</li>`;
+      html += `<li>${escapeHtml(unordered[1] ?? '')}</li>`;
       return;
     }
 
@@ -142,13 +139,16 @@ function buildPdfHtml(chat: ChatData) {
         <title>${escapeHtml(title)}</title>
         <style>
           :root {
-            color-scheme: dark;
+            color-scheme: light;
+          }
+          * {
+            color: inherit;
           }
           body {
             margin: 0;
             padding: 32px 28px 48px;
-            background: #050505;
-            color: #ffffff;
+            background: #ffffff;
+            color: #111827;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             line-height: 1.55;
           }
@@ -170,9 +170,9 @@ function buildPdfHtml(chat: ChatData) {
           }
           .bubble {
             max-width: 72%;
-            background: #171717;
-            color: #ffffff;
-            border-radius: 999px;
+            background: #f3f4f6;
+            color: #111827;
+            border-radius: 18px;
             padding: 12px 18px;
           }
           .model {
@@ -217,6 +217,17 @@ function buildPdfHtml(chat: ChatData) {
           .bubble li {
             margin-bottom: 8px;
             font-size: 15px;
+          }
+          code {
+            background: #f3f4f6;
+            border-radius: 5px;
+            padding: 2px 5px;
+          }
+          pre {
+            background: #f3f4f6;
+            border-radius: 10px;
+            padding: 12px;
+            white-space: pre-wrap;
           }
           .spacer {
             height: 8px;
@@ -277,31 +288,14 @@ async function shareFile(uri: string, mimeType: string, dialogTitle: string) {
   return { uri, sharingAvailable };
 }
 
-function resolvePrintModule(): PrintModuleLike {
-  try {
-    const printModule = eval('require')('expo-print');
-    if (printModule?.printToFileAsync) {
-      return printModule;
-    }
-  } catch {}
-
-  try {
-    const expoModulesCore = eval('require')('expo-modules-core');
-    const printModule = expoModulesCore?.requireOptionalNativeModule?.('ExpoPrint');
-    if (printModule?.printToFileAsync) {
-      return printModule;
-    }
-  } catch {}
-
-  try {
-    const expoPackage = eval('require')('expo');
-    const printModule = expoPackage?.requireOptionalNativeModule?.('ExpoPrint');
-    if (printModule?.printToFileAsync) {
-      return printModule;
-    }
-  } catch {}
-
-  throw new Error('PDF export requires ExpoPrint to be available in the current runtime.');
+async function copyPdfWithFilename(sourceUri: string, filename: string) {
+  const destinationUri = `${FileSystem.documentDirectory}${filename}`;
+  await FileSystem.deleteAsync(destinationUri, { idempotent: true });
+  await FileSystem.copyAsync({
+    from: sourceUri,
+    to: destinationUri,
+  });
+  return destinationUri;
 }
 
 export async function cloneChat(chatId: string, language = 'en') {
@@ -333,10 +327,11 @@ export async function exportSingleChat(chatId: string, format: ChatExportFormat)
     return shareFile(uri, 'text/plain', 'Export chat (.txt)');
   }
 
-  const result = await resolvePrintModule().printToFileAsync({
+  const result = await Print.printToFileAsync({
     html: buildPdfHtml(chat),
   });
-  return shareFile(result.uri, 'application/pdf', 'Export chat (.pdf)');
+  const uri = await copyPdfWithFilename(result.uri, `chat-${safeTitle}.pdf`);
+  return shareFile(uri, 'application/pdf', 'Export chat (.pdf)');
 }
 
 export async function ensureShareLink(chatId: string) {

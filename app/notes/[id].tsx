@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Check, ChevronLeft, ChevronUp, MessageCircle, Undo2, Redo2 } from 'lucide-react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import NativeCollabEditorHost from '../../components/notes/NativeCollabEditorHost';
@@ -11,6 +12,7 @@ import { useI18n } from '../../i18n/useI18n';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useNoteStore } from '../../store/useNoteStore';
 import { useResolvedTheme } from '../../utils/theme';
+import { useUIScale } from '../../hooks/useUIScale';
 
 const LAB_TOOLBAR_ACTIONS: NoteToolbarAction[] = ['h1', 'h2', 'h3', 'bullet', 'numbered', 'bold', 'italic', 'strike', 'code'];
 const TITLE_SAVE_DEBOUNCE_MS = 500;
@@ -42,6 +44,23 @@ export default function NoteDetailScreen() {
   const { themeMode } = useSettingsStore();
   const { colors } = useResolvedTheme(themeMode);
   const insets = useSafeAreaInsets();
+  const s8 = useUIScale(8);
+  const s12 = useUIScale(12);
+  const s13 = useUIScale(13);
+  const s14 = useUIScale(14);
+  const s16 = useUIScale(16);
+  const s18 = useUIScale(18);
+  const s22 = useUIScale(22);
+  const s24 = useUIScale(24);
+  const s32 = useUIScale(32);
+  const s36 = useUIScale(36);
+  const s38 = useUIScale(38);
+  const s44 = useUIScale(44);
+  const s48 = useUIScale(48);
+  const s64 = useUIScale(64);
+  const s72 = useUIScale(72);
+  const s148 = useUIScale(148);
+  const s180 = useUIScale(180);
   const note = useNoteStore((state) => state.notes.find((item) => item.id === id));
   const isLoading = useNoteStore((state) => state.isLoading);
   const fetchNotes = useNoteStore((state) => state.fetchNotes);
@@ -59,7 +78,7 @@ export default function NoteDetailScreen() {
   const [editorSeedHtml, setEditorSeedHtml] = useState(note?.contentHtml ?? '');
   const [pendingCommand, setPendingCommand] = useState<NoteToolbarAction | 'focus' | 'focus-end' | 'blur' | 'undo' | 'redo' | null>(null);
   const [isToolbarExpanded, setIsToolbarExpanded] = useState(false);
-  const [toolbarTop, setToolbarTop] = useState(180);
+  const [toolbarTop, setToolbarTop] = useState(s180);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [token, setToken] = useState<string | null>(null);
@@ -175,6 +194,7 @@ export default function NoteDetailScreen() {
   }, [contentText]);
 
   const characterCount = contentText.length;
+  const shouldShowKeyboardBar = keyboardVisible && keyboardHeight > 0;
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -291,14 +311,22 @@ export default function NoteDetailScreen() {
   if (!note) {
     return (
       <SafeAreaView style={[styles.screen, { backgroundColor: colors.bg }]}>
-        <View style={styles.missingWrap}>
-          <Text style={[styles.missingText, { color: colors.text }]}>{t('notesEmpty')}</Text>
-          {isLoading ? <Text style={{ color: colors.subtext, marginBottom: 16 }}>{t('connecting')}</Text> : null}
+        <View style={[styles.missingWrap, { paddingHorizontal: s24 }]}>
+          <Text style={[styles.missingText, { color: colors.text, fontSize: s16, marginBottom: s16 }]}>{t('notesEmpty')}</Text>
+          {isLoading ? <Text style={{ color: colors.subtext, marginBottom: s16, fontSize: s14 }}>{t('connecting')}</Text> : null}
           <Pressable
             onPress={() => router.replace('/notes')}
-            style={[styles.backToListButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+            style={[
+              styles.backToListButton,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                paddingHorizontal: s16,
+                paddingVertical: s12,
+              },
+            ]}
           >
-            <Text style={{ color: colors.text }}>{t('notes')}</Text>
+            <Text style={{ color: colors.text, fontSize: s14 }}>{t('notes')}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -307,52 +335,61 @@ export default function NoteDetailScreen() {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.bg }]}>
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[styles.container, { paddingHorizontal: s18 }]}>
+        <View style={[styles.header, { paddingTop: s8, marginBottom: s18 }]}>
           <Pressable
             onPress={() => router.back()}
-            style={[styles.iconButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+            style={[
+              styles.iconButton,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                width: s44,
+                height: s44,
+                borderRadius: s22,
+              },
+            ]}
           >
-            <ChevronLeft size={22} color={colors.text} strokeWidth={2.4} />
+            <ChevronLeft size={s22} color={colors.text} strokeWidth={2.4} />
           </Pressable>
 
-          <View style={styles.headerActions}>
+          <View style={[styles.headerActions, { gap: s12 }]}>
             <Pressable
               onPress={() => setPendingCommand('undo')}
-              style={styles.headerActionButton}
+              style={[styles.headerActionButton, { width: s24, height: s24 }]}
               hitSlop={8}
             >
-              <Undo2 size={18} color={colors.subtext} strokeWidth={2.2} />
+              <Undo2 size={s18} color={colors.subtext} strokeWidth={2.2} />
             </Pressable>
 
             <Pressable
               onPress={() => setPendingCommand('redo')}
-              style={styles.headerActionButton}
+              style={[styles.headerActionButton, { width: s24, height: s24 }]}
               hitSlop={8}
             >
-              <Redo2 size={18} color={colors.subtext} strokeWidth={2.2} />
+              <Redo2 size={s18} color={colors.subtext} strokeWidth={2.2} />
             </Pressable>
 
             <Pressable
               onPress={() => setIsChatVisible(true)}
-              style={styles.headerActionButton}
+              style={[styles.headerActionButton, { width: s24, height: s24 }]}
               hitSlop={8}
             >
-              <MessageCircle size={18} color={colors.subtext} strokeWidth={2.2} />
+              <MessageCircle size={s18} color={colors.subtext} strokeWidth={2.2} />
             </Pressable>
           </View>
         </View>
 
         {editorErrorMessage ? (
-          <View style={[styles.noticeCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.noticeText, { color: colors.subtext }]}>{editorErrorMessage}</Text>
+          <View style={[styles.noticeCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: s18, paddingHorizontal: s14, paddingVertical: s12, marginBottom: s14 }]}>
+            <Text style={[styles.noticeText, { color: colors.subtext, fontSize: s13, lineHeight: s18 }]}>{editorErrorMessage}</Text>
           </View>
         ) : null}
 
         <View
           onLayout={(event) => {
             const { y, height } = event.nativeEvent.layout;
-            setToolbarTop(Math.max(148, y + height - 12));
+            setToolbarTop(Math.max(s148, y + height - s12));
           }}
         >
           <TextInput
@@ -368,41 +405,41 @@ export default function NoteDetailScreen() {
             }}
             placeholder={t('notesUntitled')}
             placeholderTextColor={colors.subtext}
-            style={[styles.titleInput, { color: colors.text }]}
+            style={[styles.titleInput, { color: colors.text, fontSize: s38, marginBottom: s8 }]}
           />
 
-          <Text style={[styles.meta, { color: colors.subtext }]}>
+          <Text style={[styles.meta, { color: colors.subtext, fontSize: s14, marginBottom: s18 }]}>
             {formatUpdatedLabel(note.updatedAt, i18n.language)}   {t('notesPrivate')}   {wordCount} {t('notesWords')}   {characterCount} {t('notesCharacters')}
           </Text>
         </View>
 
         {Platform.OS === 'web' ? (
-          <View style={[styles.noticeCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.noticeText, { color: colors.subtext }]}>
+          <View style={[styles.noticeCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: s18, paddingHorizontal: s14, paddingVertical: s12, marginBottom: s14 }]}>
+            <Text style={[styles.noticeText, { color: colors.subtext, fontSize: s13, lineHeight: s18 }]}>
               Native collaborative note editing is currently available in the mobile app only.
             </Text>
           </View>
         ) : !isDetailHydrated ? (
-          <View style={[styles.noticeCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.noticeText, { color: colors.subtext }]}>
+          <View style={[styles.noticeCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: s18, paddingHorizontal: s14, paddingVertical: s12, marginBottom: s14 }]}>
+            <Text style={[styles.noticeText, { color: colors.subtext, fontSize: s13, lineHeight: s18 }]}>
               Preparing note content...
             </Text>
           </View>
         ) : !isTokenResolved ? (
-          <View style={[styles.noticeCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.noticeText, { color: colors.subtext }]}>
+          <View style={[styles.noticeCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: s18, paddingHorizontal: s14, paddingVertical: s12, marginBottom: s14 }]}>
+            <Text style={[styles.noticeText, { color: colors.subtext, fontSize: s13, lineHeight: s18 }]}>
               Preparing collaborative editor...
             </Text>
           </View>
         ) : !token ? (
-          <View style={[styles.noticeCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.noticeText, { color: colors.subtext }]}>
+          <View style={[styles.noticeCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: s18, paddingHorizontal: s14, paddingVertical: s12, marginBottom: s14 }]}>
+            <Text style={[styles.noticeText, { color: colors.subtext, fontSize: s13, lineHeight: s18 }]}>
               Unable to load your session token. Collaborative note sync is temporarily unavailable.
             </Text>
           </View>
         ) : (
           <>
-            <View style={styles.labEditorWrap}>
+            <View style={[styles.labEditorWrap, { marginTop: s14, paddingBottom: s12 }]}>
               <NativeCollabEditorHost
                 noteId={note.id}
                 initialHtml={contentHtml || editorSeedHtml}
@@ -431,28 +468,60 @@ export default function NoteDetailScreen() {
             <View pointerEvents="box-none" style={[styles.floatingToolbarLayer, { top: toolbarTop }]}>
               {isToolbarExpanded ? (
                 <View style={styles.floatingToolbarWrap}>
-                  <View style={[styles.floatingToolbarCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View
+                    style={[
+                      styles.floatingToolbarCard,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        borderRadius: s22,
+                        paddingHorizontal: s8,
+                        paddingVertical: s8,
+                      },
+                    ]}
+                  >
                     <NoteToolbar colors={colors} onAction={applyAction} actions={LAB_TOOLBAR_ACTIONS} />
                   </View>
 
                   <Pressable
                     onPress={() => setIsToolbarExpanded(false)}
-                    style={[styles.toolbarDockExpanded, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    style={[
+                      styles.toolbarDockExpanded,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        width: s36,
+                        height: s64,
+                        marginLeft: s8,
+                        borderTopLeftRadius: s18,
+                        borderBottomLeftRadius: s18,
+                      },
+                    ]}
                   >
-                    <Text style={[styles.toolbarDockText, { color: colors.text }]}>...</Text>
+                    <Text style={[styles.toolbarDockText, { color: colors.text, fontSize: s24, lineHeight: s24 }]}>...</Text>
                   </Pressable>
                 </View>
               ) : (
                 <Pressable
                   onPress={() => setIsToolbarExpanded(true)}
-                  style={[styles.toolbarDockCollapsed, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  style={[
+                    styles.toolbarDockCollapsed,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      width: s36,
+                      height: s72,
+                      borderTopLeftRadius: s18,
+                      borderBottomLeftRadius: s18,
+                    },
+                  ]}
                 >
-                  <Text style={[styles.toolbarDockText, { color: colors.text }]}>...</Text>
+                  <MaterialIcons name="format-size" size={s24} color={colors.text} />
                 </Pressable>
               )}
             </View>
 
-            {keyboardVisible ? (
+            {shouldShowKeyboardBar ? (
               <View
                 style={[
                   styles.keyboardBar,
@@ -460,17 +529,22 @@ export default function NoteDetailScreen() {
                     backgroundColor: colors.bg,
                     borderColor: colors.border,
                     bottom: Platform.OS === 'ios' ? Math.max(keyboardHeight - insets.bottom, 0) : 0,
+                    left: s18,
+                    right: s18,
+                    minHeight: s48,
+                    borderRadius: s24,
+                    paddingHorizontal: s18,
                   },
                 ]}
               >
-                <View style={styles.keyboardBarLeft}>
-                  <Pressable onPress={handleJumpToTitle} style={styles.keyboardBarButton}>
-                    <ChevronUp size={22} color={colors.text} />
+                <View style={[styles.keyboardBarLeft, { gap: s8 }]}>
+                  <Pressable onPress={handleJumpToTitle} style={[styles.keyboardBarButton, { width: s32, height: s32 }]}>
+                    <ChevronUp size={s22} color={colors.text} />
                   </Pressable>
                 </View>
 
-                <Pressable onPress={handleDismissKeyboard} style={styles.keyboardBarButton}>
-                  <Check size={24} color={colors.text} strokeWidth={2.4} />
+                <Pressable onPress={handleDismissKeyboard} style={[styles.keyboardBarButton, { width: s32, height: s32 }]}>
+                  <Check size={s24} color={colors.text} strokeWidth={2.4} />
                 </Pressable>
               </View>
             ) : null}

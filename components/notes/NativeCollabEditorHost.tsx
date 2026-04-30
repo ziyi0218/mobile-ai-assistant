@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { useUIScale } from '../../hooks/useUIScale';
 import type { NoteToolbarAction } from './NoteToolbar';
 import { NATIVE_COLLAB_RUNTIME } from './generated/nativeCollabRuntime.generated';
 
@@ -46,10 +47,13 @@ function buildStandaloneDocument({
   userId,
   userName,
   colors,
+  editorFontSize,
 }: Pick<
   NativeCollabEditorHostProps,
   'noteId' | 'initialHtml' | 'token' | 'userId' | 'userName' | 'colors'
->) {
+> & {
+  editorFontSize: number;
+}) {
   const webBaseUrl = getWebBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL);
   const runtimeConfig = JSON.stringify({
     noteId,
@@ -105,7 +109,7 @@ function buildStandaloneDocument({
       .bundled-lab-editor {
         min-height: ${MIN_EDITOR_HEIGHT - 36}px;
         outline: none;
-        font-size: 16px;
+        font-size: var(--note-editor-font-size, ${editorFontSize}px);
         line-height: 1.7;
         color: ${colors.text};
         word-break: break-word;
@@ -182,6 +186,8 @@ export default function NativeCollabEditorHost({
   onFocusChange,
   onFatalError,
 }: NativeCollabEditorHostProps) {
+  const wrapRadius = useUIScale(12);
+  const editorFontSize = useUIScale(16);
   const webviewRef = useRef<WebView>(null);
   const bootConfig = useMemo(
     () => ({
@@ -191,6 +197,7 @@ export default function NativeCollabEditorHost({
       userId,
       userName,
       colors,
+      editorFontSize,
     }),
     [noteId, token, userId, userName]
   );
@@ -204,6 +211,7 @@ export default function NativeCollabEditorHost({
         userId: bootConfig.userId,
         userName: bootConfig.userName,
         colors: bootConfig.colors,
+        editorFontSize: bootConfig.editorFontSize,
     }),
     [bootConfig]
   );
@@ -220,8 +228,15 @@ export default function NativeCollabEditorHost({
     onCommandHandled?.();
   }, [onCommandHandled, pendingCommand]);
 
+  useEffect(() => {
+    webviewRef.current?.injectJavaScript(`
+      document.documentElement.style.setProperty('--note-editor-font-size', '${editorFontSize}px');
+      true;
+    `);
+  }, [editorFontSize]);
+
   return (
-    <View style={[styles.wrap, { backgroundColor: colors.bg }]}>
+    <View style={[styles.wrap, { backgroundColor: colors.bg, borderRadius: wrapRadius }]}>
       <WebView
         ref={webviewRef}
         key={`${noteId}:${token ?? 'no-token'}`}
@@ -263,7 +278,7 @@ export default function NativeCollabEditorHost({
         javaScriptEnabled
         domStorageEnabled
         hideKeyboardAccessoryView
-        keyboardDisplayRequiresUserAction={false}
+        keyboardDisplayRequiresUserAction={true}
         style={styles.webview}
       />
     </View>
@@ -273,7 +288,6 @@ export default function NativeCollabEditorHost({
 const styles = StyleSheet.create({
   wrap: {
     flex: 1,
-    borderRadius: 24,
     overflow: 'hidden',
   },
   webview: {
