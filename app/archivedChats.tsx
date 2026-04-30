@@ -7,7 +7,6 @@ import {
   TextInput,
   ScrollView,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, Search, ArchiveRestore, Trash2 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as FileSystem from "expo-file-system/legacy";
@@ -77,7 +76,6 @@ export default function ArchivedChatsScreen() {
   const { colors } = useResolvedTheme(themeMode);
   const { t, i18n } = useI18n();
   const scaledTitleSize = useUIScale(22);
-  const scaledSectionLabelSize = useUIScale(16);
   const scaledGroupLabelSize = useUIScale(15);
   const scaledInputSize = useUIScale(15);
   const scaledDateSize = useUIScale(14);
@@ -218,7 +216,7 @@ export default function ArchivedChatsScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.bg }]}>
+    <View style={[styles.screen, { backgroundColor: colors.bg }]}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Pressable
@@ -266,10 +264,6 @@ export default function ArchivedChatsScreen() {
               style={[styles.searchInput, { color: colors.text, fontSize: scaledInputSize }]}
             />
           </View>
-
-          <Text style={[styles.sectionLabel, { color: colors.text, fontSize: scaledSectionLabelSize }]}>
-            {t("title")}
-          </Text>
 
           <ScrollView
             style={styles.list}
@@ -423,7 +417,7 @@ export default function ArchivedChatsScreen() {
         colors={colors}
         danger
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -434,7 +428,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
-    marginTop: 20,
+    marginTop: 60,
   },
   header: {
     alignItems: "flex-start",
@@ -496,11 +490,6 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 10,
     fontSize: 15,
-  },
-  sectionLabel: {
-    marginTop: 18,
-    fontSize: 16,
-    fontWeight: "500",
   },
   list: {
     flex: 1,
@@ -569,5 +558,6 @@ const styles = StyleSheet.create({
   secondaryActionText: {
     fontSize: 16,
     fontWeight: "500",
+    textAlign: "center",
   },
 });

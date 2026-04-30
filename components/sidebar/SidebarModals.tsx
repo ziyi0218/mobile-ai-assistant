@@ -18,6 +18,7 @@ import {
   type SidebarThemeColors,
   type SidebarUi,
 } from './SidebarUtils';
+import { useUIScale } from '../../hooks/useUIScale';
 
 export function SidebarPromptModal({
   state,
@@ -34,6 +35,9 @@ export function SidebarPromptModal({
 }) {
   const [value, setValue] = useState(state.value);
   const [saving, setSaving] = useState(false);
+  const scaled14 = useUIScale(14);
+  const scaled15 = useUIScale(15);
+  const scaled17 = useUIScale(17);
 
   useEffect(() => {
     setValue(state.value);
@@ -44,7 +48,7 @@ export function SidebarPromptModal({
       <View style={[styles.overlay, { backgroundColor: ui.overlay }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={[styles.dialog, { backgroundColor: ui.dialogBg, borderColor: colors.border }]}>
-          <Text style={[styles.dialogTitle, { color: colors.text }]}>{state.title}</Text>
+          <Text style={[styles.dialogTitle, { color: colors.text, fontSize: scaled17 }]}>{state.title}</Text>
           <TextInput
             value={value}
             onChangeText={setValue}
@@ -52,13 +56,20 @@ export function SidebarPromptModal({
             placeholderTextColor={colors.subtext}
             style={[
               styles.dialogInput,
-              { color: colors.text, backgroundColor: ui.dialogInputBg, borderColor: colors.border },
+              {
+                color: colors.text,
+                backgroundColor: ui.dialogInputBg,
+                borderColor: colors.border,
+                fontSize: scaled15,
+              },
             ]}
             autoFocus
           />
           <View style={styles.dialogActions}>
             <TouchableOpacity onPress={onClose} style={styles.dialogGhostButton} activeOpacity={0.7}>
-              <Text style={[styles.dialogGhostText, { color: colors.subtext }]}>{cancelLabel}</Text>
+              <Text style={[styles.dialogGhostText, { color: colors.subtext, fontSize: scaled14 }]}>
+                {cancelLabel}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -79,7 +90,9 @@ export function SidebarPromptModal({
                 }
               }}
             >
-              <Text style={styles.dialogPrimaryText}>{saving ? '...' : state.confirmLabel}</Text>
+              <Text style={[styles.dialogPrimaryText, { color: colors.bg, fontSize: scaled14 }]}>
+                {saving ? '...' : state.confirmLabel}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -103,12 +116,15 @@ export function SidebarActionSheet({
   colors: SidebarThemeColors;
   ui: SidebarUi;
 }) {
+  const scaled15 = useUIScale(15);
+  const scaled16 = useUIScale(16);
+
   return (
     <Modal transparent visible={visible} animationType="none">
       <View style={[styles.overlay, { backgroundColor: ui.overlay }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={[styles.sheet, { backgroundColor: ui.dialogBg, borderColor: colors.border }]}>
-          {!!title && <Text style={[styles.sheetTitle, { color: colors.text }]}>{title}</Text>}
+          {!!title && <Text style={[styles.sheetTitle, { color: colors.text, fontSize: scaled16 }]}>{title}</Text>}
           {actions.map((action) => (
             <TouchableOpacity
               key={action.key}
@@ -128,8 +144,7 @@ export function SidebarActionSheet({
                 <Text
                   style={[
                     styles.sheetItemText,
-                    { color: action.danger ? ui.danger : colors.text },
-                    action.danger && styles.sheetItemDanger,
+                    { color: action.danger ? ui.danger : colors.text, fontSize: scaled15 },
                   ]}
                 >
                   {action.label}
@@ -162,12 +177,16 @@ export function SidebarFolderPickerModal({
   title: string;
   nullOptionLabel?: string;
 }) {
+  const scaled15 = useUIScale(15);
+  const scaled16 = useUIScale(16);
+  const scaled18 = useUIScale(18);
+
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
       <View style={[styles.overlay, { backgroundColor: ui.overlay }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={[styles.sheet, { maxHeight: 480, backgroundColor: ui.dialogBg, borderColor: colors.border }]}>
-          <Text style={[styles.sheetTitle, { color: colors.text }]}>{title}</Text>
+          <Text style={[styles.sheetTitle, { color: colors.text, fontSize: scaled16 }]}>{title}</Text>
 
           <ScrollView showsVerticalScrollIndicator={false}>
             {nullOptionLabel ? (
@@ -179,8 +198,10 @@ export function SidebarFolderPickerModal({
                 }}
               >
                 <View style={styles.sheetItemLeft}>
-                  <FolderClosed size={18} color={ui.folderAccent} />
-                  <Text style={[styles.sheetItemText, { color: colors.text }]}>{nullOptionLabel}</Text>
+                  <FolderClosed size={scaled18} color={ui.folderAccent} />
+                  <Text style={[styles.sheetItemText, { color: colors.text, fontSize: scaled15 }]}>
+                    {nullOptionLabel}
+                  </Text>
                 </View>
               </TouchableOpacity>
             ) : null}
@@ -195,8 +216,8 @@ export function SidebarFolderPickerModal({
                 }}
               >
                 <View style={styles.sheetItemLeft}>
-                  <FolderOpen size={18} color={ui.warning} />
-                  <Text style={[styles.sheetItemText, { color: colors.text }]}>{folder.name}</Text>
+                  <FolderOpen size={scaled18} color={ui.warning} />
+                  <Text style={[styles.sheetItemText, { color: colors.text, fontSize: scaled15 }]}>{folder.name}</Text>
                 </View>
               </TouchableOpacity>
             ))}

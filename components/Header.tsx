@@ -36,6 +36,7 @@ import { compteService } from '../services/compteService';
 import { useI18n } from '../i18n/useI18n';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useResolvedTheme } from '../utils/theme';
+import { useUIScale } from '../hooks/useUIScale';
 import { buildSidebarUi, type SidebarAction } from './sidebar/SidebarUtils';
 import { SidebarActionSheet } from './sidebar/SidebarModals';
 import {
@@ -110,8 +111,16 @@ export default function Header({
   const themeMode = useSettingsStore(state => state.themeMode);
   const { colors, resolved } = useResolvedTheme(themeMode);
   const ui = useMemo(() => buildSidebarUi(colors, resolved === 'dark'), [colors, resolved]);
-
-  const isDark = resolved === 'dark';
+  const scaled14 = useUIScale(14);
+  const scaled17 = useUIScale(17);
+  const scaled18 = useUIScale(18);
+  const scaled19 = useUIScale(19);
+  const scaled20 = useUIScale(20);
+  const scaled24 = useUIScale(24);
+  const scaled32 = useUIScale(32);
+  const scaled36 = useUIScale(36);
+  const scaledModelText = useUIScale(18);
+  const scaledAvatarRadius = useUIScale(18);
 
   const handleMenuAction = (action: () => void) => {
     setIsMoreMenuVisible(false);
@@ -222,19 +231,19 @@ export default function Header({
     {
       key: 'json',
       label: 'Download JSON',
-      icon: <FileJson size={18} color={colors.text} />,
+      icon: <FileJson size={scaled18} color={colors.text} />,
       onPress: () => handleExportChat('json'),
     },
     {
       key: 'txt',
       label: 'Download TXT',
-      icon: <FileText size={18} color={colors.text} />,
+      icon: <FileText size={scaled18} color={colors.text} />,
       onPress: () => handleExportChat('txt'),
     },
     {
       key: 'pdf',
       label: 'Download PDF',
-      icon: <FileType2 size={18} color={colors.text} />,
+      icon: <FileType2 size={scaled18} color={colors.text} />,
       onPress: () => handleExportChat('pdf'),
     },
   ];
@@ -243,13 +252,13 @@ export default function Header({
     {
       key: 'copy-link',
       label: 'Copy link',
-      icon: <Link2 size={18} color={colors.text} />,
+      icon: <Link2 size={scaled18} color={colors.text} />,
       onPress: handleCopyLink,
     },
     {
       key: 'open-community',
       label: 'Open WebUI community',
-      icon: <ExternalLink size={18} color={colors.text} />,
+      icon: <ExternalLink size={scaled18} color={colors.text} />,
       onPress: handleOpenCommunity,
     },
     ...(shareMenuState.hasShareLink
@@ -258,7 +267,7 @@ export default function Header({
             key: 'delete-link',
             label: 'Delete link',
             danger: true,
-            icon: <Link2Off size={18} color={ui.danger} />,
+            icon: <Link2Off size={scaled18} color={ui.danger} />,
             onPress: handleDeleteShare,
           },
         ]
@@ -334,8 +343,8 @@ export default function Header({
               activeOpacity={0.6}
               className="flex-row items-center py-3 px-[14px] rounded-[10px]"
             >
-              <Map color={colors.subtext} size={17} />
-              <Text className="ml-3 text-[14px] font-medium" style={{ color: colors.text }}>
+              <Map color={colors.subtext} size={scaled17} />
+              <Text className="ml-3 font-medium" style={{ color: colors.text, fontSize: scaled14 }}>
                 {overviewLabel}
               </Text>
             </TouchableOpacity>
@@ -349,8 +358,8 @@ export default function Header({
               activeOpacity={0.6}
               className="flex-row items-center py-3 px-[14px] rounded-[10px]"
             >
-              <Share2 color={colors.subtext} size={17} />
-              <Text className="ml-3 text-[14px] font-medium" style={{ color: colors.text }}>
+              <Share2 color={colors.subtext} size={scaled17} />
+              <Text className="ml-3 font-medium" style={{ color: colors.text, fontSize: scaled14 }}>
                 Share
               </Text>
             </TouchableOpacity>
@@ -364,8 +373,8 @@ export default function Header({
               activeOpacity={0.6}
               className="flex-row items-center py-3 px-[14px] rounded-[10px]"
             >
-              <Download color={colors.subtext} size={17} />
-              <Text className="ml-3 text-[14px] font-medium" style={{ color: colors.text }}>
+              <Download color={colors.subtext} size={scaled17} />
+              <Text className="ml-3 font-medium" style={{ color: colors.text, fontSize: scaled14 }}>
                 Download
               </Text>
             </TouchableOpacity>
@@ -375,8 +384,8 @@ export default function Header({
               activeOpacity={0.6}
               className="flex-row items-center py-3 px-[14px] rounded-[10px]"
             >
-              <CopyPlus color={colors.subtext} size={17} />
-              <Text className="ml-3 text-[14px] font-medium" style={{ color: colors.text }}>
+              <CopyPlus color={colors.subtext} size={scaled17} />
+              <Text className="ml-3 font-medium" style={{ color: colors.text, fontSize: scaled14 }}>
                 Copy
               </Text>
             </TouchableOpacity>
@@ -386,8 +395,8 @@ export default function Header({
               activeOpacity={0.6}
               className="flex-row items-center py-3 px-[14px] rounded-[10px]"
             >
-              <Trash2 color="#E53935" size={17} />
-              <Text className="ml-3 text-[14px] font-medium text-[#E53935]">
+              <Trash2 color={ui.danger} size={scaled17} />
+              <Text className="ml-3 font-medium" style={{ color: ui.danger, fontSize: scaled14 }}>
                 {t('deleteChat')}
               </Text>
             </TouchableOpacity>
@@ -423,7 +432,7 @@ export default function Header({
       <View className="flex-row items-center justify-between px-4 overflow-hidden">
         <View className="flex-1 flex-row items-center min-w-0 mr-3">
           <TouchableOpacity onPress={() => setIsSidebarVisible(true)}>
-            <Menu color={colors.text} size={24} />
+            <Menu color={colors.text} size={scaled24} />
           </TouchableOpacity>
 
           <View className="ml-4 flex-1 min-w-0">
@@ -432,10 +441,10 @@ export default function Header({
               activeOpacity={0.6}
               className="flex-row items-center"
             >
-              <Text className="text-[18px] font-bold" style={{ color: colors.text, flexShrink: 1 }} numberOfLines={1}>
+              <Text className="font-bold" style={{ color: colors.text, flexShrink: 1, fontSize: scaledModelText }} numberOfLines={1}>
                 {activeModels[currentIndex] || t('model')}
               </Text>
-              <ChevronDown color={colors.subtext} size={18} style={{ marginLeft: 4, flexShrink: 0 }} />
+              <ChevronDown color={colors.subtext} size={scaled18} style={{ marginLeft: 4, flexShrink: 0 }} />
             </TouchableOpacity>
           </View>
         </View>
@@ -446,21 +455,36 @@ export default function Header({
             disabled={activeModels.length >= 4}
             style={{ opacity: activeModels.length >= 4 ? 0.3 : 1 }}
           >
-            <Plus color={colors.text} size={24} />
+            <Plus color={colors.text} size={scaled24} />
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={startNewChat} activeOpacity={0.6} className="w-8 h-8 rounded-[10px] items-center justify-center">
-            <Edit3 color="#999" size={19} />
+          <TouchableOpacity
+            onPress={startNewChat}
+            activeOpacity={0.6}
+            className="rounded-[10px] items-center justify-center"
+            style={{ width: scaled32, height: scaled32 }}
+          >
+            <Edit3 color={colors.subtext} size={scaled19} />
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => setIsMoreMenuVisible(true)} activeOpacity={0.6} className="w-8 h-8 rounded-[10px] items-center justify-center">
-            <MoreVertical color="#999" size={19} />
+          <TouchableOpacity
+            onPress={() => setIsMoreMenuVisible(true)}
+            activeOpacity={0.6}
+            className="rounded-[10px] items-center justify-center"
+            style={{ width: scaled32, height: scaled32 }}
+          >
+            <MoreVertical color={colors.subtext} size={scaled19} />
           </TouchableOpacity>
 
           <Pressable
             onPress={() => router.push('/accountScreen')}
-            className="w-9 h-9 rounded-[18px] items-center justify-center overflow-hidden"
-            style={{ backgroundColor: isDark ? '#333' : '#E5E5E5' }}
+            className="items-center justify-center overflow-hidden"
+            style={{
+              width: scaled36,
+              height: scaled36,
+              borderRadius: scaledAvatarRadius,
+              backgroundColor: colors.border,
+            }}
           >
             {avatarUrl ? (
               <Image
@@ -469,7 +493,7 @@ export default function Header({
                 resizeMode="cover"
               />
             ) : (
-              <User color={colors.subtext} size={20} />
+              <User color={colors.subtext} size={scaled20} />
             )}
           </Pressable>
         </View>

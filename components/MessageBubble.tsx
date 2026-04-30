@@ -13,6 +13,7 @@ import { useSettingsStore } from '../store/useSettingsStore';
 import { useResolvedTheme } from '../utils/theme';
 import type { DownloadBlock } from '../utils/exportDetector';
 import { exportFile } from '../utils/fileExport';
+import { useUIScale } from '../hooks/useUIScale';
 
 //                                                              
 // Types
@@ -35,6 +36,7 @@ interface ContentBlock {
 }
 
 function parseContent(raw: string): ContentBlock[] {
+  const scaleFactor = useUIScale(1);
   const blocks: ContentBlock[] = [];
   const mathRegex = /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$(?!\$)(?:\\.|[^$\\])+\$)/g;
 
@@ -110,6 +112,7 @@ setTimeout(function() {
 
 const KaTeXBlock = React.memo(({ math, block, textColor }: { math: string; block: boolean; textColor: string }) => {
   const [height, setHeight] = useState(block ? 50 : 24);
+  const scaleFactor = useUIScale(1);
   const html = useMemo(() => buildKatexHtml(math, block, textColor), [math, block, textColor]);
 
   const onMessage = useCallback((e: any) => {
@@ -132,29 +135,31 @@ const KaTeXBlock = React.memo(({ math, block, textColor }: { math: string; block
   );
 });
 
-//                                                                
-const createMdStyles = (colors: any, isDark: boolean) => StyleSheet.create({
-  body: { color: colors.text, fontSize: 15, lineHeight: 22 },
-  heading1: { fontSize: 22, fontWeight: '700', color: colors.text, marginTop: 16, marginBottom: 8, lineHeight: 28 },
-  heading2: { fontSize: 19, fontWeight: '700', color: colors.text, marginTop: 14, marginBottom: 6, lineHeight: 26 },
-  heading3: { fontSize: 17, fontWeight: '600', color: colors.text, marginTop: 10, marginBottom: 4, lineHeight: 24 },
+//
+function createMdStyles(colors: any, isDark: boolean) {
+    const scaleFactor = useUIScale(1);
+    return StyleSheet.create({
+  body: { color: colors.text, fontSize: 15*scaleFactor, lineHeight: 22 },
+  heading1: { fontSize: 22*scaleFactor, fontWeight: '700', color: colors.text, marginTop: 16, marginBottom: 8, lineHeight: 28 },
+  heading2: { fontSize: 19*scaleFactor, fontWeight: '700', color: colors.text, marginTop: 14, marginBottom: 6, lineHeight: 26 },
+  heading3: { fontSize: 17*scaleFactor, fontWeight: '600', color: colors.text, marginTop: 10, marginBottom: 4, lineHeight: 24 },
   paragraph: { marginTop: 0, marginBottom: 8 },
   strong: { fontWeight: '700', color: colors.text },
   em: { fontStyle: 'italic', color: colors.text },
   code_block: {
     backgroundColor: isDark ? '#1A1A24' : '#1E1E2E', color: '#CDD6F4',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontSize: 13, lineHeight: 20, padding: 14, borderRadius: 10, marginVertical: 8,
+    fontSize: 13*scaleFactor, lineHeight: 20*scaleFactor, padding: 14, borderRadius: 10, marginVertical: 8,
   },
   fence: {
     backgroundColor: isDark ? '#1A1A24' : '#1E1E2E', color: '#CDD6F4',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontSize: 13, lineHeight: 20, padding: 14, borderRadius: 10, marginVertical: 8,
+    fontSize: 13*scaleFactor, lineHeight: 20*scaleFactor, padding: 14, borderRadius: 10, marginVertical: 8,
   },
   code_inline: {
     backgroundColor: isDark ? '#2B2B36' : '#F0F0F5', color: isDark ? '#FF79C6' : '#D63384',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontSize: 13, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+    fontSize: 13*scaleFactor, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
   },
   blockquote: {
     backgroundColor: isDark ? '#15151C' : '#F8F9FA', borderLeftWidth: 4, borderLeftColor: '#007AFF',
@@ -172,6 +177,7 @@ const createMdStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   hr: { backgroundColor: colors.border, height: 1, marginVertical: 12 },
   image: { borderRadius: 8, marginVertical: 6 },
 });
+}
 
 //
 // Code block with copy/download buttons
@@ -188,6 +194,7 @@ function CodeBlockWithActions({ content, language, downloadBlock, isDark, colors
   colors: Record<string, string>;
 }) {
   const [copied, setCopied] = useState(false);
+  const scaleFactor = useUIScale(1);
 
   const handleCopy = async () => {
     await Clipboard.setStringAsync(content);
@@ -202,12 +209,12 @@ function CodeBlockWithActions({ content, language, downloadBlock, isDark, colors
   const label = downloadBlock?.filename || language || 'code';
 
   return (
-    <View style={[cb.wrapper, { borderColor: colors.border }]}>
+    <View style={[cb().wrapper, { borderColor: colors.border }]}>
       {/* Header bar */}
-      <View style={[cb.header, { backgroundColor: isDark ? '#0D0D14' : '#E8E8ED' }]}>
-        <Text style={[cb.lang, { color: colors.subtext }]} numberOfLines={1}>{label}</Text>
-        <View style={cb.actions}>
-          <TouchableOpacity onPress={handleCopy} style={cb.btn} activeOpacity={0.6}>
+      <View style={[cb().header, { backgroundColor: isDark ? '#0D0D14' : '#E8E8ED' }]}>
+        <Text style={[cb().lang, { color: colors.subtext }]} numberOfLines={1}>{label}</Text>
+        <View style={cb().actions}>
+          <TouchableOpacity onPress={handleCopy} style={cb().btn} activeOpacity={0.6}>
             {copied
               ? <Check color="#34C759" size={16} />
               : <Copy color={colors.subtext} size={16} />
@@ -216,7 +223,7 @@ function CodeBlockWithActions({ content, language, downloadBlock, isDark, colors
           {hasDownload && (
             <TouchableOpacity
               onPress={() => exportFile(content, downloadBlock!.filename)}
-              style={cb.btn}
+              style={cb().btn}
               activeOpacity={0.6}
             >
               <Download color="#007AFF" size={16} />
@@ -227,22 +234,24 @@ function CodeBlockWithActions({ content, language, downloadBlock, isDark, colors
       {/* Code content — ScrollView for long blocks, plain View for short */}
       {needsScroll ? (
         <ScrollView
-          style={[cb.codeScroll, { backgroundColor: isDark ? '#1A1A24' : '#1E1E2E' }]}
+          style={[cb().codeScroll, { backgroundColor: isDark ? '#1A1A24' : '#1E1E2E' }]}
           showsVerticalScrollIndicator
           nestedScrollEnabled
         >
-          <Text style={cb.code} selectable>{content}</Text>
+          <Text style={cb().code} selectable>{content}</Text>
         </ScrollView>
       ) : (
-        <View style={[cb.codeWrap, { backgroundColor: isDark ? '#1A1A24' : '#1E1E2E' }]}>
-          <Text style={cb.code} selectable>{content}</Text>
+        <View style={[cb().codeWrap, { backgroundColor: isDark ? '#1A1A24' : '#1E1E2E' }]}>
+          <Text style={cb().code} selectable>{content}</Text>
         </View>
       )}
     </View>
   );
 }
 
-const cb = StyleSheet.create({
+function cb() {
+  const scaleFactor = useUIScale(1);
+  return StyleSheet.create({
   wrapper: {
     marginVertical: 8,
     borderRadius: 10,
@@ -257,7 +266,7 @@ const cb = StyleSheet.create({
     paddingVertical: 8,
   },
   lang: {
-    fontSize: 12,
+    fontSize: 12*scaleFactor,
     fontFamily: MONO_FONT,
     flex: 1,
   },
@@ -281,34 +290,37 @@ const cb = StyleSheet.create({
   code: {
     color: '#CDD6F4',
     fontFamily: MONO_FONT,
-    fontSize: 13,
+    fontSize: 13*scaleFactor,
     lineHeight: 20,
   },
 });
+}
 
 //
 // Main Component
 //
 function ImageGrid({ urls, single }: { urls: string[]; single?: boolean }) {
+  const scaleFactor = useUIScale(1);
   if (single || urls.length === 1) {
     return (
-      <Image source={{ uri: urls[0] }} style={s.singleImage} resizeMode="cover" />
+      <Image source={{ uri: urls[0] }} style={s().singleImage} resizeMode="cover" />
     );
   }
   return (
-    <View style={s.imageGrid}>
+    <View style={s().imageGrid}>
       {urls.map((url, i) => (
-        <Image key={i} source={{ uri: url }} style={s.multiImage} resizeMode="cover" />
+        <Image key={i} source={{ uri: url }} style={s().multiImage} resizeMode="cover" />
       ))}
     </View>
   );
 }
 
 function MessageBubble({ content, isUser, images, downloadBlocks }: MessageBubbleProps) {
+  const scaleFactor = useUIScale(1);
   const themeMode = useSettingsStore(state => state.themeMode);
   const { colors, resolved } = useResolvedTheme(themeMode);
   const isDark = resolved === 'dark';
-  const mdStyles = useMemo(() => createMdStyles(colors, isDark), [colors, isDark]);
+  const mdStyles = createMdStyles(colors, isDark);
 
   // Track which download block index we're rendering
   const blockIndexRef = React.useRef(0);
@@ -338,7 +350,7 @@ function MessageBubble({ content, isUser, images, downloadBlocks }: MessageBubbl
   }, [isUser, downloadBlocks, isDark, colors]);
 
   // Hooks must be called unconditionally before any early return
-  const blocks = useMemo(() => parseContent(content || ''), [content]);
+  const blocks = parseContent(content || '');
   const hasMath = blocks.some(b => b.type !== 'text');
   const hasImages = images && images.length > 0;
 
@@ -347,21 +359,21 @@ function MessageBubble({ content, isUser, images, downloadBlocks }: MessageBubbl
     return (
       <View>
         {hasImages && <ImageGrid urls={images} />}
-        {content ? <Text style={s.userText}>{content}</Text> : null}
+        {content ? <Text style={s().userText}>{content}</Text> : null}
       </View>
     );
   }
 
   if (!hasMath) {
     return (
-      <View style={s.aiContainer}>
+      <View style={s().aiContainer}>
         <Markdown style={mdStyles} rules={mdRules}>{content || ''}</Markdown>
       </View>
     );
   }
 
   return (
-    <View style={s.aiContainer}>
+    <View style={s().aiContainer}>
       {blocks.map((block, i) => {
         if (block.type === 'text') {
           const trimmed = block.value.trim();
@@ -383,8 +395,9 @@ function MessageBubble({ content, isUser, images, downloadBlocks }: MessageBubbl
 
 
 export default React.memo(MessageBubble);
-
-const s = StyleSheet.create({
+function s() {
+    const scaleFactor = useUIScale(1);
+    return StyleSheet.create({
   userText: { color: '#FFF', fontSize: 16, lineHeight: 22 },
   aiContainer: {
     width: '100%',
@@ -397,3 +410,4 @@ const s = StyleSheet.create({
   mathBlockWrap: { width: '100%', minHeight: 30, marginVertical: 6, borderRadius: 8 },
   mathInlineWrap: { minHeight: 20, marginVertical: 2 },
 });
+}

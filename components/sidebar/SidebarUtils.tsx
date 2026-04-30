@@ -3,10 +3,12 @@ import { StyleSheet } from 'react-native';
 import type { ChatFolder, ChatSummary } from '../../types/api';
 
 export type SidebarThemeColors = {
+  bg: string;
   text: string;
   subtext: string;
   border: string;
   card: string;
+  accent: string;
 };
 
 export type SidebarUi = {
@@ -73,22 +75,22 @@ export const emptyPromptState: PromptState = {
 export function buildSidebarUi(colors: SidebarThemeColors, isDark: boolean): SidebarUi {
   return {
     overlay: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.20)',
-    sidebarBg: isDark ? '#111111' : '#FBFBFB',
+    sidebarBg: colors.card,
     rowBg: 'transparent',
-    rowSelected: isDark ? '#242424' : '#E3E4E8',
+    rowSelected: colors.bg,
     rowSelectedBorder: 'transparent',
-    softBg: isDark ? '#1C1C1C' : '#F0F0F0',
-    iconBg: isDark ? '#1E1E1E' : '#EFEFEF',
-    iconSelectedBg: '#FFFFFF',
-    folderAccent: isDark ? '#C084FC' : '#8B5CF6',
-    warning: '#F59E0B',
-    primary: '#2F6FED',
+    softBg: colors.bg,
+    iconBg: colors.bg,
+    iconSelectedBg: colors.card,
+    folderAccent: colors.text,
+    warning: colors.accent,
+    primary: colors.accent,
     dialogBg: colors.card,
-    dialogInputBg: isDark ? '#1C1C24' : '#F6F6F6',
+    dialogInputBg: colors.bg,
     danger: '#F87171',
-    newChatBg: isDark ? '#FFFFFF' : '#111111',
-    newChatText: isDark ? '#111111' : '#FFFFFF',
-    separator: isDark ? '#262633' : '#EBEBEB',
+    newChatBg: colors.text,
+    newChatText: colors.bg,
+    separator: colors.border,
   };
 }
 
@@ -389,6 +391,17 @@ export const styles = StyleSheet.create({
     height: 1,
     marginVertical: 12,
   },
+  dashedSeparator: {
+    height: 1,
+    flexDirection: 'row',
+    gap: 8,
+    marginVertical: 12,
+    overflow: 'hidden',
+  },
+  dashedSeparatorSegment: {
+    width: 12,
+    height: 1,
+  },
   emptyText: {
     fontSize: 13,
     paddingVertical: 8,
@@ -409,8 +422,6 @@ export const styles = StyleSheet.create({
   pinnedToggle: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
@@ -496,7 +507,6 @@ export const styles = StyleSheet.create({
     opacity: 0.5,
   },
   dialogPrimaryText: {
-    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -528,8 +538,5 @@ export const styles = StyleSheet.create({
   sheetItemText: {
     fontSize: 15,
     fontWeight: '600',
-  },
-  sheetItemDanger: {
-    color: '#F87171',
   },
 });

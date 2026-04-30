@@ -49,6 +49,7 @@ import { TranslationKey } from '../../i18n';
 import { useI18n } from '../../i18n/useI18n';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useResolvedTheme } from '../../utils/theme';
+import { useUIScale } from '../../hooks/useUIScale';
 import {
   cloneChat,
   ensureShareLink,
@@ -90,6 +91,7 @@ export default function Sidebar({
   onClose: () => void;
   t?: (key: TranslationKey) => string;
 }) {
+  const scaleFactor = useUIScale(1);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const searchInputRef = useRef<TextInput>(null);
@@ -98,6 +100,26 @@ export default function Sidebar({
   const { i18n } = useI18n();
   const { colors, resolved } = useResolvedTheme(themeMode);
   const ui = useMemo(() => buildSidebarUi(colors, resolved === 'dark'), [colors, resolved]);
+  const scaled11 = useUIScale(11);
+  const scaled12 = useUIScale(12);
+  const scaled13 = useUIScale(13);
+  const scaled14 = useUIScale(14);
+  const scaled15 = useUIScale(15);
+  const scaled15_5 = useUIScale(15.5);
+  const scaled16 = useUIScale(16);
+  const scaled17 = useUIScale(17);
+  const scaled18 = useUIScale(18);
+  const scaled19 = useUIScale(19);
+  const scaled8 = useUIScale(8);
+  const scaled34 = useUIScale(34);
+  const scaled36 = useUIScale(36);
+  const scaled10 = useUIScale(10);
+  const scaled12Radius = useUIScale(12);
+  const [dashedSeparatorWidth, setDashedSeparatorWidth] = useState(0);
+  const dashedSeparatorCount = Math.max(
+    1,
+    Math.floor((dashedSeparatorWidth + scaled8) / (scaled12 + scaled8))
+  );
 
   const history = useChatStore((state) => state.history);
   const pinnedChats = useChatStore((state) => state.pinnedChats);
@@ -452,19 +474,19 @@ export default function Sidebar({
     {
       key: 'json',
       label: 'Download JSON',
-      icon: <FileJson size={18} color={colors.text} />,
+      icon: <FileJson size={scaled18} color={colors.text} />,
       onPress: () => setPendingExportFormat('json'),
     },
     {
       key: 'txt',
       label: 'Download TXT',
-      icon: <FileText size={18} color={colors.text} />,
+      icon: <FileText size={scaled18} color={colors.text} />,
       onPress: () => setPendingExportFormat('txt'),
     },
     {
       key: 'pdf',
       label: 'Download PDF',
-      icon: <FileType2 size={18} color={colors.text} />,
+      icon: <FileType2 size={scaled18} color={colors.text} />,
       onPress: () => setPendingExportFormat('pdf'),
     },
   ];
@@ -473,13 +495,13 @@ export default function Sidebar({
     {
       key: 'copy-link',
       label: 'Copy link',
-      icon: <Link2 size={18} color={colors.text} />,
+      icon: <Link2 size={scaled18} color={colors.text} />,
       onPress: handleCopyLink,
     },
     {
       key: 'open-community',
       label: 'Open WebUI community',
-      icon: <ExternalLink size={18} color={colors.text} />,
+      icon: <ExternalLink size={scaled18} color={colors.text} />,
       onPress: handleOpenCommunity,
     },
     ...(shareMenuState.hasShareLink
@@ -488,7 +510,7 @@ export default function Sidebar({
             key: 'delete-link',
             label: 'Delete link',
             danger: true,
-            icon: <Link2Off size={18} color={ui.danger} />,
+            icon: <Link2Off size={scaled18} color={ui.danger} />,
             onPress: handleDeleteShare,
           },
         ]
@@ -500,7 +522,7 @@ export default function Sidebar({
         {
           key: 'share',
           label: 'Share',
-          icon: <Share2 size={18} color={colors.text} />,
+          icon: <Share2 size={scaled18} color={colors.text} />,
           onPress: async () => {
             await handleOpenShareMenu();
           },
@@ -508,7 +530,7 @@ export default function Sidebar({
         {
           key: 'download',
           label: 'Download',
-          icon: <Download size={18} color={colors.text} />,
+          icon: <Download size={scaled18} color={colors.text} />,
           onPress: () => {
             setIsExportMenuVisible(true);
           },
@@ -516,7 +538,7 @@ export default function Sidebar({
         {
           key: 'rename',
           label: t('sidebarRename'),
-          icon: <SquarePen size={18} color={colors.text} />,
+          icon: <SquarePen size={scaled18} color={colors.text} />,
           onPress: () =>
             openPrompt({
               title: t('sidebarRenameChat'),
@@ -531,7 +553,11 @@ export default function Sidebar({
         {
           key: 'pin',
           label: chatMenu.chat.pinned ? t('sidebarUnpin') : t('sidebarPinToTop'),
-          icon: chatMenu.chat.pinned ? <PinOff size={18} color={colors.text} /> : <Pin size={18} color={ui.warning} />,
+          icon: chatMenu.chat.pinned ? (
+            <PinOff size={scaled18} color={colors.text} />
+          ) : (
+            <Pin size={scaled18} color={ui.warning} />
+          ),
           onPress: async () => {
             await togglePinChat(chatMenu.chat!.id);
           },
@@ -539,7 +565,7 @@ export default function Sidebar({
         {
           key: 'clone',
           label: 'Clone',
-          icon: <CopyPlus size={18} color={colors.text} />,
+          icon: <CopyPlus size={scaled18} color={colors.text} />,
           onPress: async () => {
             await handleCloneChat();
           },
@@ -547,7 +573,7 @@ export default function Sidebar({
         {
           key: 'move',
           label: t('sidebarMoveToFolder'),
-          icon: <FolderOpen size={18} color={ui.warning} />,
+          icon: <FolderOpen size={scaled18} color={ui.warning} />,
           onPress: () => setFolderPickerChat(chatMenu.chat),
         },
         ...(getEffectiveChatFolderId(chatMenu.chat)
@@ -555,7 +581,7 @@ export default function Sidebar({
               {
                 key: 'remove-from-folder',
                 label: t('sidebarRemoveFromFolder'),
-                icon: <FolderClosed size={18} color={colors.text} />,
+                icon: <FolderClosed size={scaled18} color={colors.text} />,
                 onPress: async () => {
                   await moveChatToFolder(chatMenu.chat!.id, null);
                   syncLocalChatFolderMove(chatMenu.chat!, null);
@@ -566,7 +592,7 @@ export default function Sidebar({
         {
           key: 'archive',
           label: t('sidebarArchive'),
-          icon: <Archive size={18} color={colors.text} />,
+          icon: <Archive size={scaled18} color={colors.text} />,
           onPress: async () => {
             await toggleArchiveChat(chatMenu.chat!.id);
           },
@@ -575,7 +601,7 @@ export default function Sidebar({
           key: 'delete',
           label: t('sidebarDelete'),
           danger: true,
-          icon: <Trash2 size={18} color={ui.danger} />,
+          icon: <Trash2 size={scaled18} color={ui.danger} />,
           onPress: async () => {
             await deleteChat(chatMenu.chat!.id);
           },
@@ -588,7 +614,7 @@ export default function Sidebar({
         {
           key: 'export',
           label: 'Export (.json)',
-          icon: <FileText size={18} color={colors.text} />,
+          icon: <FileText size={scaled18} color={colors.text} />,
           onPress: async () => {
             try {
               await exportFolderAsJson(folderMenu.folder!.id, folderMenu.folder!.name);
@@ -601,7 +627,7 @@ export default function Sidebar({
         {
           key: 'rename',
           label: t('sidebarRenameFolder'),
-          icon: <SquarePen size={18} color={colors.text} />,
+          icon: <SquarePen size={scaled18} color={colors.text} />,
           onPress: () =>
             openPrompt({
               title: t('sidebarRenameFolder'),
@@ -617,7 +643,7 @@ export default function Sidebar({
           key: 'delete',
           label: t('sidebarDeleteFolder'),
           danger: true,
-          icon: <Trash2 size={18} color={ui.danger} />,
+          icon: <Trash2 size={scaled18} color={ui.danger} />,
           onPress: async () => {
             await deleteFolder(folderMenu.folder!.id);
           },
@@ -676,21 +702,23 @@ export default function Sidebar({
             activeOpacity={0.85}
             style={[styles.newChatButton, { backgroundColor: ui.newChatBg, borderColor: 'transparent' }]}
           >
-            <SquarePen size={17} color={ui.newChatText} />
-            <Text style={[styles.newChatText, { color: ui.newChatText }]}>{t('newChatSidebar')}</Text>
+            <SquarePen size={scaled17} color={ui.newChatText} />
+            <Text style={[styles.newChatText, { color: ui.newChatText, fontSize: scaled15 }]}>
+              {t('newChatSidebar')}
+            </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.searchWrap}>
           <View style={[styles.searchBox, { backgroundColor: ui.softBg, borderColor: colors.border }]}>
-            <Search size={17} color={colors.subtext} />
+            <Search size={scaled17} color={colors.subtext} />
             <TextInput
               ref={searchInputRef}
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder={t('searchConversations')}
               placeholderTextColor={colors.subtext}
-              style={[styles.searchInput, { color: colors.text }]}
+              style={[styles.searchInput, { color: colors.text, fontSize: scaled14 }]}
               autoCapitalize="none"
             />
           </View>
@@ -712,10 +740,20 @@ export default function Sidebar({
               }, 220);
             }}
           >
-            <View style={[styles.notesIconShell, { backgroundColor: ui.iconBg }]}>
-              <FileText size={16} color={colors.subtext} />
+            <View
+              style={[
+                styles.notesIconShell,
+                {
+                  backgroundColor: ui.iconBg,
+                  width: scaled34,
+                  height: scaled34,
+                  borderRadius: scaled10,
+                },
+              ]}
+            >
+              <FileText size={scaled16} color={colors.subtext} />
             </View>
-            <Text style={[styles.notesText, { color: colors.text }]}>{t('notes')}</Text>
+            <Text style={[styles.notesText, { color: colors.text, fontSize: scaled15_5 }]}>{t('notes')}</Text>
           </TouchableOpacity>
 
           <View style={[styles.separator, { backgroundColor: ui.separator }]} />
@@ -727,11 +765,11 @@ export default function Sidebar({
               onPress={() => setFoldersSectionExpanded((prev) => !prev)}
             >
               {foldersSectionExpanded ? (
-                <ChevronDown size={14} color={colors.subtext} style={styles.sectionChevron} />
+                <ChevronDown size={scaled14} color={colors.subtext} style={styles.sectionChevron} />
               ) : (
-                <ChevronRight size={14} color={colors.subtext} style={styles.sectionChevron} />
+                <ChevronRight size={scaled14} color={colors.subtext} style={styles.sectionChevron} />
               )}
-              <Text style={[styles.sectionTitle, { color: colors.subtext }]}>{t('folders')}</Text>
+              <Text style={[styles.sectionTitle, { color: colors.subtext, fontSize: scaled12 }]}>{t('folders')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -749,8 +787,8 @@ export default function Sidebar({
                 })
               }
             >
-              <FolderPlus size={12} color={colors.subtext} />
-              <Text style={[styles.addFolderText, { color: colors.subtext }]}>{t('addFolder')}</Text>
+              <FolderPlus size={scaled12} color={colors.subtext} />
+              <Text style={[styles.addFolderText, { color: colors.subtext, fontSize: scaled11 }]}>{t('addFolder')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -798,7 +836,9 @@ export default function Sidebar({
                 </View>
               ))
             ) : (
-              <Text style={[styles.emptyText, { color: colors.subtext }]}>{t('sidebarNoFoldersYet')}</Text>
+              <Text style={[styles.emptyText, { color: colors.subtext, fontSize: scaled13 }]}>
+                {t('sidebarNoFoldersYet')}
+              </Text>
             )
           )}
 
@@ -807,27 +847,21 @@ export default function Sidebar({
           {visiblePinnedChats.length > 0 && (
             <View style={styles.pinnedSectionWrap}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: colors.subtext }]}>{t('recentChats')}</Text>
+                <Text style={[styles.sectionTitle, { color: colors.subtext, fontSize: scaled12 }]}>{t('recentChats')}</Text>
                 {loading && <ActivityIndicator size="small" color={colors.subtext} />}
               </View>
 
               <TouchableOpacity
                 activeOpacity={0.75}
-                style={[
-                  styles.pinnedToggle,
-                  {
-                    backgroundColor: ui.rowBg,
-                    borderColor: colors.border,
-                  },
-                ]}
+                style={styles.pinnedToggle}
                 onPress={() => setPinnedSectionExpanded((prev) => !prev)}
               >
                 {pinnedSectionExpanded ? (
-                  <ChevronDown size={14} color={colors.subtext} style={styles.sectionChevron} />
+                  <ChevronDown size={scaled14} color={colors.subtext} style={styles.sectionChevron} />
                 ) : (
-                  <ChevronRight size={14} color={colors.subtext} style={styles.sectionChevron} />
+                  <ChevronRight size={scaled14} color={colors.subtext} style={styles.sectionChevron} />
                 )}
-                <Text style={[styles.pinnedToggleText, { color: colors.text }]}>
+                <Text style={[styles.pinnedToggleText, { color: colors.text, fontSize: scaled14 }]}>
                   {t('sidebarPinned')}
                 </Text>
               </TouchableOpacity>
@@ -851,13 +885,26 @@ export default function Sidebar({
                 </View>
               )}
 
-              <View style={[styles.separator, { backgroundColor: ui.separator }]} />
+              <View
+                style={[styles.dashedSeparator, { gap: scaled8 }]}
+                onLayout={(event) => setDashedSeparatorWidth(event.nativeEvent.layout.width)}
+              >
+                {Array.from({ length: dashedSeparatorCount }).map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.dashedSeparatorSegment,
+                      { backgroundColor: ui.separator, width: scaled12 },
+                    ]}
+                  />
+                ))}
+              </View>
             </View>
           )}
 
           {!visiblePinnedChats.length && (
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
+              <Text style={[styles.sectionTitle, { color: colors.subtext, fontSize: scaled12 }]}>
                 {t('recentChats')}
               </Text>
               {loading && <ActivityIndicator size="small" color={colors.subtext} />}
@@ -868,7 +915,7 @@ export default function Sidebar({
             recentChatGroups.map((group) => (
               <View key={group.label}>
                 <View style={styles.groupHeader}>
-                  <Text style={[styles.groupTitle, { color: colors.subtext }]}>{group.label}</Text>
+                  <Text style={[styles.groupTitle, { color: colors.subtext, fontSize: scaled13 }]}>{group.label}</Text>
                 </View>
                 {group.items.map((chat) => (
                   <SidebarChatRow
@@ -887,29 +934,48 @@ export default function Sidebar({
               </View>
             ))
           ) : (
-            <Text style={[styles.emptyText, { color: colors.subtext }]}>
+            <Text style={[styles.emptyText, { color: colors.subtext, fontSize: scaled13 }]}>
               {query ? t('sidebarNoMatchingChats') : t('sidebarNoChatsYet')}
             </Text>
           )}
         </ScrollView>
 
         <View style={[styles.footer, { borderTopColor: ui.separator, backgroundColor: ui.sidebarBg }]}>
-          <View style={styles.profileRow}>
-            <View style={[styles.avatarShell, { backgroundColor: ui.iconBg }]}>
+          <TouchableOpacity
+            activeOpacity={0.75}
+            style={styles.profileRow}
+            onPress={() => {
+              onClose();
+              setTimeout(() => {
+                router.push('/compte');
+              }, 220);
+            }}
+          >
+            <View
+              style={[
+                styles.avatarShell,
+                {
+                  backgroundColor: ui.iconBg,
+                  width: scaled36,
+                  height: scaled36,
+                  borderRadius: scaled12Radius,
+                },
+              ]}
+            >
               {avatarUrl ? (
                 <Image source={{ uri: avatarUrl }} style={styles.avatarImage} resizeMode="cover" />
               ) : (
-                <User size={17} color={colors.subtext} />
+                <User size={scaled17} color={colors.subtext} />
               )}
             </View>
-            <Text style={[styles.profileName, { color: colors.text }]}>{displayName || 'User'}</Text>
-          </View>
+            <Text style={[styles.profileName, { color: colors.text, fontSize: scaled14 }]}>{displayName || 'User'}</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={handleOpenSettings}
             activeOpacity={0.6}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Settings size={19} color={colors.subtext} />
+            <Settings size={scaled19} color={colors.subtext} />
           </TouchableOpacity>
         </View>
         </Animated.View>

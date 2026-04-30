@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Ionicons,
   Feather,
-  Fontisto
+  Fontisto,
+  MaterialCommunityIcons
 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as FileSystem from "expo-file-system/legacy";
@@ -25,17 +25,20 @@ export default function DataControlsScreen() {
   const router = useRouter();
   const { themeMode } = useSettingsStore();
   const { colors } = useResolvedTheme(themeMode);
-  const { archiveAllChats, deleteAllChats, fetchHistory, fetchArchivedChats } = useChatStore();
+  const { archiveAllChats, unarchiveAllChats, deleteAllChats, fetchHistory, fetchArchivedChats } = useChatStore();
   const { t } = useI18n();
   const scaledTitleSize = useUIScale(22);
   const scaledLabelSize = useUIScale(16);
   const scaledBackButtonSize = useUIScale(40);
   const scaledBackIconSize = useUIScale(22);
   const scaledRowIconSize = useUIScale(22);
+  const scaledArchiveActionIconSize = useUIScale(24);
   const scaledFontistoIconSize = useUIScale(20);
+  const scaledIconWrapperSize = useUIScale(34);
+  const scaledIconGap = useUIScale(14);
   const scaledChevronSize = useUIScale(18);
   const { haptics } = useHaptics();
-  const [confirmMode, setConfirmMode] = useState<"archiveAll" | "deleteAll" | null>(null);
+  const [confirmMode, setConfirmMode] = useState<"archiveAll" | "unarchiveAll" | "deleteAll" | null>(null);
 
   const dataControlOptions = [
       {
@@ -65,13 +68,21 @@ export default function DataControlsScreen() {
       {
         id: "3",
         text: t("archiveAllChats"),
-        icon: "archive-outline",
-        lib: "Ionicons",
+        icon: "archive-arrow-down-outline",
+        lib: "MaterialCommunityIcons",
         route: null,
         danger: false,
       },
       {
         id: "4",
+        text: t("unarchiveAllArchivedChats"),
+        icon: "archive-arrow-up-outline",
+        lib: "MaterialCommunityIcons",
+        route: null,
+        danger: false,
+      },
+      {
+        id: "5",
         text: t("deleteAllChats"),
         icon: "trash-outline",
         lib: "Ionicons",
@@ -90,6 +101,8 @@ export default function DataControlsScreen() {
         return <Ionicons name={item.icon} size={scaledRowIconSize} color={iconColor} />;
       case "Fontisto":
         return <Fontisto name={item.icon} size={scaledFontistoIconSize} color={iconColor} />;
+      case "MaterialCommunityIcons":
+        return <MaterialCommunityIcons name={item.icon} size={scaledArchiveActionIconSize} color={iconColor} />;
       default:
         return null;
     }
@@ -100,6 +113,15 @@ export default function DataControlsScreen() {
       setConfirmMode(null);  
     } catch (error) {
       console.error("Error archiving all chats:", error);
+    }
+  };
+
+  const handleUnarchiveAll = async () => {
+    try {
+      await unarchiveAllChats();
+      setConfirmMode(null);
+    } catch (error) {
+      console.error("Error unarchiving all chats:", error);
     }
   };
 
@@ -172,7 +194,7 @@ export default function DataControlsScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.bg }]}>
+    <View style={[styles.screen, { backgroundColor: colors.bg }]}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Pressable
@@ -223,6 +245,11 @@ export default function DataControlsScreen() {
                 }
 
                 if (item.id === "4") {
+                  setConfirmMode("unarchiveAll");
+                  return;
+                }
+
+                if (item.id === "5") {
                   setConfirmMode("deleteAll");
                   return;
                 }
@@ -233,7 +260,18 @@ export default function DataControlsScreen() {
               }}
             >
               <View style={styles.left}>
-                <View style={styles.iconWrapper}>{renderIcon(item)}</View>
+                <View
+                  style={[
+                    styles.iconWrapper,
+                    {
+                      width: scaledIconWrapperSize,
+                      minWidth: scaledIconWrapperSize,
+                      marginRight: scaledIconGap,
+                    },
+                  ]}
+                >
+                  {renderIcon(item)}
+                </View>
                 <Text
                   minimumFontScale={0.8}
                   ellipsizeMode="tail"
@@ -261,9 +299,20 @@ export default function DataControlsScreen() {
         title={t("dataControls")}
         message={t("confirmArchiveAllChats")}
         cancelText={t("cancel")}
-        confirmText={t("archiveAllChats")}
+        confirmText={t("dataControlsConfirm")}
         onCancel={() => setConfirmMode(null)}
         onConfirm={handleArchiveAll}
+        colors={colors}
+      />
+
+      <SettingsConfirmModal
+        visible={confirmMode === "unarchiveAll"}
+        title={t("archivedChats")}
+        message={t("confirmUnarchiveAllArchivedChats")}
+        cancelText={t("cancel")}
+        confirmText={t("dataControlsConfirm")}
+        onCancel={() => setConfirmMode(null)}
+        onConfirm={handleUnarchiveAll}
         colors={colors}
       />
 
@@ -272,13 +321,13 @@ export default function DataControlsScreen() {
         title={t("dataControls")}
         message={t("confirmDeleteAllChats")}
         cancelText={t("cancel")}
-        confirmText={t("deleteAllChats")}
+        confirmText={t("dataControlsDelete")}
         onCancel={() => setConfirmMode(null)}
         onConfirm={handleDeleteAll}
         colors={colors}
         danger
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -289,7 +338,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
-    marginTop: 20,
+    marginTop: 60,
   },
   header: {
     alignItems: "flex-start",
@@ -335,6 +384,7 @@ const styles = StyleSheet.create({
     width: 28,
     marginRight: 14,
     alignItems: "center",
+    overflow: "visible",
   },
   label: {
     fontSize: 16,

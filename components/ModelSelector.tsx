@@ -9,6 +9,9 @@ import { View, Text, TouchableOpacity, Modal, TextInput, FlatList, TouchableWith
 import { Search, X } from 'lucide-react-native';
 import { chatService } from '../services/chatService';
 import { TranslationKey } from '../i18n';
+import { useSettingsStore } from '../store/useSettingsStore';
+import { useResolvedTheme } from '../utils/theme';
+import { useUIScale } from '../hooks/useUIScale';
 
 interface ModelInfo {
   id: string;
@@ -29,6 +32,11 @@ export default function ModelSelector({ visible, onClose, onSelect, mode = 'add'
   const [searchQuery, setSearchQuery] = useState('');
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [loading, setLoading] = useState(false);
+  const themeMode = useSettingsStore((state) => state.themeMode);
+  const { colors } = useResolvedTheme(themeMode);
+  const scaled13 = useUIScale(13);
+  const scaled15 = useUIScale(15);
+  const scaled18 = useUIScale(18);
 
   // Fetch des modèles depuis l'API quand le modal s'ouvre
   useEffect(() => {
@@ -69,29 +77,37 @@ export default function ModelSelector({ visible, onClose, onSelect, mode = 'add'
     <Modal visible={visible} transparent animationType="fade">
       <TouchableWithoutFeedback onPress={onClose}>
         <View className="flex-1 bg-black/10 items-center pt-24">
-          <View className="bg-white rounded-2xl w-[85%] shadow-xl overflow-hidden border border-gray-100">
+          <View
+            className="rounded-2xl w-[85%] shadow-xl overflow-hidden border"
+            style={{ backgroundColor: colors.card, borderColor: colors.border }}
+          >
 
             {/* Titre */}
             <View className="px-4 pt-4 pb-2">
-              <Text className="text-[15px] font-bold text-gray-800">
+              <Text className="font-bold" style={{ color: colors.text, fontSize: scaled15 }}>
                 {mode === 'switch' ? t('switchModel') : t('addModel')}
               </Text>
             </View>
 
             {/* Barre de recherche */}
             <View className="px-4 pb-3">
-              <View className="flex-row items-center bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
-                <Search color="#999" size={18} />
+              <View
+                className="flex-row items-center rounded-lg px-3 py-2 border"
+                style={{ backgroundColor: colors.bg, borderColor: colors.border }}
+              >
+                <Search color={colors.subtext} size={scaled18} />
                 <TextInput
                   placeholder={t('searchModel')}
-                  className="flex-1 ml-2 text-[15px]"
+                  placeholderTextColor={colors.subtext}
+                  className="flex-1 ml-2"
+                  style={{ color: colors.text, fontSize: scaled15 }}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   autoFocus
                 />
                 {searchQuery.length > 0 && (
                   <TouchableOpacity onPress={() => setSearchQuery('')}>
-                    <X color="#999" size={18} />
+                    <X color={colors.subtext} size={scaled18} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -100,8 +116,10 @@ export default function ModelSelector({ visible, onClose, onSelect, mode = 'add'
             {/* Liste des modèles */}
             {loading ? (
               <View className="py-8 items-center">
-                <ActivityIndicator size="small" color="#007AFF" />
-                <Text className="text-[13px] text-gray-400 mt-2">{t('loadingModels')}</Text>
+                <ActivityIndicator size="small" color={colors.accent} />
+                <Text className="mt-2" style={{ color: colors.subtext, fontSize: scaled13 }}>
+                  {t('loadingModels')}
+                </Text>
               </View>
             ) : (
               <FlatList
@@ -110,21 +128,26 @@ export default function ModelSelector({ visible, onClose, onSelect, mode = 'add'
                 className="max-h-72"
                 ListEmptyComponent={
                   <View className="py-8 items-center">
-                    <Text className="text-[13px] text-gray-400">{t('noModelFound')}</Text>
+                    <Text style={{ color: colors.subtext, fontSize: scaled13 }}>{t('noModelFound')}</Text>
                   </View>
                 }
                 renderItem={({ item }) => (
                   <TouchableOpacity
-                    className="flex-row items-center justify-between p-4 border-b border-gray-50 active:bg-gray-50"
+                    className="flex-row items-center justify-between p-4 border-b"
+                    style={{ borderBottomColor: colors.border }}
                     onPress={() => {
                       onSelect(item.name, item.vision);
                       onClose();
                       setSearchQuery('');
                     }}
                   >
-                    <Text className="text-[15px] text-gray-800 flex-1" numberOfLines={1}>{item.name}</Text>
+                    <Text className="flex-1" style={{ color: colors.text, fontSize: scaled15 }} numberOfLines={1}>
+                      {item.name}
+                    </Text>
                     {item.size ? (
-                      <Text className="text-[13px] text-gray-400 ml-2">{item.size}</Text>
+                      <Text className="ml-2" style={{ color: colors.subtext, fontSize: scaled13 }}>
+                        {item.size}
+                      </Text>
                     ) : null}
                   </TouchableOpacity>
                 )}

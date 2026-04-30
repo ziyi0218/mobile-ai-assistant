@@ -18,6 +18,7 @@ import { useSettingsStore } from '../store/useSettingsStore';
 import { useResolvedTheme } from '../utils/theme';
 import { useLocation } from '../hooks/useLocation';
 import useInterfaceSettingsStore from '../store/interfaceSettingsStore';
+import {useUIScale} from '../hooks/useUIScale'
 
 interface InputBarProps {
   t?: (key: TranslationKey) => string;
@@ -54,7 +55,7 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
   const { showActionSheetWithOptions } = useActionSheet();
   const location = useLocation();
   const enterSends = useInterfaceSettingsStore(state => state.optionsList['27'].value); //iface_enter_is_send
-
+  const scaleFactor = useUIScale(1);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -172,14 +173,14 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
   //     Expanded mode    
   if (isExpanded) {
     return (
-      <View style={[s.expandedContainer, { paddingBottom: keyboardHeight, backgroundColor: colors.bg }]}>
+      <View style={[s().expandedContainer, { paddingBottom: keyboardHeight, backgroundColor: colors.bg }]}>
         {attachments.length > 0 && <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />}
         <TextInput
           ref={expandedInputRef}
           placeholder={t('expandedPlaceholder')}
           placeholderTextColor={colors.subtext}
           multiline scrollEnabled
-          style={[s.expandedInput, { color: colors.text }]}
+          style={[s().expandedInput, { color: colors.text }]}
           value={inputText}
           onChangeText={setInputText}
           submitBehavior={enterSends?'submit':'newline'}
@@ -189,15 +190,15 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
                         }
                       }}
         />
-        <View style={[s.expandedActions, { borderTopColor: colors.border }]}>
-          <TouchableOpacity onPress={handleCollapse} style={[s.collapseBtn, { backgroundColor: colors.card }]}>
-            <ChevronDown color={colors.subtext} size={20} />
+        <View style={[s().expandedActions, { borderTopColor: colors.border }]}>
+          <TouchableOpacity onPress={handleCollapse} style={[s().collapseBtn, { backgroundColor: colors.card }]}>
+            <ChevronDown color={colors.subtext} size={20*scaleFactor} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleAction}
-            style={[s.sendBtnExpanded, (inputText.trim().length > 0 || attachments.length > 0) ? s.sendActive : isTyping ? s.sendStop : s.sendInactive]}
+            style={[s().sendBtnExpanded, (inputText.trim().length > 0 || attachments.length > 0) ? s().sendActive : isTyping ? s().sendStop : s().sendInactive]}
           >
-            {isTyping ? <Square color="#FFF" fill="#FFF" size={18} /> : <Send color={(inputText.trim().length > 0 || attachments.length > 0) ? "#fff" : "#999"} size={20} />}
+            {isTyping ? <Square color="#FFF" fill="#FFF" size={18*scaleFactor} /> : <Send color={(inputText.trim().length > 0 || attachments.length > 0) ? "#fff" : "#999"} size={20} />}
           </TouchableOpacity>
         </View>
       </View>
@@ -206,7 +207,7 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
 
   //     Normal mode    
   return (
-    <View style={[s.container, { paddingBottom: isKeyboardVisible ? 4 : 32, backgroundColor: colors.bg }]}>
+    <View style={[s().container, { paddingBottom: isKeyboardVisible ? 4*scaleFactor : 32*scaleFactor, backgroundColor: colors.bg }]}>
       <IntegrationsMenu
         visible={isIntegrationsVisible}
         onClose={() => setIsIntegrationsVisible(false)}
@@ -227,26 +228,28 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
         onSelect={handleSelectChat}
         onClose={() => setIsChatPickerVisible(false)}
         renderLabel={(item) => item.title || t('untitledConversation')}
-        icon={<MessageSquare color="#007AFF" size={18} />}
+        icon={<MessageSquare color="#007AFF" size={18*scaleFactor} />}
       />
 
       {attachments.length > 0 && <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />}
-      <View style={[s.inputRow, { backgroundColor: isDark ? '#1C1C23' : '#F7F7F7', borderColor: colors.border }]}>
-        <TouchableOpacity onPress={handlePlusPress} style={[s.plusBtn, { backgroundColor: isDark ? '#2C2C35' : '#E5E5E5' }]}>
-          <Plus color={colors.text} size={22} strokeWidth={2.5} />
+      <View style={[s().inputRow, { backgroundColor: isDark ? '#1C1C23' : '#F7F7F7', borderColor: colors.border }]}>
+        <TouchableOpacity onPress={handlePlusPress} style={[s().plusBtn, { backgroundColor: isDark ? '#2C2C35' : '#E5E5E5' }]}>
+          <Plus color={colors.text} size={22*scaleFactor} strokeWidth={2.5} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setIsIntegrationsVisible(true)}
-          style={[s.integBtn, (webSearchEnabled || codeInterpreterEnabled) && (isDark ? s.integActiveDark : s.integActive)]}
+          style={[s().integBtn, (webSearchEnabled || codeInterpreterEnabled) && (isDark ? s().integActiveDark : s().integActive)]}
         >
-          <LayoutGrid color={(webSearchEnabled || codeInterpreterEnabled) ? '#007AFF' : colors.subtext} size={20} />
+          <LayoutGrid color={(webSearchEnabled || codeInterpreterEnabled) ? '#007AFF' : colors.subtext} size={20*scaleFactor} />
         </TouchableOpacity>
         <TextInput
           ref={normalInputRef}
           placeholder={t('placeholder')}
+          ellipsizeMode='tail'
           placeholderTextColor={colors.subtext}
           multiline
-          style={[s.textInput, { color: colors.text }]}
+          numberOfLines={3}
+          style={[s().textInput, { color: colors.text }]}
           value={inputText}
           onChangeText={setInputText}
           submitBehavior={enterSends?'submit':'newline'}
@@ -258,16 +261,16 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
         />
         {isKeyboardVisible && (
           <TouchableOpacity onPress={handleExpand} style={{ padding: 4, marginBottom: 2, marginRight: 4 }}>
-            <ChevronUp color={colors.subtext} size={20} />
+            <ChevronUp color={colors.subtext} size={20*scaleFactor} />
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={[s.actionBtn, isTyping && s.stopBtn]} onPress={handleAction}>
+        <TouchableOpacity style={[s().actionBtn, isTyping && s().stopBtn]} onPress={handleAction}>
           {isTyping ? (
-            <Square color="#FFF" fill="#FFF" size={18} />
+            <Square color="#FFF" fill="#FFF" size={18*scaleFactor} />
           ) : (inputText.trim().length > 0 || attachments.length > 0) ? (
-            <Send color="#007AFF" size={22} />
+            <Send color="#007AFF" size={22*scaleFactor} />
           ) : (
-            <Mic color={colors.subtext} size={22} />
+            <Mic color={colors.subtext} size={22*scaleFactor} />
           )}
         </TouchableOpacity>
       </View>
@@ -279,14 +282,15 @@ function ListPickerModal({ visible, title, loading, items, emptyText, onSelect, 
   visible: boolean; title: string; loading: boolean; items: any[]; emptyText: string;
   onSelect: (item: any) => void; onClose: () => void; renderLabel: (item: any) => string; icon: React.ReactNode;
 }) {
+  const scaleFactor = useUIScale(1);
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}>
         <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '70%', paddingBottom: 34 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#111' }}>{title}</Text>
-            <TouchableOpacity onPress={onClose} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#F5F5F5', alignItems: 'center', justifyContent: 'center' }}>
-              <X color="#666" size={18} />
+            <Text style={{ fontSize: 18*scaleFactor, fontWeight: '700', color: '#111' }}>{title}</Text>
+            <TouchableOpacity onPress={onClose} style={{ width: 32*scaleFactor, height: 32*scaleFactor, borderRadius: 16, backgroundColor: '#F5F5F5', alignItems: 'center', justifyContent: 'center' }}>
+              <X color="#666" size={18*scaleFactor} />
             </TouchableOpacity>
           </View>
 
@@ -296,7 +300,7 @@ function ListPickerModal({ visible, title, loading, items, emptyText, onSelect, 
             </View>
           ) : items.length === 0 ? (
             <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-              <Text style={{ fontSize: 15, color: '#999' }}>{emptyText}</Text>
+              <Text style={{ fontSize: 15*scaleFactor, color: '#999' }}>{emptyText}</Text>
             </View>
           ) : (
             <FlatList
@@ -308,10 +312,10 @@ function ListPickerModal({ visible, title, loading, items, emptyText, onSelect, 
                   onPress={() => onSelect(item)}
                   style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' }}
                 >
-                  <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#F0F4FF', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                  <View style={{ width: 36*scaleFactor, height: 36*scaleFactor, borderRadius: 10, backgroundColor: '#F0F4FF', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
                     {icon}
                   </View>
-                  <Text style={{ flex: 1, fontSize: 15, color: '#333' }} numberOfLines={2}>{renderLabel(item)}</Text>
+                  <Text style={{ flex: 1, fontSize: 15*scaleFactor, color: '#333' }} numberOfLines={2}>{renderLabel(item)}</Text>
                 </TouchableOpacity>
               )}
             />
@@ -324,21 +328,22 @@ function ListPickerModal({ visible, title, loading, items, emptyText, onSelect, 
 
 //     Attachment Preview    
 function AttachmentPreview({ attachments, onRemove }: { attachments: Attachment[]; onRemove: (uri: string) => void }) {
+  const scaleFactor = useUIScale(1);
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8, paddingHorizontal: 4 }} contentContainerStyle={{ gap: 8 }}>
       {attachments.map((att, i) => (
         <View key={att.uri + i} style={{ position: 'relative' }}>
           {att.type === 'image' ? (
-            <View style={s.thumbWrap}>
-              <Image source={{ uri: att.uri }} style={s.thumbImg} resizeMode="cover" />
+            <View style={s().thumbWrap}>
+              <Image source={{ uri: att.uri }} style={s().thumbImg} resizeMode="cover" />
             </View>
           ) : (
-            <View style={s.filePreview}>
-              <Text style={s.fileName} numberOfLines={2}>{att.name}</Text>
+            <View style={s().filePreview}>
+              <Text style={s().fileName} numberOfLines={2}>{att.name}</Text>
             </View>
           )}
-          <TouchableOpacity onPress={() => onRemove(att.uri)} style={s.removeBtn}>
-            <X color="#FFF" size={10} />
+          <TouchableOpacity onPress={() => onRemove(att.uri)} style={s().removeBtn}>
+            <X color="#FFF" size={10*scaleFactor} />
           </TouchableOpacity>
         </View>
       ))}
@@ -346,7 +351,9 @@ function AttachmentPreview({ attachments, onRemove }: { attachments: Attachment[
   );
 }
 
-const s = StyleSheet.create({
+function s() {
+    const scaleFactor = useUIScale(1);
+    return StyleSheet.create({
   container: { paddingHorizontal: 16, paddingTop: 8 },
   inputRow: {
     flexDirection: 'row',
@@ -357,16 +364,16 @@ const s = StyleSheet.create({
     borderWidth: 1
   },
   plusBtn: {
-    width: 36,
-    height: 36,
+    width: 36*scaleFactor,
+    height: 36*scaleFactor,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 2
   },
   integBtn: {
-    width: 36,
-    height: 36,
+    width: 36*scaleFactor,
+    height: 36*scaleFactor,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
@@ -382,16 +389,16 @@ const s = StyleSheet.create({
   textInput: {
     flex: 1,
     marginHorizontal: 12,
-    fontSize: 16,
+    fontSize: 16*scaleFactor,
     paddingTop: 8,
     paddingBottom: 8,
-    minHeight: 36,
-    maxHeight: 80,
+    minHeight: 36*scaleFactor,
+    maxHeight: 80*scaleFactor,
     textAlignVertical: 'center' as any
   },
   actionBtn: {
-    width: 36,
-    height: 36,
+    width: 36*scaleFactor,
+    height: 36*scaleFactor,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
@@ -412,8 +419,8 @@ const s = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 56,
-    fontSize: 16,
-    lineHeight: 26,
+    fontSize: 16*scaleFactor,
+    lineHeight: 26*scaleFactor,
     textAlignVertical: 'top' as any
   },
   expandedActions: {
@@ -446,8 +453,8 @@ const s = StyleSheet.create({
     backgroundColor: '#E5E5E5'
   },
   thumbWrap: {
-    width: 64,
-    height: 64,
+    width: 64*scaleFactor,
+    height: 64*scaleFactor,
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
@@ -458,7 +465,7 @@ const s = StyleSheet.create({
     height: '100%'
   },
   filePreview: {
-    height: 64,
+    height: 64*scaleFactor,
     paddingHorizontal: 12,
     borderRadius: 12,
     backgroundColor: '#F0F0F0',
@@ -468,9 +475,9 @@ const s = StyleSheet.create({
     justifyContent: 'center'
   },
   fileName: {
-    fontSize: 11,
+    fontSize: 11*scaleFactor,
     color: '#666',
-    maxWidth: 80
+    maxWidth: 80*scaleFactor
   },
   removeBtn: {
     position: 'absolute',
@@ -484,3 +491,4 @@ const s = StyleSheet.create({
     justifyContent: 'center'
   },
 });
+}
