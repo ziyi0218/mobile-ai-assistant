@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { StyleSheet } from 'react-native';
+import type { TranslationKey } from '../../i18n';
 import type { ChatFolder, ChatSummary } from '../../types/api';
 
 export type SidebarThemeColors = {
@@ -184,7 +185,7 @@ function getLocale(language: string) {
 export function groupChatsByUpdatedAt(
   chats: ChatSummary[],
   language: string,
-  t: (key: string) => string
+  t: (key: TranslationKey) => string
 ) {
   const locale = getLocale(language);
   const monthFormatter = new Intl.DateTimeFormat(locale, {

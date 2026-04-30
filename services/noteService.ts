@@ -19,6 +19,8 @@ export type NoteSearchItem = {
   };
 };
 
+type NoteData = NonNullable<NoteSearchItem['data']>;
+
 export type NoteSearchResponse = {
   items: NoteSearchItem[];
   total: number;
@@ -39,9 +41,7 @@ export type NoteCreatePayload = {
 
 export type NoteUpdatePayload = {
   title: string;
-  data: {
-    files: unknown[];
-  };
+  data: NoteData;
   access_control: Record<string, unknown>;
 };
 
@@ -79,12 +79,22 @@ export const noteService = {
     return response.data;
   },
 
+  getNote: async (noteId: string): Promise<NoteSearchItem> => {
+    const response = await apiClient.get(`/notes/${noteId}`);
+    return response.data;
+  },
+
   updateNoteTitle: async (noteId: string, title: string): Promise<NoteSearchItem> => {
+    const current = await noteService.getNote(noteId);
+    const currentData = current.data;
+
+    if (!currentData?.content) {
+      throw new Error('Refusing to update note title without existing note content data.');
+    }
+
     const payload: NoteUpdatePayload = {
       title,
-      data: {
-        files: [],
-      },
+      data: currentData,
       access_control: {},
     };
 

@@ -7,6 +7,7 @@ import { useI18n } from '../../i18n/useI18n';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { type NoteItem, useNoteStore } from '../../store/useNoteStore';
 import { useResolvedTheme } from '../../utils/theme';
+import { useUIScale } from '../../hooks/useUIScale';
 import NoteListItem from '../../components/notes/NoteListItem';
 import { SidebarActionSheet } from '../../components/sidebar/SidebarModals';
 import { buildSidebarUi, type SidebarAction } from '../../components/sidebar/SidebarUtils';
@@ -75,6 +76,20 @@ export default function NotesScreen() {
   const { themeMode } = useSettingsStore();
   const { colors, resolved } = useResolvedTheme(themeMode);
   const ui = useMemo(() => buildSidebarUi(colors, resolved === 'dark'), [colors, resolved]);
+  const scaled4 = useUIScale(4);
+  const scaled8 = useUIScale(8);
+  const scaled10 = useUIScale(10);
+  const scaled12 = useUIScale(12);
+  const scaled14 = useUIScale(14);
+  const scaled15 = useUIScale(15);
+  const scaled16 = useUIScale(16);
+  const scaled18 = useUIScale(18);
+  const scaled20 = useUIScale(20);
+  const scaled22 = useUIScale(22);
+  const scaled28 = useUIScale(28);
+  const scaled40 = useUIScale(40);
+  const scaled44 = useUIScale(44);
+  const scaled52 = useUIScale(52);
   const notes = useNoteStore((state) => state.notes);
   const isLoading = useNoteStore((state) => state.isLoading);
   const total = useNoteStore((state) => state.total);
@@ -146,12 +161,12 @@ export default function NotesScreen() {
 
   const handleDeleteNote = (note: NoteItem) => {
     Alert.alert(
-      'Delete note?',
-      `This will delete ${note.title}.`,
+      t('notesDeleteTitle'),
+      t('notesDeleteMessage').replace('{{title}}', note.title),
       [
         { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Confirm',
+          text: t('confirm'),
           style: 'destructive',
           onPress: () => {
             void deleteNote(note.id);
@@ -164,23 +179,23 @@ export default function NotesScreen() {
   const noteActions: SidebarAction[] = [
     {
       key: 'download',
-      label: 'Download',
-      icon: <Download size={18} color={colors.text} />,
+      label: t('download'),
+      icon: <Download size={scaled18} color={colors.text} />,
       onPress: () => {
         setIsExportMenuVisible(true);
       },
     },
     {
       key: 'share',
-      label: 'Share',
-      icon: <Share2 size={18} color={colors.text} />,
+      label: t('share'),
+      icon: <Share2 size={scaled18} color={colors.text} />,
       onPress: () => {},
     },
     {
       key: 'delete',
       label: t('sidebarDelete'),
       danger: true,
-      icon: <Trash2 size={18} color={ui.danger} />,
+      icon: <Trash2 size={scaled18} color={ui.danger} />,
       onPress: () => {
         if (selectedNote) {
           handleDeleteNote(selectedNote);
@@ -192,75 +207,126 @@ export default function NotesScreen() {
   const exportActions: SidebarAction[] = [
     {
       key: 'txt',
-      label: 'Plain text (.txt)',
-      icon: <FileText size={18} color={colors.text} />,
+      label: t('notesExportTxt'),
+      icon: <FileText size={scaled18} color={colors.text} />,
       onPress: () => {},
     },
     {
       key: 'md',
-      label: 'Plain text (.md)',
-      icon: <FileCode2 size={18} color={colors.text} />,
+      label: t('notesExportMd'),
+      icon: <FileCode2 size={scaled18} color={colors.text} />,
       onPress: () => {},
     },
     {
       key: 'pdf',
-      label: 'PDF document (.pdf)',
-      icon: <FileType2 size={18} color={colors.text} />,
+      label: t('notesExportPdf'),
+      icon: <FileType2 size={scaled18} color={colors.text} />,
       onPress: () => {},
     },
   ];
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.bg }]}>
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[styles.container, { paddingHorizontal: scaled18 }]}>
+        <View style={[styles.header, { paddingTop: scaled8, marginBottom: scaled20 }]}>
           <Pressable
             onPress={() => router.back()}
-            style={[styles.iconButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+            style={[
+              styles.iconButton,
+              {
+                width: scaled44,
+                height: scaled44,
+                borderRadius: scaled22,
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
           >
-            <ChevronLeft size={22} color={colors.text} strokeWidth={2.4} />
+            <ChevronLeft size={scaled22} color={colors.text} strokeWidth={2.4} />
           </Pressable>
         </View>
 
-        <View style={styles.topRow}>
-          <View>
-            <Text style={[styles.eyebrow, { color: colors.subtext }]}>{t('notes')}</Text>
-            <Text style={[styles.title, { color: colors.text }]}>
-              {t('notes')} {total}
+        <View style={[styles.topRow, { marginBottom: scaled18 }]}>
+          <View style={styles.titleRow}>
+            <Text style={[styles.title, { color: colors.text, fontSize: scaled40 }]}>
+              {t('notes')}
+            </Text>
+            <Text style={[styles.count, { color: colors.subtext, fontSize: scaled28, marginLeft: scaled8 }]}>
+              {total}
             </Text>
           </View>
 
-          <Pressable onPress={() => { void handleCreate(); }} style={[styles.newButton, { backgroundColor: colors.text }]}>
-            <Plus size={16} color={colors.bg} />
-            <Text style={[styles.newButtonText, { color: colors.bg }]}>{t('notesNewNote')}</Text>
+          <Pressable
+            onPress={() => { void handleCreate(); }}
+            style={[
+              styles.newButton,
+              {
+                gap: scaled8,
+                paddingHorizontal: scaled16,
+                paddingVertical: scaled12,
+                backgroundColor: colors.text,
+              },
+            ]}
+          >
+            <Plus size={scaled16} color={colors.bg} />
+            <Text style={[styles.newButtonText, { color: colors.bg, fontSize: scaled15 }]}>{t('notesNewNote')}</Text>
           </Pressable>
         </View>
 
-        <View style={[styles.searchBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Search size={18} color={colors.subtext} />
+        <View
+          style={[
+            styles.searchBox,
+            {
+              height: scaled52,
+              borderRadius: scaled18,
+              paddingHorizontal: scaled14,
+              marginBottom: scaled16,
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Search size={scaled18} color={colors.subtext} />
           <TextInput
             value={search}
             onChangeText={setSearch}
             placeholder={t('notesSearchPlaceholder')}
             placeholderTextColor={colors.subtext}
-            style={[styles.searchInput, { color: colors.text }]}
+            style={[styles.searchInput, { color: colors.text, marginLeft: scaled10, fontSize: scaled16 }]}
           />
         </View>
 
         <ScrollView
-          style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border }]}
-          contentContainerStyle={styles.panelContent}
+          style={[styles.panel, { borderRadius: scaled28, backgroundColor: colors.card, borderColor: colors.border }]}
+          contentContainerStyle={{
+            paddingHorizontal: scaled16,
+            paddingVertical: scaled18,
+            paddingBottom: scaled28,
+          }}
           showsVerticalScrollIndicator={false}
         >
           {groups.length ? (
             groups.map((group) => (
-              <View key={group.label} style={styles.groupBlock}>
-                <Text style={[styles.groupLabel, { color: colors.subtext }]}>{group.label}</Text>
+              <View key={group.label} style={[styles.groupBlock, { marginBottom: scaled16 }]}>
+                <Text
+                  style={[
+                    styles.groupLabel,
+                    {
+                      color: colors.subtext,
+                      fontSize: scaled15,
+                      marginBottom: scaled12,
+                      paddingHorizontal: scaled4,
+                    },
+                  ]}
+                >
+                  {group.label}
+                </Text>
                 {group.items.map((note) => (
                   <NoteListItem
                     key={note.id}
                     note={note}
                     relativeLabel={formatRelativeTime(ensureTimestamp(note.updatedAt), i18n.language)}
+                    byLabel={t('notesBy')}
                     colors={colors}
                     onPress={() => router.push(`/notes/${note.id}`)}
                     onOpenMenu={() => {
@@ -273,7 +339,7 @@ export default function NotesScreen() {
             ))
           ) : (
             <View style={styles.emptyState}>
-              <Text style={[styles.emptyText, { color: colors.subtext }]}>
+              <Text style={[styles.emptyText, { color: colors.subtext, fontSize: scaled15 }]}>
                 {isLoading ? t('connecting') : t('notesEmpty')}
               </Text>
             </View>
@@ -308,11 +374,8 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: 18,
   },
   header: {
-    paddingTop: 8,
-    marginBottom: 20,
   },
   iconButton: {
     width: 44,
@@ -326,60 +389,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 18,
   },
-  eyebrow: {
-    fontSize: 16,
-    marginBottom: 8,
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    minWidth: 0,
+    flexShrink: 1,
   },
   title: {
-    fontSize: 40,
+    fontWeight: '700',
+  },
+  count: {
     fontWeight: '700',
   },
   newButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     borderRadius: 999,
+    flexShrink: 0,
   },
   newButtonText: {
-    fontSize: 15,
     fontWeight: '700',
   },
   searchBox: {
-    height: 52,
-    borderRadius: 18,
     borderWidth: 1,
-    paddingHorizontal: 14,
-    marginBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
   },
   searchInput: {
     flex: 1,
-    marginLeft: 10,
-    fontSize: 16,
   },
   panel: {
     flex: 1,
-    borderRadius: 28,
     borderWidth: 1,
   },
-  panelContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 18,
-    paddingBottom: 28,
-  },
   groupBlock: {
-    marginBottom: 16,
   },
   groupLabel: {
-    fontSize: 15,
     fontWeight: '600',
-    marginBottom: 12,
-    paddingHorizontal: 4,
   },
   emptyState: {
     minHeight: 260,
@@ -387,6 +434,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyText: {
-    fontSize: 15,
   },
 });

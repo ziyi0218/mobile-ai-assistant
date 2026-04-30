@@ -45,6 +45,7 @@ export default function NoteDetailScreen() {
   const note = useNoteStore((state) => state.notes.find((item) => item.id === id));
   const isLoading = useNoteStore((state) => state.isLoading);
   const fetchNotes = useNoteStore((state) => state.fetchNotes);
+  const fetchNoteById = useNoteStore((state) => state.fetchNoteById);
   const updateNoteLocal = useNoteStore((state) => state.updateNoteLocal);
   const updateNoteTitle = useNoteStore((state) => state.updateNoteTitle);
   const titleInputRef = useRef<TextInput>(null);
@@ -66,6 +67,7 @@ export default function NoteDetailScreen() {
   const [isChatVisible, setIsChatVisible] = useState(false);
   const [isTitleFocused, setIsTitleFocused] = useState(false);
   const [editorErrorMessage, setEditorErrorMessage] = useState<string | null>(null);
+  const [isDetailHydrated, setIsDetailHydrated] = useState(false);
 
   useEffect(() => {
     if (!note) return;
@@ -84,7 +86,37 @@ export default function NoteDetailScreen() {
     setIsToolbarExpanded(false);
     setIsTitleFocused(false);
     setEditorErrorMessage(null);
+    setIsDetailHydrated(false);
   }, [note?.id]);
+
+  useEffect(() => {
+    if (!note || isDetailHydrated) return;
+
+    setContentText(note.content);
+    setContentHtml(note.contentHtml ?? '');
+    setEditorSeedHtml(note.contentHtml ?? '');
+  }, [isDetailHydrated, note?.content, note?.contentHtml]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    let isActive = true;
+    setIsDetailHydrated(false);
+
+    fetchNoteById(id)
+      .catch((error) => {
+        console.error('Erreur hydrate note detail:', error);
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsDetailHydrated(true);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [fetchNoteById, id]);
 
   useEffect(() => {
     if (!note) return;
@@ -350,6 +382,12 @@ export default function NoteDetailScreen() {
               Native collaborative note editing is currently available in the mobile app only.
             </Text>
           </View>
+        ) : !isDetailHydrated ? (
+          <View style={[styles.noticeCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.noticeText, { color: colors.subtext }]}>
+              Preparing note content...
+            </Text>
+          </View>
         ) : !isTokenResolved ? (
           <View style={[styles.noticeCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.noticeText, { color: colors.subtext }]}>
@@ -370,7 +408,7 @@ export default function NoteDetailScreen() {
                 initialHtml={contentHtml || editorSeedHtml}
                 token={token}
                 userId={note.userId}
-                userName={note.author || 'Koumi'}
+                userName={note.author}
                 colors={colors}
                 pendingCommand={pendingCommand}
                 onCommandHandled={() => setPendingCommand(null)}

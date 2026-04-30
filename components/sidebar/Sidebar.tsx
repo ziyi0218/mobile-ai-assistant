@@ -329,9 +329,9 @@ export default function Sidebar({
   const requireActionChat = useCallback(() => {
     const chat = activeActionChat ?? chatMenu.chat;
     if (chat) return chat;
-    Alert.alert('Chat actions', 'Open a chat first.');
+    Alert.alert(t('chatActions'), t('overviewOpenChatFirst'));
     return null;
-  }, [activeActionChat, chatMenu.chat]);
+  }, [activeActionChat, chatMenu.chat, t]);
 
   const handleOpenShareMenu = useCallback(async () => {
     const chat = requireActionChat();
@@ -353,13 +353,13 @@ export default function Sidebar({
     try {
       const result = await ensureShareLink(chat.id);
       setShareMenuState({ visible: false, hasShareLink: true });
-      Alert.alert('Share chat', result.reused ? 'Link copied to clipboard.' : 'Share link created and copied.');
+      Alert.alert(t('shareChat'), result.reused ? t('shareLinkCopied') : t('shareLinkCreatedAndCopied'));
       await refreshSidebarData();
     } catch (error) {
       console.error('Error copying share link:', error);
-      Alert.alert('Share chat', 'Failed to copy the share link.');
+      Alert.alert(t('shareChat'), t('shareLinkCopyFailed'));
     }
-  }, [refreshSidebarData, requireActionChat]);
+  }, [refreshSidebarData, requireActionChat, t]);
 
   const handleDeleteShare = useCallback(async () => {
     const chat = requireActionChat();
@@ -368,13 +368,13 @@ export default function Sidebar({
     try {
       await removeShareLink(chat.id);
       setShareMenuState({ visible: false, hasShareLink: false });
-      Alert.alert('Share chat', 'Share link deleted.');
+      Alert.alert(t('shareChat'), t('shareLinkDeleted'));
       await refreshSidebarData();
     } catch (error) {
       console.error('Error deleting share link:', error);
-      Alert.alert('Share chat', 'Failed to delete the share link.');
+      Alert.alert(t('shareChat'), t('shareLinkDeleteFailed'));
     }
-  }, [refreshSidebarData, requireActionChat]);
+  }, [refreshSidebarData, requireActionChat, t]);
 
   const handleOpenCommunity = useCallback(async () => {
     try {
@@ -382,9 +382,9 @@ export default function Sidebar({
       setShareMenuState((prev) => ({ ...prev, visible: false }));
     } catch (error) {
       console.error('Error opening Open WebUI community:', error);
-      Alert.alert('Share chat', 'Failed to open Open WebUI community.');
+      Alert.alert(t('shareChat'), t('openWebUICommunityFailed'));
     }
-  }, []);
+  }, [t]);
 
   const handleExportChat = useCallback(
     async (format: 'json' | 'txt' | 'pdf') => {
@@ -395,10 +395,10 @@ export default function Sidebar({
         await exportSingleChat(chat.id, format);
       } catch (error) {
         console.error(`Error exporting chat as ${format}:`, error);
-        Alert.alert('Export chat', `Failed to export this chat as ${format.toUpperCase()}.`);
+        Alert.alert(t('exportChat'), t('exportChatFailed').replace('{{format}}', format.toUpperCase()));
       }
     },
-    [requireActionChat]
+    [requireActionChat, t]
   );
 
   useEffect(() => {
@@ -419,9 +419,9 @@ export default function Sidebar({
       await setCurrentChatId(cloned.id);
     } catch (error) {
       console.error('Error cloning chat:', error);
-      Alert.alert('Clone chat', 'Failed to clone this chat.');
+      Alert.alert(t('cloneChat'), t('cloneChatFailed'));
     }
-  }, [i18n.language, refreshSidebarData, requireActionChat, setCurrentChatId]);
+  }, [i18n.language, refreshSidebarData, requireActionChat, setCurrentChatId, t]);
 
   const handleToggleFolder = async (folder: ChatFolder) => {
     const nextExpanded = !expandedFolderIds.has(folder.id);
@@ -473,19 +473,19 @@ export default function Sidebar({
   const exportActions: SidebarAction[] = [
     {
       key: 'json',
-      label: 'Download JSON',
+      label: t('downloadJson'),
       icon: <FileJson size={scaled18} color={colors.text} />,
       onPress: () => setPendingExportFormat('json'),
     },
     {
       key: 'txt',
-      label: 'Download TXT',
+      label: t('downloadTxt'),
       icon: <FileText size={scaled18} color={colors.text} />,
       onPress: () => setPendingExportFormat('txt'),
     },
     {
       key: 'pdf',
-      label: 'Download PDF',
+      label: t('downloadPdf'),
       icon: <FileType2 size={scaled18} color={colors.text} />,
       onPress: () => setPendingExportFormat('pdf'),
     },
@@ -494,13 +494,13 @@ export default function Sidebar({
   const shareActions: SidebarAction[] = [
     {
       key: 'copy-link',
-      label: 'Copy link',
+      label: t('copyLink'),
       icon: <Link2 size={scaled18} color={colors.text} />,
       onPress: handleCopyLink,
     },
     {
       key: 'open-community',
-      label: 'Open WebUI community',
+      label: t('openWebUICommunity'),
       icon: <ExternalLink size={scaled18} color={colors.text} />,
       onPress: handleOpenCommunity,
     },
@@ -508,7 +508,7 @@ export default function Sidebar({
       ? [
           {
             key: 'delete-link',
-            label: 'Delete link',
+            label: t('deleteLink'),
             danger: true,
             icon: <Link2Off size={scaled18} color={ui.danger} />,
             onPress: handleDeleteShare,
@@ -521,7 +521,7 @@ export default function Sidebar({
     ? [
         {
           key: 'share',
-          label: 'Share',
+          label: t('share'),
           icon: <Share2 size={scaled18} color={colors.text} />,
           onPress: async () => {
             await handleOpenShareMenu();
@@ -529,7 +529,7 @@ export default function Sidebar({
         },
         {
           key: 'download',
-          label: 'Download',
+          label: t('download'),
           icon: <Download size={scaled18} color={colors.text} />,
           onPress: () => {
             setIsExportMenuVisible(true);
@@ -564,7 +564,7 @@ export default function Sidebar({
         },
         {
           key: 'clone',
-          label: 'Clone',
+          label: t('clone'),
           icon: <CopyPlus size={scaled18} color={colors.text} />,
           onPress: async () => {
             await handleCloneChat();
@@ -620,7 +620,7 @@ export default function Sidebar({
               await exportFolderAsJson(folderMenu.folder!.id, folderMenu.folder!.name);
             } catch (error) {
               console.error('Erreur export folder:', error);
-              Alert.alert('Export folder', 'Failed to export this folder.');
+              Alert.alert(t('exportFolder'), t('exportFolderFailed'));
             }
           },
         },
@@ -1000,7 +1000,7 @@ export default function Sidebar({
 
       <SidebarActionSheet
         visible={isExportMenuVisible}
-        title="Export Chat"
+        title={t('exportChat')}
         actions={exportActions}
         onClose={() => setIsExportMenuVisible(false)}
         colors={colors}
@@ -1009,7 +1009,7 @@ export default function Sidebar({
 
       <SidebarActionSheet
         visible={shareMenuState.visible}
-        title="Share Chat"
+        title={t('shareChat')}
         actions={shareActions}
         onClose={() => setShareMenuState((prev) => ({ ...prev, visible: false }))}
         colors={colors}

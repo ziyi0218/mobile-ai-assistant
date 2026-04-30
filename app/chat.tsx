@@ -28,6 +28,7 @@ import { parseDownloadBlocks, stripDownloadHeaders } from '../utils/exportDetect
 import { parseClarification, stripClarificationBlock } from '../utils/clarificationParser';
 import { ClarificationButtons } from '../components/ClarificationButtons';
 import { useReadAloud } from '../hooks/useReadAloud'
+import { useUIScale } from '../hooks/useUIScale';
 
 const ActionBtn = React.memo(({ icon: Icon, size = 15, color = '#AAA', onPress }: {
   icon: any; size?: number; color?: string; onPress: () => void;
@@ -92,6 +93,7 @@ export default function ChatScreen() {
 
   const themeMode = useSettingsStore(state => state.themeMode);
   const { colors } = useResolvedTheme(themeMode);
+  const scaleFactor = useUIScale(1);
 
   const scrollRefs = useRef<Record<string, FlatList | null>>({});
 
@@ -174,7 +176,7 @@ export default function ChatScreen() {
             return (
               <View style={{ width, flex: 1 }}>
                 <View style={cs.emptyState}>
-                  <MessageCircle size={48} color={colors.subtext} />
+                  <MessageCircle size={48 * scaleFactor} color={colors.subtext} />
                   <Text style={[cs.emptyText, { color: colors.subtext }]}>{t('askQuestion')}</Text>
                 </View>
               </View>
@@ -297,7 +299,7 @@ export default function ChatScreen() {
 const cs = StyleSheet.create({
   flex: { flex: 1 },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 80, opacity: 0.3 },
-  emptyText: { fontSize: 18, marginTop: 16 },
+  emptyText: { fontSize: 18 , marginTop: 16 },
   userBubble: { backgroundColor: '#007AFF', padding: 16, borderRadius: 24, maxWidth: '85%' },
   userBubbleNoText: { maxWidth: '85%' },
   aiBubble: { maxWidth: '100%', paddingRight: 4 },

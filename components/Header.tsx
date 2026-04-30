@@ -134,9 +134,9 @@ export default function Header({
 
   const requireCurrentChat = useCallback(() => {
     if (currentChatId) return currentChatId;
-    Alert.alert('Chat actions', 'Open a chat first.');
+    Alert.alert(t('chatActions'), t('overviewOpenChatFirst'));
     return null;
-  }, [currentChatId]);
+  }, [currentChatId, t]);
 
   const handleCloneChat = useCallback(async () => {
     const chatId = requireCurrentChat();
@@ -148,9 +148,9 @@ export default function Header({
       await setCurrentChatId(cloned.id);
     } catch (error) {
       console.error('Error cloning chat:', error);
-      Alert.alert('Clone chat', 'Failed to clone this chat.');
+      Alert.alert(t('cloneChat'), t('cloneChatFailed'));
     }
-  }, [fetchHistory, i18n.language, requireCurrentChat, setCurrentChatId]);
+  }, [fetchHistory, i18n.language, requireCurrentChat, setCurrentChatId, t]);
 
   const handleExportChat = useCallback(
     async (format: 'json' | 'txt' | 'pdf') => {
@@ -161,10 +161,10 @@ export default function Header({
         await exportSingleChat(chatId, format);
       } catch (error) {
         console.error(`Error exporting chat as ${format}:`, error);
-        Alert.alert('Export chat', `Failed to export this chat as ${format.toUpperCase()}.`);
+        Alert.alert(t('exportChat'), t('exportChatFailed').replace('{{format}}', format.toUpperCase()));
       }
     },
-    [requireCurrentChat]
+    [requireCurrentChat, t]
   );
 
   const handleOpenShareMenu = useCallback(async () => {
@@ -187,12 +187,12 @@ export default function Header({
     try {
       const result = await ensureShareLink(chatId);
       setShareMenuState({ visible: false, hasShareLink: true });
-      Alert.alert('Share chat', result.reused ? 'Link copied to clipboard.' : 'Share link created and copied.');
+      Alert.alert(t('shareChat'), result.reused ? t('shareLinkCopied') : t('shareLinkCreatedAndCopied'));
     } catch (error) {
       console.error('Error copying share link:', error);
-      Alert.alert('Share chat', 'Failed to copy the share link.');
+      Alert.alert(t('shareChat'), t('shareLinkCopyFailed'));
     }
-  }, [requireCurrentChat]);
+  }, [requireCurrentChat, t]);
 
   const handleDeleteShare = useCallback(async () => {
     const chatId = requireCurrentChat();
@@ -201,12 +201,12 @@ export default function Header({
     try {
       await removeShareLink(chatId);
       setShareMenuState({ visible: false, hasShareLink: false });
-      Alert.alert('Share chat', 'Share link deleted.');
+      Alert.alert(t('shareChat'), t('shareLinkDeleted'));
     } catch (error) {
       console.error('Error deleting share link:', error);
-      Alert.alert('Share chat', 'Failed to delete the share link.');
+      Alert.alert(t('shareChat'), t('shareLinkDeleteFailed'));
     }
-  }, [requireCurrentChat]);
+  }, [requireCurrentChat, t]);
 
   const handleOpenCommunity = useCallback(async () => {
     try {
@@ -214,9 +214,9 @@ export default function Header({
       setShareMenuState((prev) => ({ ...prev, visible: false }));
     } catch (error) {
       console.error('Error opening Open WebUI community:', error);
-      Alert.alert('Share chat', 'Failed to open Open WebUI community.');
+      Alert.alert(t('shareChat'), t('openWebUICommunityFailed'));
     }
-  }, []);
+  }, [t]);
 
   const handleOpenOverview = useCallback(() => {
     if (!currentChatId) {
@@ -230,19 +230,19 @@ export default function Header({
   const exportActions: SidebarAction[] = [
     {
       key: 'json',
-      label: 'Download JSON',
+      label: t('downloadJson'),
       icon: <FileJson size={scaled18} color={colors.text} />,
       onPress: () => handleExportChat('json'),
     },
     {
       key: 'txt',
-      label: 'Download TXT',
+      label: t('downloadTxt'),
       icon: <FileText size={scaled18} color={colors.text} />,
       onPress: () => handleExportChat('txt'),
     },
     {
       key: 'pdf',
-      label: 'Download PDF',
+      label: t('downloadPdf'),
       icon: <FileType2 size={scaled18} color={colors.text} />,
       onPress: () => handleExportChat('pdf'),
     },
@@ -251,13 +251,13 @@ export default function Header({
   const shareActions: SidebarAction[] = [
     {
       key: 'copy-link',
-      label: 'Copy link',
+      label: t('copyLink'),
       icon: <Link2 size={scaled18} color={colors.text} />,
       onPress: handleCopyLink,
     },
     {
       key: 'open-community',
-      label: 'Open WebUI community',
+      label: t('openWebUICommunity'),
       icon: <ExternalLink size={scaled18} color={colors.text} />,
       onPress: handleOpenCommunity,
     },
@@ -265,7 +265,7 @@ export default function Header({
       ? [
           {
             key: 'delete-link',
-            label: 'Delete link',
+            label: t('deleteLink'),
             danger: true,
             icon: <Link2Off size={scaled18} color={ui.danger} />,
             onPress: handleDeleteShare,
@@ -360,7 +360,7 @@ export default function Header({
             >
               <Share2 color={colors.subtext} size={scaled17} />
               <Text className="ml-3 font-medium" style={{ color: colors.text, fontSize: scaled14 }}>
-                Share
+                {t('share')}
               </Text>
             </TouchableOpacity>
 
@@ -375,7 +375,7 @@ export default function Header({
             >
               <Download color={colors.subtext} size={scaled17} />
               <Text className="ml-3 font-medium" style={{ color: colors.text, fontSize: scaled14 }}>
-                Download
+                {t('download')}
               </Text>
             </TouchableOpacity>
 
@@ -386,7 +386,7 @@ export default function Header({
             >
               <CopyPlus color={colors.subtext} size={scaled17} />
               <Text className="ml-3 font-medium" style={{ color: colors.text, fontSize: scaled14 }}>
-                Copy
+                {t('copy')}
               </Text>
             </TouchableOpacity>
 
@@ -406,7 +406,7 @@ export default function Header({
 
       <SidebarActionSheet
         visible={isExportMenuVisible}
-        title="Export Chat"
+        title={t('exportChat')}
         actions={exportActions}
         onClose={() => setIsExportMenuVisible(false)}
         colors={colors}
@@ -415,7 +415,7 @@ export default function Header({
 
       <SidebarActionSheet
         visible={shareMenuState.visible}
-        title="Share Chat"
+        title={t('shareChat')}
         actions={shareActions}
         onClose={() => setShareMenuState((prev) => ({ ...prev, visible: false }))}
         colors={colors}

@@ -17,6 +17,7 @@ import { login } from "../services/authService";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
 import { useI18n } from "../i18n/useI18n";
+import { useUIScale } from "../hooks/useUIScale";
 
 type Props = {
   goSignUp: () => void;
@@ -27,7 +28,15 @@ export default function SignIn({ goSignUp }: Props) {
   const { colors } = useResolvedTheme(themeMode);
   const { t } = useI18n();
 
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const scaled34 = useUIScale(34);
+  const scaled20 = useUIScale(20);
+  const scaled17 = useUIScale(17);
+  const scaled16 = useUIScale(16);
+
+  const styles = useMemo(
+    () => makeStyles(colors, { scaled34, scaled17, scaled16 }),
+    [colors, scaled34, scaled17, scaled16]
+  );
 
   const [emailValue, setEmailValue] = useState("");
   const [passwordValue, setPasswordValue] = useState("");
@@ -89,7 +98,7 @@ export default function SignIn({ goSignUp }: Props) {
             <Pressable style={styles.eye} onPress={() => setShow(!show)}>
               <Ionicons
                 name={show ? "eye-outline" : "eye-off-outline"}
-                size={20}
+                size={scaled20}
                 color={colors.text}
               />
             </Pressable>
@@ -126,14 +135,14 @@ function makeStyles(colors: {
   text: string;
   subtext: string;
   border: string;
-}) {
+}, scale: { scaled34: number; scaled17: number; scaled16: number }) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.bg },
     container: { flex: 1 },
     content: { paddingHorizontal: 28, paddingTop: 150 },
 
     title: {
-      fontSize: 34,
+      fontSize: scale.scaled34,
       fontWeight: "500",
       textAlign: "center",
       marginBottom: 40,
@@ -145,7 +154,7 @@ function makeStyles(colors: {
     },
 
     label: {
-      fontSize: 16,
+      fontSize: scale.scaled16,
       fontWeight: "700",
       marginBottom: 8,
       color: colors.text,
@@ -163,7 +172,7 @@ function makeStyles(colors: {
     input: {
       height: 52,
       paddingHorizontal: 14,
-      fontSize: 16,
+      fontSize: scale.scaled16,
       color: colors.text,
     },
 
@@ -184,10 +193,10 @@ function makeStyles(colors: {
       justifyContent: "center",
       alignItems: "center",
     },
-    primaryText: { fontSize: 17, fontWeight: "700", color: colors.text },
+    primaryText: { fontSize: scale.scaled17, fontWeight: "700", color: colors.text },
 
     bottom: { marginTop: "auto", padding: 28 },
-    bottomText: { marginBottom: 12, color: colors.text },
+    bottomText: { marginBottom: 12, color: colors.text, fontSize: scale.scaled16 },
     secondaryBtn: {
       height: 56,
       borderRadius: 28,
@@ -197,6 +206,6 @@ function makeStyles(colors: {
       alignItems: "center",
       backgroundColor: colors.card,
     },
-    secondaryText: { fontSize: 17, fontWeight: "700", color: colors.text },
+    secondaryText: { fontSize: scale.scaled17, fontWeight: "700", color: colors.text },
   });
 }

@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { MoreHorizontal } from 'lucide-react-native';
 import type { NoteItem } from '../../store/useNoteStore';
+import { useUIScale } from '../../hooks/useUIScale';
 
 type NoteListItemProps = {
   note: NoteItem;
@@ -12,30 +13,51 @@ type NoteListItemProps = {
     subtext: string;
   };
   relativeLabel: string;
+  byLabel: string;
   onPress: () => void;
   onOpenMenu: () => void;
 };
 
-export default function NoteListItem({ note, colors, relativeLabel, onPress, onOpenMenu }: NoteListItemProps) {
-  const metaText = note.author ? `${relativeLabel}  By ${note.author}` : relativeLabel;
+export default function NoteListItem({ note, colors, relativeLabel, byLabel, onPress, onOpenMenu }: NoteListItemProps) {
+  const scaled12 = useUIScale(12);
+  const scaled13 = useUIScale(13);
+  const scaled14 = useUIScale(14);
+  const scaled16 = useUIScale(16);
+  const scaled18 = useUIScale(18);
+  const scaled22 = useUIScale(22);
+  const scaled28 = useUIScale(28);
+  const scaled72 = useUIScale(72);
+  const scaled8 = useUIScale(8);
+  const metaText = note.author ? `${relativeLabel}  ${byLabel} ${note.author}` : relativeLabel;
 
   return (
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={onPress}
-      style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border }]}
+      style={[
+        styles.row,
+        {
+          minHeight: scaled72,
+          borderRadius: scaled22,
+          paddingHorizontal: scaled16,
+          paddingVertical: scaled14,
+          marginBottom: scaled12,
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+        },
+      ]}
     >
-      <View style={styles.left}>
-        <Text numberOfLines={1} style={[styles.title, { color: colors.text }]}>
+      <View style={[styles.left, { paddingRight: scaled12 }]}>
+        <Text numberOfLines={1} style={[styles.title, { color: colors.text, fontSize: scaled18, marginBottom: scaled8 }]}>
           {note.title}
         </Text>
-        <Text numberOfLines={1} style={[styles.meta, { color: colors.subtext }]}>
+        <Text numberOfLines={1} style={[styles.meta, { color: colors.subtext, fontSize: scaled13 }]}>
           {metaText}
         </Text>
       </View>
 
-      <Pressable onPress={onOpenMenu} hitSlop={10} style={styles.menuButton}>
-        <MoreHorizontal size={18} color={colors.subtext} />
+      <Pressable onPress={onOpenMenu} hitSlop={10} style={[styles.menuButton, { width: scaled28, height: scaled28, marginLeft: scaled8 }]}>
+        <MoreHorizontal size={scaled18} color={colors.subtext} />
       </Pressable>
     </TouchableOpacity>
   );
@@ -43,33 +65,21 @@ export default function NoteListItem({ note, colors, relativeLabel, onPress, onO
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: 72,
     borderWidth: 1,
-    borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
   },
   left: {
     flex: 1,
-    paddingRight: 12,
   },
   title: {
-    fontSize: 18,
     fontWeight: '600',
-    marginBottom: 8,
   },
   meta: {
-    fontSize: 13,
   },
   menuButton: {
-    width: 28,
-    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
   },
 });

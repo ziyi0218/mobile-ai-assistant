@@ -20,6 +20,7 @@ type NoteState = {
   isLoading: boolean;
   lastQuery: string;
   fetchNotes: (query?: string, page?: number) => Promise<void>;
+  fetchNoteById: (id: string) => Promise<NoteItem | null>;
   createNote: (seedTitle?: string) => Promise<NoteItem>;
   updateNoteLocal: (id: string, patch: Partial<Pick<NoteItem, 'title' | 'content' | 'contentHtml' | 'author'>>) => void;
   updateNoteTitle: (id: string, title: string) => Promise<void>;
@@ -81,6 +82,18 @@ const formatDefaultNoteTitle = () => {
   return `${year}-${month}-${day}`;
 };
 
+const mapApiNote = (item: Awaited<ReturnType<typeof noteService.getNote>>) =>
+  sanitizeNote({
+    id: item.id,
+    userId: item.user_id,
+    title: item.title?.trim() || 'Untitled note',
+    content: item.data?.content?.md ?? '',
+    contentHtml: item.data?.content?.html ?? '',
+    author: item.user?.name ?? '',
+    createdAt: item.created_at as number | undefined,
+    updatedAt: item.updated_at as number | undefined,
+  });
+
 export const useNoteStore = create<NoteState>()(
   persist(
     (set, get) => ({
@@ -94,16 +107,7 @@ export const useNoteStore = create<NoteState>()(
         try {
           const result = await noteService.searchNotes(query, page);
           const mapped: NoteItem[] = result.items.map((item) => {
-            return sanitizeNote({
-              id: item.id,
-              userId: item.user_id,
-              title: item.title?.trim() || 'Untitled note',
-              content: item.data?.content?.md ?? '',
-              contentHtml: item.data?.content?.html ?? '',
-              author: item.user?.name ?? '',
-              createdAt: item.created_at as number | undefined,
-              updatedAt: item.updated_at as number | undefined,
-            });
+            return mapApiNote(item);
           });
 
           set({
@@ -116,18 +120,25 @@ export const useNoteStore = create<NoteState>()(
           set({ isLoading: false });
         }
       },
+      fetchNoteById: async (id) => {
+        try {
+          const fetched = await noteService.getNote(id);
+          const note = mapApiNote(fetched);
+
+          set((state) => ({
+            notes: sortNotes([note, ...state.notes.filter((item) => item.id !== note.id)]),
+            total: Math.max(state.total, state.notes.some((item) => item.id === note.id) ? state.total : state.total + 1),
+          }));
+
+          return note;
+        } catch (error) {
+          console.error('Erreur note detail:', error);
+          return null;
+        }
+      },
       createNote: async (seedTitle) => {
         const created = await noteService.createNote(seedTitle?.trim() || formatDefaultNoteTitle());
-        const note = sanitizeNote({
-          id: created.id,
-          userId: created.user_id,
-          title: created.title,
-          content: created.data?.content?.md ?? '',
-          contentHtml: created.data?.content?.html ?? '',
-          author: created.user?.name ?? '',
-          createdAt: created.created_at as number | undefined,
-          updatedAt: created.updated_at as number | undefined,
-        });
+        const note = mapApiNote(created);
 
         set((state) => ({
           notes: sortNotes([note, ...state.notes.filter((item) => item.id !== note.id)]),
@@ -152,16 +163,7 @@ export const useNoteStore = create<NoteState>()(
         })),
       updateNoteTitle: async (id, title) => {
         const updated = await noteService.updateNoteTitle(id, title);
-        const updatedNote = sanitizeNote({
-          id: updated.id,
-          userId: updated.user_id,
-          title: updated.title,
-          content: updated.data?.content?.md,
-          contentHtml: updated.data?.content?.html,
-          author: updated.user?.name ?? '',
-          createdAt: updated.created_at as number | undefined,
-          updatedAt: updated.updated_at as number | undefined,
-        });
+        const updatedNote = mapApiNote(updated);
 
         set((state) => ({
           notes: sortNotes(

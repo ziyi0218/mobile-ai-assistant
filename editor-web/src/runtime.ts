@@ -191,10 +191,20 @@ type ContentSnapshot = {
   json: Record<string, unknown>;
 };
 
+function hasMeaningfulHtml(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === '<p><br></p>') return false;
+
+  const container = document.createElement('div');
+  container.innerHTML = trimmed;
+  return Boolean((container.textContent ?? '').trim() || container.querySelector('img, video, audio, table, pre, code'));
+}
+
 class SocketIOCollaborationProvider {
   private readonly doc = new Y.Doc();
   private readonly awareness = new SimpleAwareness(this.doc);
   private isConnected = false;
+  private allowOutgoingDocumentUpdates = false;
   private editor: Editor | null = null;
   private getSnapshot: (() => ContentSnapshot) | null = null;
   private readonly userColor = generateUserColor();
@@ -280,12 +290,20 @@ class SocketIOCollaborationProvider {
           const isEmptyState = state.length === 2 && state[0] === 0 && state[1] === 0;
 
           if (isEmptyState) {
-            if (this.editor && this.editor.isEmpty && this.initialHtml && (data.sessions ?? []).length <= 1) {
+            this.allowOutgoingDocumentUpdates = true;
+
+            if (
+              this.editor &&
+              hasMeaningfulHtml(this.initialHtml) &&
+              (data.sessions ?? []).length <= 1
+            ) {
               this.editor.commands.setContent(this.initialHtml);
+              this.emitDocumentUpdate(Y.encodeStateAsUpdate(this.doc));
               this.setStatus('Initialized empty document');
             }
           } else {
             Y.applyUpdate(this.doc, state, 'server');
+            this.allowOutgoingDocumentUpdates = true;
             this.setStatus('Synced remote state');
           }
         }
@@ -311,22 +329,9 @@ class SocketIOCollaborationProvider {
     });
 
     this.doc.on('update', (update, origin) => {
-      if (!this.isConnected || origin === 'server' || !this.getSnapshot) return;
+      if (!this.isConnected || !this.allowOutgoingDocumentUpdates || origin === 'server' || !this.getSnapshot) return;
 
-      const snapshot = this.getSnapshot();
-      this.socket.emit('ydoc:document:update', {
-        document_id: this.documentId,
-        user_id: this.user.id,
-        socket_id: this.socket.id,
-        update: Array.from(update),
-        data: {
-          content: {
-            html: snapshot.html,
-            md: snapshot.md,
-            json: snapshot.json,
-          },
-        },
-      });
+      this.emitDocumentUpdate(update);
     });
 
     this.awareness.on('change', (change, origin) => {
@@ -345,6 +350,25 @@ class SocketIOCollaborationProvider {
     if (this.socket.connected) {
       this.onConnect();
     }
+  }
+
+  private emitDocumentUpdate(update: Uint8Array) {
+    if (!this.getSnapshot) return;
+
+    const snapshot = this.getSnapshot();
+    this.socket.emit('ydoc:document:update', {
+      document_id: this.documentId,
+      user_id: this.user.id,
+      socket_id: this.socket.id,
+      update: Array.from(update),
+      data: {
+        content: {
+          html: snapshot.html,
+          md: snapshot.md,
+          json: snapshot.json,
+        },
+      },
+    });
   }
 
   private onConnect() {
@@ -444,6 +468,12 @@ function main() {
     typeof config.initialHtml === 'string'
       ? parseSerializedDoc(config.initialHtml) ?? (config.initialHtml.trim() ? config.initialHtml : '<p><br></p>')
       : '<p><br></p>';
+  const initialHtmlForCollab =
+    typeof normalizedInitialContent === 'string'
+      ? normalizedInitialContent
+      : typeof config.initialHtml === 'string'
+        ? config.initialHtml
+        : '';
 
   if (collabEnabled) {
     socket = io(config.webBaseUrl as string, {
@@ -463,7 +493,7 @@ function main() {
         id: config.userId ?? '',
         name: config.userName ?? 'Mobile User',
       },
-      normalizedInitialContent,
+      initialHtmlForCollab,
       setStatus
     );
 
@@ -511,13 +541,15 @@ function main() {
 
       provider?.setEditor(editor, () => getSnapshot(editor));
 
-      const snapshot = getSnapshot(editor);
-      post({
-        type: 'change',
-        reason: 'create',
-        html: snapshot.html,
-        text: snapshot.text,
-      });
+      if (!collabEnabled) {
+        const snapshot = getSnapshot(editor);
+        post({
+          type: 'change',
+          reason: 'create',
+          html: snapshot.html,
+          text: snapshot.text,
+        });
+      }
     },
     onFocus: () => {
       post({

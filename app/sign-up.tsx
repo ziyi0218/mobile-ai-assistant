@@ -16,13 +16,21 @@ import { signup } from "../services/authService";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
 import { useI18n } from "../i18n/useI18n";
+import { useUIScale } from "../hooks/useUIScale";
 
 export default function SignUp() {
   const { themeMode } = useSettingsStore();
   const { colors } = useResolvedTheme(themeMode);
   const { t } = useI18n();
 
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const scaled34 = useUIScale(34);
+  const scaled17 = useUIScale(17);
+  const scaled16 = useUIScale(16);
+
+  const styles = useMemo(
+    () => makeStyles(colors, { scaled34, scaled17, scaled16 }),
+    [colors, scaled34, scaled17, scaled16]
+  );
 
   const [nameValue, setNameValue] = useState("");
   const [emailValue, setEmailValue] = useState("");
@@ -111,14 +119,14 @@ function makeStyles(colors: {
   text: string;
   subtext: string;
   border: string;
-}) {
+}, scale: { scaled34: number; scaled17: number; scaled16: number }) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.bg },
     container: { flex: 1 },
     content: { paddingHorizontal: 28, paddingTop: 150 },
 
     title: {
-      fontSize: 34,
+      fontSize: scale.scaled34,
       fontWeight: "500",
       textAlign: "center",
       marginBottom: 40,
@@ -130,7 +138,7 @@ function makeStyles(colors: {
     },
 
     label: {
-      fontSize: 16,
+      fontSize: scale.scaled16,
       fontWeight: "700",
       marginBottom: 8,
       color: colors.text,
@@ -143,7 +151,7 @@ function makeStyles(colors: {
       borderColor: colors.border,
       borderRadius: 10,
       paddingHorizontal: 14,
-      fontSize: 16,
+      fontSize: scale.scaled16,
       color: colors.text,
       backgroundColor: colors.card,
     },
@@ -158,8 +166,8 @@ function makeStyles(colors: {
       justifyContent: "center",
       alignItems: "center",
     },
-    primaryText: { fontSize: 17, fontWeight: "700", color: colors.text },
+    primaryText: { fontSize: scale.scaled17, fontWeight: "700", color: colors.text },
 
-    back: { marginTop: 20, textAlign: "center", color: colors.text },
+    back: { marginTop: 20, textAlign: "center", color: colors.text, fontSize: scale.scaled16 },
   });
 }

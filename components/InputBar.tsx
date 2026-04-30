@@ -18,7 +18,7 @@ import { useSettingsStore } from '../store/useSettingsStore';
 import { useResolvedTheme } from '../utils/theme';
 import { useLocation } from '../hooks/useLocation';
 import useInterfaceSettingsStore from '../store/interfaceSettingsStore';
-import {useUIScale} from '../hooks/useUIScale'
+import { useUIScale } from '../hooks/useUIScale';
 
 interface InputBarProps {
   t?: (key: TranslationKey) => string;
@@ -56,6 +56,7 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
   const location = useLocation();
   const enterSends = useInterfaceSettingsStore(state => state.optionsList['27'].value); //iface_enter_is_send
   const scaleFactor = useUIScale(1);
+  const styles = createInputBarStyles(scaleFactor);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -173,14 +174,14 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
   //     Expanded mode    
   if (isExpanded) {
     return (
-      <View style={[s().expandedContainer, { paddingBottom: keyboardHeight, backgroundColor: colors.bg }]}>
+      <View style={[styles.expandedContainer, { paddingBottom: keyboardHeight, backgroundColor: colors.bg }]}>
         {attachments.length > 0 && <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />}
         <TextInput
           ref={expandedInputRef}
           placeholder={t('expandedPlaceholder')}
           placeholderTextColor={colors.subtext}
           multiline scrollEnabled
-          style={[s().expandedInput, { color: colors.text }]}
+          style={[styles.expandedInput, { color: colors.text }]}
           value={inputText}
           onChangeText={setInputText}
           submitBehavior={enterSends?'submit':'newline'}
@@ -190,15 +191,15 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
                         }
                       }}
         />
-        <View style={[s().expandedActions, { borderTopColor: colors.border }]}>
-          <TouchableOpacity onPress={handleCollapse} style={[s().collapseBtn, { backgroundColor: colors.card }]}>
+        <View style={[styles.expandedActions, { borderTopColor: colors.border }]}>
+          <TouchableOpacity onPress={handleCollapse} style={[styles.collapseBtn, { backgroundColor: colors.card }]}>
             <ChevronDown color={colors.subtext} size={20*scaleFactor} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleAction}
-            style={[s().sendBtnExpanded, (inputText.trim().length > 0 || attachments.length > 0) ? s().sendActive : isTyping ? s().sendStop : s().sendInactive]}
+            style={[styles.sendBtnExpanded, (inputText.trim().length > 0 || attachments.length > 0) ? styles.sendActive : isTyping ? styles.sendStop : styles.sendInactive]}
           >
-            {isTyping ? <Square color="#FFF" fill="#FFF" size={18*scaleFactor} /> : <Send color={(inputText.trim().length > 0 || attachments.length > 0) ? "#fff" : "#999"} size={20} />}
+            {isTyping ? <Square color="#FFF" fill="#FFF" size={18*scaleFactor} /> : <Send color={(inputText.trim().length > 0 || attachments.length > 0) ? "#fff" : "#999"} size={20*scaleFactor} />}
           </TouchableOpacity>
         </View>
       </View>
@@ -207,7 +208,7 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
 
   //     Normal mode    
   return (
-    <View style={[s().container, { paddingBottom: isKeyboardVisible ? 4*scaleFactor : 32*scaleFactor, backgroundColor: colors.bg }]}>
+    <View style={[styles.container, { paddingBottom: isKeyboardVisible ? 4*scaleFactor : 32*scaleFactor, backgroundColor: colors.bg }]}>
       <IntegrationsMenu
         visible={isIntegrationsVisible}
         onClose={() => setIsIntegrationsVisible(false)}
@@ -232,13 +233,13 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
       />
 
       {attachments.length > 0 && <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />}
-      <View style={[s().inputRow, { backgroundColor: isDark ? '#1C1C23' : '#F7F7F7', borderColor: colors.border }]}>
-        <TouchableOpacity onPress={handlePlusPress} style={[s().plusBtn, { backgroundColor: isDark ? '#2C2C35' : '#E5E5E5' }]}>
+      <View style={[styles.inputRow, { backgroundColor: isDark ? '#1C1C23' : '#F7F7F7', borderColor: colors.border }]}>
+        <TouchableOpacity onPress={handlePlusPress} style={[styles.plusBtn, { backgroundColor: isDark ? '#2C2C35' : '#E5E5E5' }]}>
           <Plus color={colors.text} size={22*scaleFactor} strokeWidth={2.5} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setIsIntegrationsVisible(true)}
-          style={[s().integBtn, (webSearchEnabled || codeInterpreterEnabled) && (isDark ? s().integActiveDark : s().integActive)]}
+          style={[styles.integBtn, (webSearchEnabled || codeInterpreterEnabled) && (isDark ? styles.integActiveDark : styles.integActive)]}
         >
           <LayoutGrid color={(webSearchEnabled || codeInterpreterEnabled) ? '#007AFF' : colors.subtext} size={20*scaleFactor} />
         </TouchableOpacity>
@@ -249,7 +250,7 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
           placeholderTextColor={colors.subtext}
           multiline
           numberOfLines={3}
-          style={[s().textInput, { color: colors.text }]}
+          style={[styles.textInput, { color: colors.text }]}
           value={inputText}
           onChangeText={setInputText}
           submitBehavior={enterSends?'submit':'newline'}
@@ -264,7 +265,7 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
             <ChevronUp color={colors.subtext} size={20*scaleFactor} />
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={[s().actionBtn, isTyping && s().stopBtn]} onPress={handleAction}>
+        <TouchableOpacity style={[styles.actionBtn, isTyping && styles.stopBtn]} onPress={handleAction}>
           {isTyping ? (
             <Square color="#FFF" fill="#FFF" size={18*scaleFactor} />
           ) : (inputText.trim().length > 0 || attachments.length > 0) ? (
@@ -329,20 +330,22 @@ function ListPickerModal({ visible, title, loading, items, emptyText, onSelect, 
 //     Attachment Preview    
 function AttachmentPreview({ attachments, onRemove }: { attachments: Attachment[]; onRemove: (uri: string) => void }) {
   const scaleFactor = useUIScale(1);
+  const styles = createInputBarStyles(scaleFactor);
+
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8, paddingHorizontal: 4 }} contentContainerStyle={{ gap: 8 }}>
       {attachments.map((att, i) => (
         <View key={att.uri + i} style={{ position: 'relative' }}>
           {att.type === 'image' ? (
-            <View style={s().thumbWrap}>
-              <Image source={{ uri: att.uri }} style={s().thumbImg} resizeMode="cover" />
+            <View style={styles.thumbWrap}>
+              <Image source={{ uri: att.uri }} style={styles.thumbImg} resizeMode="cover" />
             </View>
           ) : (
-            <View style={s().filePreview}>
-              <Text style={s().fileName} numberOfLines={2}>{att.name}</Text>
+            <View style={styles.filePreview}>
+              <Text style={styles.fileName} numberOfLines={2}>{att.name}</Text>
             </View>
           )}
-          <TouchableOpacity onPress={() => onRemove(att.uri)} style={s().removeBtn}>
+          <TouchableOpacity onPress={() => onRemove(att.uri)} style={styles.removeBtn}>
             <X color="#FFF" size={10*scaleFactor} />
           </TouchableOpacity>
         </View>
@@ -351,9 +354,8 @@ function AttachmentPreview({ attachments, onRemove }: { attachments: Attachment[
   );
 }
 
-function s() {
-    const scaleFactor = useUIScale(1);
-    return StyleSheet.create({
+function createInputBarStyles(scaleFactor: number) {
+  return StyleSheet.create({
   container: { paddingHorizontal: 16, paddingTop: 8 },
   inputRow: {
     flexDirection: 'row',
@@ -483,9 +485,9 @@ function s() {
     position: 'absolute',
     top: -6,
     right: -6,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 20*scaleFactor,
+    height: 20*scaleFactor,
+    borderRadius: 10*scaleFactor,
     backgroundColor: '#333',
     alignItems: 'center',
     justifyContent: 'center'

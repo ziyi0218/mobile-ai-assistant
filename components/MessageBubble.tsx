@@ -36,7 +36,6 @@ interface ContentBlock {
 }
 
 function parseContent(raw: string): ContentBlock[] {
-  const scaleFactor = useUIScale(1);
   const blocks: ContentBlock[] = [];
   const mathRegex = /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$(?!\$)(?:\\.|[^$\\])+\$)/g;
 
@@ -113,6 +112,7 @@ setTimeout(function() {
 const KaTeXBlock = React.memo(({ math, block, textColor }: { math: string; block: boolean; textColor: string }) => {
   const [height, setHeight] = useState(block ? 50 : 24);
   const scaleFactor = useUIScale(1);
+  const styles = createBubbleStyles(scaleFactor);
   const html = useMemo(() => buildKatexHtml(math, block, textColor), [math, block, textColor]);
 
   const onMessage = useCallback((e: any) => {
@@ -121,7 +121,7 @@ const KaTeXBlock = React.memo(({ math, block, textColor }: { math: string; block
   }, []);
 
   return (
-    <View style={[block ? s.mathBlockWrap : s.mathInlineWrap, { height }]}>
+    <View style={[block ? styles.mathBlockWrap : styles.mathInlineWrap, { height }]}>
       <WebView
         source={{ html }}
         style={{ flex: 1, backgroundColor: 'transparent' }}
@@ -136,13 +136,12 @@ const KaTeXBlock = React.memo(({ math, block, textColor }: { math: string; block
 });
 
 //
-function createMdStyles(colors: any, isDark: boolean) {
-    const scaleFactor = useUIScale(1);
-    return StyleSheet.create({
-  body: { color: colors.text, fontSize: 15*scaleFactor, lineHeight: 22 },
-  heading1: { fontSize: 22*scaleFactor, fontWeight: '700', color: colors.text, marginTop: 16, marginBottom: 8, lineHeight: 28 },
-  heading2: { fontSize: 19*scaleFactor, fontWeight: '700', color: colors.text, marginTop: 14, marginBottom: 6, lineHeight: 26 },
-  heading3: { fontSize: 17*scaleFactor, fontWeight: '600', color: colors.text, marginTop: 10, marginBottom: 4, lineHeight: 24 },
+function createMdStyles(colors: any, isDark: boolean, scaleFactor: number) {
+  return StyleSheet.create({
+  body: { color: colors.text, fontSize: 15*scaleFactor, lineHeight: 22*scaleFactor },
+  heading1: { fontSize: 22*scaleFactor, fontWeight: '700', color: colors.text, marginTop: 16, marginBottom: 8, lineHeight: 28*scaleFactor },
+  heading2: { fontSize: 19*scaleFactor, fontWeight: '700', color: colors.text, marginTop: 14, marginBottom: 6, lineHeight: 26*scaleFactor },
+  heading3: { fontSize: 17*scaleFactor, fontWeight: '600', color: colors.text, marginTop: 10, marginBottom: 4, lineHeight: 24*scaleFactor },
   paragraph: { marginTop: 0, marginBottom: 8 },
   strong: { fontWeight: '700', color: colors.text },
   em: { fontStyle: 'italic', color: colors.text },
@@ -195,6 +194,7 @@ function CodeBlockWithActions({ content, language, downloadBlock, isDark, colors
 }) {
   const [copied, setCopied] = useState(false);
   const scaleFactor = useUIScale(1);
+  const styles = createCodeBlockStyles(scaleFactor);
 
   const handleCopy = async () => {
     await Clipboard.setStringAsync(content);
@@ -203,30 +203,30 @@ function CodeBlockWithActions({ content, language, downloadBlock, isDark, colors
   };
 
   const lineCount = content.split('\n').length;
-  const naturalHeight = lineCount * 20 + 24;
-  const needsScroll = naturalHeight > MAX_CODE_HEIGHT;
+  const naturalHeight = lineCount * 20*scaleFactor + 24*scaleFactor;
+  const needsScroll = naturalHeight > MAX_CODE_HEIGHT*scaleFactor;
   const hasDownload = downloadBlock !== null;
   const label = downloadBlock?.filename || language || 'code';
 
   return (
-    <View style={[cb().wrapper, { borderColor: colors.border }]}>
+    <View style={[styles.wrapper, { borderColor: colors.border }]}>
       {/* Header bar */}
-      <View style={[cb().header, { backgroundColor: isDark ? '#0D0D14' : '#E8E8ED' }]}>
-        <Text style={[cb().lang, { color: colors.subtext }]} numberOfLines={1}>{label}</Text>
-        <View style={cb().actions}>
-          <TouchableOpacity onPress={handleCopy} style={cb().btn} activeOpacity={0.6}>
+      <View style={[styles.header, { backgroundColor: isDark ? '#0D0D14' : '#E8E8ED' }]}>
+        <Text style={[styles.lang, { color: colors.subtext }]} numberOfLines={1}>{label}</Text>
+        <View style={styles.actions}>
+          <TouchableOpacity onPress={handleCopy} style={styles.btn} activeOpacity={0.6}>
             {copied
-              ? <Check color="#34C759" size={16} />
-              : <Copy color={colors.subtext} size={16} />
+              ? <Check color="#34C759" size={16*scaleFactor} />
+              : <Copy color={colors.subtext} size={16*scaleFactor} />
             }
           </TouchableOpacity>
           {hasDownload && (
             <TouchableOpacity
               onPress={() => exportFile(content, downloadBlock!.filename)}
-              style={cb().btn}
+              style={styles.btn}
               activeOpacity={0.6}
             >
-              <Download color="#007AFF" size={16} />
+              <Download color="#007AFF" size={16*scaleFactor} />
             </TouchableOpacity>
           )}
         </View>
@@ -234,23 +234,22 @@ function CodeBlockWithActions({ content, language, downloadBlock, isDark, colors
       {/* Code content — ScrollView for long blocks, plain View for short */}
       {needsScroll ? (
         <ScrollView
-          style={[cb().codeScroll, { backgroundColor: isDark ? '#1A1A24' : '#1E1E2E' }]}
+          style={[styles.codeScroll, { backgroundColor: isDark ? '#1A1A24' : '#1E1E2E' }]}
           showsVerticalScrollIndicator
           nestedScrollEnabled
         >
-          <Text style={cb().code} selectable>{content}</Text>
+          <Text style={styles.code} selectable>{content}</Text>
         </ScrollView>
       ) : (
-        <View style={[cb().codeWrap, { backgroundColor: isDark ? '#1A1A24' : '#1E1E2E' }]}>
-          <Text style={cb().code} selectable>{content}</Text>
+        <View style={[styles.codeWrap, { backgroundColor: isDark ? '#1A1A24' : '#1E1E2E' }]}>
+          <Text style={styles.code} selectable>{content}</Text>
         </View>
       )}
     </View>
   );
 }
 
-function cb() {
-  const scaleFactor = useUIScale(1);
+function createCodeBlockStyles(scaleFactor: number) {
   return StyleSheet.create({
   wrapper: {
     marginVertical: 8,
@@ -279,7 +278,7 @@ function cb() {
     padding: 4,
   },
   codeScroll: {
-    maxHeight: 300,
+    maxHeight: 300*scaleFactor,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
@@ -291,7 +290,7 @@ function cb() {
     color: '#CDD6F4',
     fontFamily: MONO_FONT,
     fontSize: 13*scaleFactor,
-    lineHeight: 20,
+    lineHeight: 20*scaleFactor,
   },
 });
 }
@@ -301,15 +300,17 @@ function cb() {
 //
 function ImageGrid({ urls, single }: { urls: string[]; single?: boolean }) {
   const scaleFactor = useUIScale(1);
+  const styles = createBubbleStyles(scaleFactor);
+
   if (single || urls.length === 1) {
     return (
-      <Image source={{ uri: urls[0] }} style={s().singleImage} resizeMode="cover" />
+      <Image source={{ uri: urls[0] }} style={styles.singleImage} resizeMode="cover" />
     );
   }
   return (
-    <View style={s().imageGrid}>
+    <View style={styles.imageGrid}>
       {urls.map((url, i) => (
-        <Image key={i} source={{ uri: url }} style={s().multiImage} resizeMode="cover" />
+        <Image key={i} source={{ uri: url }} style={styles.multiImage} resizeMode="cover" />
       ))}
     </View>
   );
@@ -320,7 +321,8 @@ function MessageBubble({ content, isUser, images, downloadBlocks }: MessageBubbl
   const themeMode = useSettingsStore(state => state.themeMode);
   const { colors, resolved } = useResolvedTheme(themeMode);
   const isDark = resolved === 'dark';
-  const mdStyles = createMdStyles(colors, isDark);
+  const styles = createBubbleStyles(scaleFactor);
+  const mdStyles = createMdStyles(colors, isDark, scaleFactor);
 
   // Track which download block index we're rendering
   const blockIndexRef = React.useRef(0);
@@ -359,21 +361,21 @@ function MessageBubble({ content, isUser, images, downloadBlocks }: MessageBubbl
     return (
       <View>
         {hasImages && <ImageGrid urls={images} />}
-        {content ? <Text style={s().userText}>{content}</Text> : null}
+        {content ? <Text style={styles.userText}>{content}</Text> : null}
       </View>
     );
   }
 
   if (!hasMath) {
     return (
-      <View style={s().aiContainer}>
+      <View style={styles.aiContainer}>
         <Markdown style={mdStyles} rules={mdRules}>{content || ''}</Markdown>
       </View>
     );
   }
 
   return (
-    <View style={s().aiContainer}>
+    <View style={styles.aiContainer}>
       {blocks.map((block, i) => {
         if (block.type === 'text') {
           const trimmed = block.value.trim();
@@ -395,18 +397,17 @@ function MessageBubble({ content, isUser, images, downloadBlocks }: MessageBubbl
 
 
 export default React.memo(MessageBubble);
-function s() {
-    const scaleFactor = useUIScale(1);
-    return StyleSheet.create({
-  userText: { color: '#FFF', fontSize: 16, lineHeight: 22 },
+function createBubbleStyles(scaleFactor: number) {
+  return StyleSheet.create({
+  userText: { color: '#FFF', fontSize: 16*scaleFactor, lineHeight: 22*scaleFactor },
   aiContainer: {
     width: '100%',
     flexShrink: 1,
     alignSelf: 'stretch',
   },
-  singleImage: { width: 220, height: 280, borderRadius: 14, marginBottom: 8 },
+  singleImage: { width: 220*scaleFactor, height: 280*scaleFactor, borderRadius: 14, marginBottom: 8 },
   imageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 8 },
-  multiImage: { width: 120, height: 120, borderRadius: 10 },
+  multiImage: { width: 120*scaleFactor, height: 120*scaleFactor, borderRadius: 10 },
   mathBlockWrap: { width: '100%', minHeight: 30, marginVertical: 6, borderRadius: 8 },
   mathInlineWrap: { minHeight: 20, marginVertical: 2 },
 });
