@@ -30,8 +30,8 @@ import { ClarificationButtons } from '../components/ClarificationButtons';
 import { useReadAloud } from '../hooks/useReadAloud'
 import { useUIScale } from '../hooks/useUIScale';
 
-const ActionBtn = React.memo(({ icon: Icon, size = 15, color = '#AAA', onPress }: {
-  icon: any; size?: number; color?: string; onPress: () => void;
+const ActionBtn = React.memo(({ icon: Icon, size, color = '#AAA', onPress }: {
+  icon: any; size: number; color?: string; onPress: () => void;
 }) => (
   <TouchableOpacity onPress={onPress} activeOpacity={0.5} style={cs.actionBtnTouch}>
     <Icon color={color} size={size} />
@@ -94,6 +94,10 @@ export default function ChatScreen() {
   const themeMode = useSettingsStore(state => state.themeMode);
   const { colors } = useResolvedTheme(themeMode);
   const scaleFactor = useUIScale(1);
+  const scaled13 = useUIScale(13);
+  const scaled15 = useUIScale(15);
+  const scaled16 = useUIScale(16);
+  const scaled18 = useUIScale(18);
 
   const scrollRefs = useRef<Record<string, FlatList | null>>({});
 
@@ -177,7 +181,7 @@ export default function ChatScreen() {
               <View style={{ width, flex: 1 }}>
                 <View style={cs.emptyState}>
                   <MessageCircle size={48 * scaleFactor} color={colors.subtext} />
-                  <Text style={[cs.emptyText, { color: colors.subtext }]}>{t('askQuestion')}</Text>
+                  <Text style={[cs.emptyText, { color: colors.subtext, fontSize: scaled18 }]}>{t('askQuestion')}</Text>
                 </View>
               </View>
             );
@@ -222,10 +226,10 @@ export default function ChatScreen() {
                         <View style={isUser ? (displayText ? cs.userBubble : cs.userBubbleNoText) : cs.aiBubble}>
                           {isEditing ? (
                             <View>
-                              <TextInput autoFocus multiline value={editText} onChangeText={setEditText} style={cs.editInput} />
+                              <TextInput autoFocus multiline value={editText} onChangeText={setEditText} style={[cs.editInput, { fontSize: scaled16 }]} />
                               <View style={cs.editActions}>
-                                <TouchableOpacity onPress={() => setEditingMsgId(null)} style={cs.editBtn}><X color="#fff" size={16} /></TouchableOpacity>
-                                <TouchableOpacity onPress={handleConfirmEdit} style={[cs.editBtn, { backgroundColor: 'rgba(255,255,255,0.35)' }]}><Check color="#fff" size={16} /></TouchableOpacity>
+                                <TouchableOpacity onPress={() => setEditingMsgId(null)} style={cs.editBtn}><X color="#fff" size={scaled16} /></TouchableOpacity>
+                                <TouchableOpacity onPress={handleConfirmEdit} style={[cs.editBtn, { backgroundColor: 'rgba(255,255,255,0.35)' }]}><Check color="#fff" size={scaled16} /></TouchableOpacity>
                               </View>
                             </View>
                           ) : (
@@ -238,14 +242,14 @@ export default function ChatScreen() {
                         <View style={[cs.actionsRow, { justifyContent: isUser ? 'flex-end' : 'flex-start' }]}>
                           {isUser ? (
                             <>
-                              <ActionBtn icon={Pencil} onPress={() => { setEditingMsgId(msg.id); setEditText(displayText); }} />
-                              <ActionBtn icon={isCopied ? Check : Copy} color={isCopied ? '#34C759' : '#AAA'} onPress={() => handleCopy(msg.id, displayText)} />
+                              <ActionBtn icon={Pencil} size={scaled15} onPress={() => { setEditingMsgId(msg.id); setEditText(displayText); }} />
+                              <ActionBtn icon={isCopied ? Check : Copy} size={scaled15} color={isCopied ? '#34C759' : '#AAA'} onPress={() => handleCopy(msg.id, displayText)} />
                             </>
                           ) : (
                             <>
-                              <ActionBtn icon={isCopied ? Check : Copy} color={isCopied ? '#34C759' : '#AAA'} onPress={() => handleCopy(msg.id, displayText)} />
-                              <ActionBtn icon={RefreshCw} onPress={() => handleRegenerate(msg.id, modelName)} />
-                              <ActionBtn icon={speakingMsgId === msg.id ? VolumeX : Volume2} color={speakingMsgId === msg.id ? '#007AFF' : '#AAA'} onPress={() => toggleSpeech(msg.id, displayText)} />
+                              <ActionBtn icon={isCopied ? Check : Copy} size={scaled15} color={isCopied ? '#34C759' : '#AAA'} onPress={() => handleCopy(msg.id, displayText)} />
+                              <ActionBtn icon={RefreshCw} size={scaled15} onPress={() => handleRegenerate(msg.id, modelName)} />
+                              <ActionBtn icon={speakingMsgId === msg.id ? VolumeX : Volume2} size={scaled15} color={speakingMsgId === msg.id ? '#007AFF' : '#AAA'} onPress={() => toggleSpeech(msg.id, displayText)} />
                             </>
                           )}
                         </View>
@@ -261,7 +265,7 @@ export default function ChatScreen() {
                         />
                       )}
                       {showWaitingForOthers && (
-                        <Text style={{ color: colors.subtext, fontStyle: 'italic', fontSize: 13, marginTop: 8, marginLeft: 4 }}>
+                        <Text style={{ color: colors.subtext, fontStyle: 'italic', fontSize: scaled13, marginTop: 8, marginLeft: 4 }}>
                           {t('waitingForOtherModels')}
                         </Text>
                       )}
@@ -299,11 +303,11 @@ export default function ChatScreen() {
 const cs = StyleSheet.create({
   flex: { flex: 1 },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 80, opacity: 0.3 },
-  emptyText: { fontSize: 18 , marginTop: 16 },
+  emptyText: { marginTop: 16 },
   userBubble: { backgroundColor: '#007AFF', padding: 16, borderRadius: 24, maxWidth: '85%' },
   userBubbleNoText: { maxWidth: '85%' },
   aiBubble: { maxWidth: '100%', paddingRight: 4 },
-  editInput: { fontSize: 16, color: '#fff', minHeight: 40 },
+  editInput: { color: '#fff', minHeight: 40 },
   editActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8, gap: 8 },
   editBtn: { padding: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)' },
   actionsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, paddingHorizontal: 4 },
