@@ -5,6 +5,7 @@
  */
 
 import * as FileSystem from 'expo-file-system';
+import * as Speech from 'expo-speech';
 import { chatService } from '../../services/chatService';
 import apiClient from '../../services/apiClient';
 import { personnalizationService } from '../../services/personnalizationService';
@@ -394,7 +395,6 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
         variables: {},
         model_item: modelItem,
         chat_id: currentChatId,
-        id: assistantMsgId,
         parent_id: userMsgId,
         parent_message: {
           id: userMsgId,
@@ -626,11 +626,17 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
             currentEventSources: [],
             currentTaskIds: [],
           });
-          if (useInterfaceSettingsStore.getState().optionsList['15'].value == true){ //iface_autocopy_response
+          const ifaceOpts = useInterfaceSettingsStore.getState().optionsList;
+          if (ifaceOpts['15']?.value === true) { //iface_autocopy_response
             await Clipboard.setStringAsync(fullContent);
           }
-          if (useInterfaceSettingsStore.getState().optionsList['40'].value == true) {//iface_auto_tts
-              useReadAloud(currentId, fullContent)
+          if (ifaceOpts['40']?.value === true) { //iface_auto_tts
+            try {
+              await Speech.stop();
+              Speech.speak(fullContent, { volume: 1.0 });
+            } catch (e) {
+              console.warn('[TTS] auto read failed:', e);
+            }
           }
           // Auto-save memories if LLM emitted a ```memory block
           const memoryFacts = parseMemoryBlock(fullContent);
@@ -769,7 +775,6 @@ export const createStreamingSlice = (set: any, get: any): StreamingSlice => ({
         variables: {},
         model_item: modelItem,
         chat_id: currentChatId,
-        id: assistantMsgId,
         parent_id: userMsgId,
       };
 

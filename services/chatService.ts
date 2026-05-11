@@ -4,9 +4,9 @@
  * @github https://github.com/assinscreedFC
  */
 
+import EventSource from 'react-native-sse';
 import apiClient from './apiClient';
 import { invalidateCache } from '../utils/apiCache';
-import EventSource from 'react-native-sse';
 import * as SecureStore from 'expo-secure-store';
 import type { ChatFolder } from '../types/api';
 
@@ -378,14 +378,11 @@ Reponds UNIQUEMENT l'id (avec ou sans +ade), rien d'autre.`;
 
     // Use fetch ONLY when messages contain base64 images (large body that
     // react-native-sse EventSource can't reliably transmit).
-    // For document-only payloads (PDF, etc.), EventSource works fine — the
-    // file refs are just small JSON IDs.
     const hasBase64Images = payload.messages?.some((m: any) =>
       Array.isArray(m.content) && m.content.some((p: any) => p.type === 'image_url')
     );
     console.log('[SSE] hasBase64Images:', hasBase64Images, 'payload.files:', payload.files?.length);
     if (hasBase64Images) {
-      // Mimic EventSource interface so streamingSlice can override .close()
       const fetchES: any = {
         _closed: false,
         _ready: null as Promise<void> | null,
@@ -395,22 +392,12 @@ Reponds UNIQUEMENT l'id (avec ou sans +ade), rien d'autre.`;
       };
       fetchES._ready = (async () => {
         try {
-          // Log the exact payload being sent
-          const parsed = JSON.parse(body);
-          console.log('[FETCH BODY] model:', parsed.model,
-            'files:', JSON.stringify(parsed.files?.map((f: any) => ({type:f.type,id:f.id}))),
-            'msg_files:', parsed.messages?.filter((m: any) => m.files).length,
-            'vision:', parsed.model_item?.info?.meta?.capabilities?.vision,
-            'body_size:', body.length);
-
           const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body,
           });
-          console.log('[FETCH RESP] status:', response.status, 'ct:', response.headers.get('content-type'));
           const responseText = await response.text();
-          console.log('[FETCH RESP] length:', responseText.length, 'first200:', responseText.substring(0, 200));
           for (const line of responseText.split('\n')) {
             if (fetchES._closed) break;
             if (line.startsWith('data: ') && !line.includes('[DONE]')) {
@@ -421,8 +408,6 @@ Reponds UNIQUEMENT l'id (avec ou sans +ade), rien d'autre.`;
               } catch {}
             }
           }
-          // Call .close() which by now has been overridden by streamingSlice
-          // with persistence logic (ADE loop, updateChat, chatCompleted)
           if (!fetchES._closed) {
             fetchES.close();
           }

@@ -17,6 +17,7 @@ import {
   Share2,
   Download,
   Trash2,
+  Sliders,
   CopyPlus,
   FileJson,
   FileText,
@@ -338,6 +339,17 @@ export default function Header({
             className="absolute top-[100px] right-4 rounded-2xl py-1.5 px-1 w-[200px] shadow-lg shadow-black/10 border"
             style={{ elevation: 8, backgroundColor: colors.card, borderColor: colors.border }}
           >
+            <TouchableOpacity
+              onPress={() => handleMenuAction(onOpenChatControls)}
+              activeOpacity={0.6}
+              className="flex-row items-center py-3 px-[14px] rounded-[10px]"
+            >
+              <Sliders color={colors.subtext} size={scaled17} />
+              <Text className="ml-3 font-medium" style={{ color: colors.text, fontSize: scaled14 }}>
+                {t('chatControls')}
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               onPress={() => handleMenuAction(handleOpenOverview)}
               activeOpacity={0.6}

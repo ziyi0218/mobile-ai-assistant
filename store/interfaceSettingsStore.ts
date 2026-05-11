@@ -48,13 +48,30 @@ const useInterfaceSettingsStore = create<InterfaceSettingsState>()(
              }}),
              {
                 name: "interface-settings-store",
-                version: 1,
+                version: 2,
                 storage: createJSONStorage(() => AsyncStorage),
-                migrate: (persistedState, version) => {
-                    if (version > persistedState.version) {
-                        return initialOptionsList; //This is inelegant.
+                migrate: (persistedState: any) => {
+                    const merged = { ...initialOptionsList };
+                    const persistedOpts = persistedState?.optionsList ?? {};
+                    for (const key of Object.keys(merged)) {
+                        const v = persistedOpts[key]?.value;
+                        if (v !== undefined) {
+                            merged[key] = { ...merged[key], value: v };
+                        }
                     }
-                  },
+                    return { ...persistedState, optionsList: merged };
+                },
+                merge: (persistedState: any, currentState: any) => {
+                    const persistedOpts = persistedState?.optionsList ?? {};
+                    const merged = { ...initialOptionsList };
+                    for (const key of Object.keys(merged)) {
+                        const v = persistedOpts[key]?.value;
+                        if (v !== undefined) {
+                            merged[key] = { ...merged[key], value: v };
+                        }
+                    }
+                    return { ...currentState, ...persistedState, optionsList: merged };
+                },
             }
     )
 );

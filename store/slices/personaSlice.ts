@@ -72,7 +72,13 @@ export const createPersonaSlice = (set: any, get: any): PersonaSlice => ({
   activePersonaId: null,
   autoPersona: false,
 
-  setAutoPersona: (value) => set({ autoPersona: value }),
+  setAutoPersona: (value) => {
+    if (!value) {
+      set({ autoPersona: false, activePersonaId: null });
+    } else {
+      set({ autoPersona: true });
+    }
+  },
 
   initBuiltInPersonas: () => {
     const { personas } = get();
