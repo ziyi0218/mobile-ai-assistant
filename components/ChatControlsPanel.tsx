@@ -10,6 +10,8 @@ import { TranslationKey } from '../i18n';
 import type { LLMParams } from '../store/slices/settingsSlice';
 import type { Persona } from '../types/persona';
 import PersonaSelector from './PersonaSelector';
+import { useSettingsStore } from '../store/useSettingsStore';
+import { useResolvedTheme } from '../utils/theme';
 
 interface ChatControlsPanelProps {
     visible: boolean;
@@ -29,27 +31,30 @@ interface ChatControlsPanelProps {
 }
 
 // ─── Reusable param row ────────────────────────────────────────
-function ParamRow({ label, subtitle, icon, iconBg, iconColor, expanded, onToggle, children }: {
+function ParamRow({ label, subtitle, icon, iconBg, expanded, onToggle, children }: {
     label: string; subtitle: string;
-    icon: React.ReactNode; iconBg: string; iconColor?: string;
+    icon: React.ReactNode; iconBg: string;
     expanded: boolean; onToggle: () => void; children: React.ReactNode;
 }) {
+    const themeMode = useSettingsStore((state) => state.themeMode);
+    const { colors } = useResolvedTheme(themeMode);
+
     return (
-        <View className="bg-[#F9F9F9] rounded-[16px] p-4 border border-[#EAEAEA]">
+        <View className="rounded-[16px] p-4 border" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
             <TouchableOpacity onPress={onToggle} className="flex-row items-center justify-between">
                 <View className="flex-row items-center gap-3">
                     <View className={`w-8 h-8 rounded-lg items-center justify-center`} style={{ backgroundColor: iconBg }}>
                         {icon}
                     </View>
                     <View>
-                        <Text className="text-[15px] font-semibold text-[#333]">{label}</Text>
-                        <Text className="text-[13px] text-[#666]">{subtitle}</Text>
+                        <Text className="text-[15px] font-semibold" style={{ color: colors.text }}>{label}</Text>
+                        <Text className="text-[13px]" style={{ color: colors.subtext }}>{subtitle}</Text>
                     </View>
                 </View>
-                {expanded ? <ChevronDown color="#666" size={20} /> : <ChevronRight color="#666" size={20} />}
+                {expanded ? <ChevronDown color={colors.subtext} size={20} /> : <ChevronRight color={colors.subtext} size={20} />}
             </TouchableOpacity>
             {expanded && (
-                <View className="mt-4 pt-4 border-t border-[#E5E5E5]">{children}</View>
+                <View className="mt-4 pt-4 border-t" style={{ borderTopColor: colors.border }}>{children}</View>
             )}
         </View>
     );
@@ -59,14 +64,17 @@ function Presets({ values, current, onSelect, color, compare }: {
     values: number[]; current: number; onSelect: (v: number) => void;
     color: string; compare?: (a: number, b: number) => boolean;
 }) {
+    const themeMode = useSettingsStore((state) => state.themeMode);
+    const { colors } = useResolvedTheme(themeMode);
     const isActive = compare || ((a: number, b: number) => a === b);
+
     return (
         <View className="flex-row justify-between mb-4">
             {values.map((v) => (
                 <TouchableOpacity key={v} onPress={() => onSelect(v)}
                     className={`flex-1 items-center py-2 mx-1 rounded-lg border`}
-                    style={{ backgroundColor: isActive(current, v) ? color : '#fff', borderColor: isActive(current, v) ? color : '#E5E5E5' }}>
-                    <Text className="text-[13px] font-medium" style={{ color: isActive(current, v) ? '#fff' : '#333' }}>{v}</Text>
+                    style={{ backgroundColor: isActive(current, v) ? color : colors.card, borderColor: isActive(current, v) ? color : colors.border }}>
+                    <Text className="text-[13px] font-medium" style={{ color: isActive(current, v) ? '#fff' : colors.text }}>{v}</Text>
                 </TouchableOpacity>
             ))}
         </View>
@@ -74,26 +82,42 @@ function Presets({ values, current, onSelect, color, compare }: {
 }
 
 function NumInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+    const themeMode = useSettingsStore((state) => state.themeMode);
+    const { colors } = useResolvedTheme(themeMode);
+
     return (
-        <TextInput value={value} onChangeText={onChange} keyboardType="numeric" placeholder={placeholder} placeholderTextColor="#999"
-            className="bg-white border border-[#E0E0E0] rounded-lg p-2 text-center font-semibold text-[#333]" />
+        <TextInput
+            value={value}
+            onChangeText={onChange}
+            keyboardType="numeric"
+            placeholder={placeholder}
+            placeholderTextColor={colors.subtext}
+            className="border rounded-lg p-2 text-center font-semibold"
+            style={{ backgroundColor: colors.bg, borderColor: colors.border, color: colors.text }}
+        />
     );
 }
 
 function SliderBar({ value, max, color }: { value: number; max: number; color: string }) {
+    const themeMode = useSettingsStore((state) => state.themeMode);
+    const { colors } = useResolvedTheme(themeMode);
+
     return (
         <View className="flex-row items-center gap-4 mb-3">
-            <Text className="text-[13px] text-[#999]">0</Text>
-            <View className="flex-1 h-2 bg-[#E0E0E0] rounded-full overflow-hidden">
+            <Text className="text-[13px]" style={{ color: colors.subtext }}>0</Text>
+            <View className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.border }}>
                 <View className="h-full rounded-full" style={{ width: `${Math.min((value / max) * 100, 100)}%`, backgroundColor: color }} />
             </View>
-            <Text className="text-[13px] text-[#999]">{max}</Text>
+            <Text className="text-[13px]" style={{ color: colors.subtext }}>{max}</Text>
         </View>
     );
 }
 
 function HelpText({ text }: { text: string }) {
-    return <Text className="mt-2 text-[12px] text-[#999] text-center">{text}</Text>;
+    const themeMode = useSettingsStore((state) => state.themeMode);
+    const { colors } = useResolvedTheme(themeMode);
+
+    return <Text className="mt-2 text-[12px] text-center" style={{ color: colors.subtext }}>{text}</Text>;
 }
 
 // ─── Nullable number param helper ──────────────────────────────
@@ -109,20 +133,31 @@ export default function ChatControlsPanel({
     const [activeTab, setActiveTab] = useState<'personas' | 'parameters' | 'system' | 'advanced'>('parameters');
     const [expanded, setExpanded] = useState<string>('');
     const toggle = (s: string) => setExpanded(expanded === s ? '' : s);
+    const themeMode = useSettingsStore((state) => state.themeMode);
+    const { colors, resolved } = useResolvedTheme(themeMode);
+    const isDark = resolved === 'dark';
+    const accent = '#007AFF';
+    const infoBg = isDark ? '#102033' : '#F0F7FF';
+    const infoText = isDark ? '#A8D1FF' : '#004085';
+    const closeButtonBg = isDark ? '#262633' : '#F5F5F5';
+    const okBg = isDark ? '#14331E' : '#E8F5E9';
+    const okText = isDark ? '#8FE3A2' : '#2E7D32';
+    const clearBg = isDark ? '#3A1717' : '#FFEBEB';
+    const clearText = isDark ? '#FF9A9A' : '#D32F2F';
 
     const approx = (a: number, b: number) => Math.abs(a - b) < 0.05;
 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            <View className="flex-1 justify-end bg-black/50">
+            <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
                 <Pressable className="flex-1" onPress={onClose} />
 
-                <View className="bg-white rounded-t-[24px] h-[85%] shadow-lg shadow-black/20 overflow-hidden">
+                <View className="rounded-t-[24px] h-[85%] shadow-lg shadow-black/20 overflow-hidden" style={{ backgroundColor: colors.bg }}>
                     {/* Header */}
-                    <View className="flex-row items-center justify-between px-5 py-4 border-b border-[#F0F0F0]">
-                        <Text className="text-[18px] font-bold text-[#111]">{t('chatControls')}</Text>
-                        <TouchableOpacity onPress={onClose} className="w-8 h-8 rounded-full bg-[#F5F5F5] items-center justify-center">
-                            <X color="#666" size={20} />
+                    <View className="flex-row items-center justify-between px-5 py-4 border-b" style={{ borderBottomColor: colors.border }}>
+                        <Text className="text-[18px] font-bold" style={{ color: colors.text }}>{t('chatControls')}</Text>
+                        <TouchableOpacity onPress={onClose} className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: closeButtonBg }}>
+                            <X color={colors.subtext} size={20} />
                         </TouchableOpacity>
                     </View>
 
@@ -130,8 +165,12 @@ export default function ChatControlsPanel({
                     <View className="flex-row px-5 pt-4 pb-2">
                         {(['personas', 'parameters', 'advanced', 'system'] as const).map((tab) => (
                             <TouchableOpacity key={tab} onPress={() => setActiveTab(tab)}
-                                className={`mr-5 pb-2 border-b-2 ${activeTab === tab ? 'border-[#007AFF]' : 'border-transparent'}`}>
-                                <Text className={`text-[14px] font-medium ${activeTab === tab ? 'text-[#007AFF]' : 'text-[#666]'}`}>
+                                className="mr-5 pb-2 border-b-2"
+                                style={{ borderBottomColor: activeTab === tab ? accent : 'transparent' }}>
+                                <Text
+                                    className="text-[14px] font-medium"
+                                    style={{ color: activeTab === tab ? accent : colors.subtext }}
+                                >
                                     {tab === 'personas' ? t('personas') : tab === 'parameters' ? t('parameters') : tab === 'advanced' ? t('advancedSettings') : t('systemPrompt')}
                                 </Text>
                             </TouchableOpacity>
@@ -143,12 +182,15 @@ export default function ChatControlsPanel({
                         {activeTab === 'personas' && (
                             <View className="gap-3">
                                 {/* Auto-detection toggle */}
-                                <View className="bg-[#F9F9F9] rounded-[16px] p-4 border border-[#EAEAEA] flex-row items-center justify-between">
+                                <View
+                                    className="rounded-[16px] p-4 border flex-row items-center justify-between"
+                                    style={{ backgroundColor: colors.card, borderColor: colors.border }}
+                                >
                                     <View className="flex-1 mr-3">
-                                        <Text className="text-[15px] font-semibold text-[#333]">{t('autoPersona')}</Text>
-                                        <Text className="text-[12px] text-[#666] mt-0.5">{t('autoPersonaDesc')}</Text>
+                                        <Text className="text-[15px] font-semibold" style={{ color: colors.text }}>{t('autoPersona')}</Text>
+                                        <Text className="text-[12px] mt-0.5" style={{ color: colors.subtext }}>{t('autoPersonaDesc')}</Text>
                                     </View>
-                                    <Switch value={autoPersona} onValueChange={onAutoPersonaChange} trackColor={{ true: '#007AFF' }} />
+                                    <Switch value={autoPersona} onValueChange={onAutoPersonaChange} trackColor={{ false: colors.border, true: accent }} />
                                 </View>
                                 {/* Manual persona selector (dimmed when auto is on) */}
                                 <View style={{ opacity: autoPersona ? 0.5 : 1 }} pointerEvents={autoPersona ? 'none' : 'auto'}>
@@ -158,6 +200,7 @@ export default function ChatControlsPanel({
                                         onSelect={onSelectPersona}
                                         onCreatePress={onCreatePersonaPress}
                                         t={t}
+                                        colors={colors}
                                     />
                                 </View>
                             </View>
@@ -167,9 +210,12 @@ export default function ChatControlsPanel({
                         {activeTab === 'parameters' && (
                             <View className="gap-4">
                                 {/* Stream toggle */}
-                                <View className="bg-[#F9F9F9] rounded-[16px] p-4 border border-[#EAEAEA] flex-row items-center justify-between">
-                                    <Text className="text-[15px] font-semibold text-[#333]">{t('streamResponse')}</Text>
-                                    <Switch value={params.streamResponse} onValueChange={(v) => onParamChange('streamResponse', v)} trackColor={{ true: '#007AFF' }} />
+                                <View
+                                    className="rounded-[16px] p-4 border flex-row items-center justify-between"
+                                    style={{ backgroundColor: colors.card, borderColor: colors.border }}
+                                >
+                                    <Text className="text-[15px] font-semibold" style={{ color: colors.text }}>{t('streamResponse')}</Text>
+                                    <Switch value={params.streamResponse} onValueChange={(v) => onParamChange('streamResponse', v)} trackColor={{ false: colors.border, true: accent }} />
                                 </View>
 
                                 {/* Temperature */}
@@ -228,9 +274,9 @@ export default function ChatControlsPanel({
                                 </ParamRow>
 
                                 {/* Info */}
-                                <View className="bg-[#F0F7FF] p-4 rounded-xl flex-row items-start gap-3">
-                                    <Info color="#007AFF" size={20} style={{ marginTop: 2 }} />
-                                    <Text className="flex-1 text-[13px] text-[#004085] leading-5">{t('parametersInfo')}</Text>
+                                <View className="p-4 rounded-xl flex-row items-start gap-3" style={{ backgroundColor: infoBg }}>
+                                    <Info color={accent} size={20} style={{ marginTop: 2 }} />
+                                    <Text className="flex-1 text-[13px] leading-5" style={{ color: infoText }}>{t('parametersInfo')}</Text>
                                 </View>
                             </View>
                         )}
@@ -286,13 +332,14 @@ export default function ChatControlsPanel({
                                     icon={<X color="#F44336" size={18} />} iconBg="#FFEBEE"
                                     expanded={expanded === 'stop'} onToggle={() => toggle('stop')}>
                                     <TextInput value={params.stop || ''} onChangeText={(t) => onParamChange('stop', t || null)}
-                                        placeholder={t('stopPlaceholder')} placeholderTextColor="#999"
-                                        className="bg-white border border-[#E0E0E0] rounded-lg p-2 text-[14px] text-[#333]" />
+                                        placeholder={t('stopPlaceholder')} placeholderTextColor={colors.subtext}
+                                        className="border rounded-lg p-2 text-[14px]"
+                                        style={{ backgroundColor: colors.bg, borderColor: colors.border, color: colors.text }} />
                                     <HelpText text={t('stopInfo')} />
                                 </ParamRow>
 
                                 {/* ── Mirostat Group ── */}
-                                <Text className="text-[13px] font-bold text-[#999] uppercase mt-2">Mirostat</Text>
+                                <Text className="text-[13px] font-bold uppercase mt-2" style={{ color: colors.subtext }}>Mirostat</Text>
 
                                 <ParamRow label="Mirostat" subtitle={params.mirostat != null ? `Mode ${params.mirostat}` : t('disabled')}
                                     icon={<Brain color="#673AB7" size={18} />} iconBg="#EDE7F6"
@@ -316,16 +363,19 @@ export default function ChatControlsPanel({
                                 </ParamRow>
 
                                 {/* ── Ollama Group ── */}
-                                <Text className="text-[13px] font-bold text-[#999] uppercase mt-2">Ollama</Text>
+                                <Text className="text-[13px] font-bold uppercase mt-2" style={{ color: colors.subtext }}>Ollama</Text>
 
-                                <View className="bg-[#F9F9F9] rounded-[16px] p-4 border border-[#EAEAEA] flex-row items-center justify-between">
+                                <View
+                                    className="rounded-[16px] p-4 border flex-row items-center justify-between"
+                                    style={{ backgroundColor: colors.card, borderColor: colors.border }}
+                                >
                                     <View className="flex-row items-center gap-3">
-                                        <View className="w-8 h-8 rounded-lg bg-[#E3F2FD] items-center justify-center">
+                                        <View className="w-8 h-8 rounded-lg items-center justify-center" style={{ backgroundColor: isDark ? '#12324F' : '#E3F2FD' }}>
                                             <Brain color="#2196F3" size={18} />
                                         </View>
-                                        <Text className="text-[15px] font-semibold text-[#333]">Think (Ollama)</Text>
+                                        <Text className="text-[15px] font-semibold" style={{ color: colors.text }}>Think (Ollama)</Text>
                                     </View>
-                                    <Switch value={params.think} onValueChange={(v) => onParamChange('think', v)} trackColor={{ true: '#2196F3' }} />
+                                    <Switch value={params.think} onValueChange={(v) => onParamChange('think', v)} trackColor={{ false: colors.border, true: '#2196F3' }} />
                                 </View>
 
                                 <ParamRow label="num_ctx" subtitle={nullableStr(params.numCtx) || t('default')}
@@ -355,42 +405,45 @@ export default function ChatControlsPanel({
                         {/* ═══ TAB: System Prompt ═══ */}
                         {activeTab === 'system' && (
                             <View className="flex-1">
-                                <View className="bg-[#F9F9F9] rounded-[16px] p-4 border border-[#EAEAEA] flex-1">
+                                <View
+                                    className="rounded-[16px] p-4 border flex-1"
+                                    style={{ backgroundColor: colors.card, borderColor: colors.border }}
+                                >
                                     <View className="flex-row items-center gap-2 mb-3">
-                                        <FileText color="#333" size={18} />
-                                        <Text className="text-[15px] font-semibold text-[#333]">{t('customSystemPrompt')}</Text>
+                                        <FileText color={colors.text} size={18} />
+                                        <Text className="text-[15px] font-semibold" style={{ color: colors.text }}>{t('customSystemPrompt')}</Text>
                                     </View>
                                     <TextInput multiline blurOnSubmit={false} returnKeyType="default"
                                         value={systemPrompt} onChangeText={onSystemPromptChange}
-                                        placeholder={t('systemPromptPlaceholder')} placeholderTextColor="#999"
-                                        className="flex-1 bg-white border border-[#E0E0E0] rounded-xl p-3 text-[15px] leading-6 text-[#333]"
-                                        style={{ textAlignVertical: 'top', minHeight: 200 }} />
+                                        placeholder={t('systemPromptPlaceholder')} placeholderTextColor={colors.subtext}
+                                        className="flex-1 border rounded-xl p-3 text-[15px] leading-6"
+                                        style={{ textAlignVertical: 'top', minHeight: 200, backgroundColor: colors.bg, borderColor: colors.border, color: colors.text }} />
                                     <View className="mt-3 flex-row justify-end gap-2">
-                                        <TouchableOpacity onPress={() => Keyboard.dismiss()} className="px-3 py-1.5 bg-[#E8F5E9] rounded-lg">
-                                            <Text className="text-[12px] font-medium text-[#2E7D32]">OK</Text>
+                                        <TouchableOpacity onPress={() => Keyboard.dismiss()} className="px-3 py-1.5 rounded-lg" style={{ backgroundColor: okBg }}>
+                                            <Text className="text-[12px] font-medium" style={{ color: okText }}>OK</Text>
                                         </TouchableOpacity>
-                                        <TouchableOpacity onPress={() => onSystemPromptChange("")} className="px-3 py-1.5 bg-[#FFEBEB] rounded-lg">
-                                            <Text className="text-[12px] font-medium text-[#D32F2F]">{t('clear')}</Text>
+                                        <TouchableOpacity onPress={() => onSystemPromptChange("")} className="px-3 py-1.5 rounded-lg" style={{ backgroundColor: clearBg }}>
+                                            <Text className="text-[12px] font-medium" style={{ color: clearText }}>{t('clear')}</Text>
                                         </TouchableOpacity>
                                     </View>
                                 </View>
-                                <View className="mt-4 bg-[#F0F7FF] p-4 rounded-xl flex-row items-start gap-3">
-                                    <Info color="#007AFF" size={20} style={{ marginTop: 2 }} />
-                                    <Text className="flex-1 text-[13px] text-[#004085] leading-5">{t('systemPromptInfo')}</Text>
+                                <View className="mt-4 p-4 rounded-xl flex-row items-start gap-3" style={{ backgroundColor: infoBg }}>
+                                    <Info color={accent} size={20} style={{ marginTop: 2 }} />
+                                    <Text className="flex-1 text-[13px] leading-5" style={{ color: infoText }}>{t('systemPromptInfo')}</Text>
                                 </View>
                             </View>
                         )}
                     </ScrollView>
 
                     {/* Footer */}
-                    <View className="p-5 border-t border-[#F0F0F0] bg-white">
+                    <View className="p-5 border-t" style={{ backgroundColor: colors.bg, borderTopColor: colors.border }}>
                         <View className="flex-row gap-3">
-                            <TouchableOpacity onPress={onResetToDefaults} className="flex-1 bg-[#F5F5F5] py-3.5 rounded-xl items-center flex-row justify-center gap-2">
-                                <RotateCcw color="#666" size={16} />
-                                <Text className="text-[#666] font-semibold text-[16px]">{t('resetDefaults')}</Text>
+                            <TouchableOpacity onPress={onResetToDefaults} className="flex-1 py-3.5 rounded-xl items-center flex-row justify-center gap-2" style={{ backgroundColor: colors.card }}>
+                                <RotateCcw color={colors.subtext} size={16} />
+                                <Text className="font-semibold text-[16px]" style={{ color: colors.subtext }}>{t('resetDefaults')}</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={onClose} className="flex-1 bg-[#111] py-3.5 rounded-xl items-center">
-                                <Text className="text-white font-semibold text-[16px]">{t('done')}</Text>
+                            <TouchableOpacity onPress={onClose} className="flex-1 py-3.5 rounded-xl items-center" style={{ backgroundColor: colors.text }}>
+                                <Text className="font-semibold text-[16px]" style={{ color: colors.bg }}>{t('done')}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

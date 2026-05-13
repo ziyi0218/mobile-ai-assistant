@@ -8,6 +8,9 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Plus, XCircle } from 'lucide-react-native';
 import type { Persona } from '../types/persona';
 import type { TranslationKey } from '../i18n';
+import type { useResolvedTheme } from '../utils/theme';
+
+type ThemeColors = ReturnType<typeof useResolvedTheme>['colors'];
 
 interface PersonaSelectorProps {
   personas: Persona[];
@@ -15,6 +18,7 @@ interface PersonaSelectorProps {
   onSelect: (id: string | null) => void;
   onCreatePress: () => void;
   t: (key: TranslationKey) => string;
+  colors: ThemeColors;
 }
 
 export default function PersonaSelector({
@@ -23,8 +27,10 @@ export default function PersonaSelector({
   onSelect,
   onCreatePress,
   t,
+  colors,
 }: PersonaSelectorProps) {
   const isNoneActive = activePersonaId === null;
+  const selectedColor = '#007AFF';
 
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
@@ -32,22 +38,23 @@ export default function PersonaSelector({
         {/* No persona card */}
         <TouchableOpacity
           onPress={() => onSelect(null)}
-          className="bg-[#F9F9F9] rounded-[16px] p-4 flex-row items-center gap-3"
+          className="rounded-[16px] p-4 flex-row items-center gap-3"
           style={{
+            backgroundColor: colors.card,
             borderWidth: 2,
-            borderColor: isNoneActive ? '#007AFF' : '#EAEAEA',
+            borderColor: isNoneActive ? selectedColor : colors.border,
           }}
         >
-          <View className="w-10 h-10 rounded-xl bg-[#F0F0F0] items-center justify-center">
-            <XCircle color="#999" size={20} />
+          <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: colors.bg }}>
+            <XCircle color={colors.subtext} size={20} />
           </View>
           <View className="flex-1">
-            <Text className="text-[15px] font-semibold text-[#333]">
+            <Text className="text-[15px] font-semibold" style={{ color: colors.text }}>
               {t('noPersonaSelected')}
             </Text>
           </View>
           {isNoneActive && (
-            <View className="w-3 h-3 rounded-full bg-[#007AFF]" />
+            <View className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedColor }} />
           )}
         </TouchableOpacity>
 
@@ -61,25 +68,26 @@ export default function PersonaSelector({
             <TouchableOpacity
               key={persona.id}
               onPress={() => onSelect(persona.id)}
-              className="bg-[#F9F9F9] rounded-[16px] p-4 flex-row items-center gap-3"
+              className="rounded-[16px] p-4 flex-row items-center gap-3"
               style={{
+                backgroundColor: colors.card,
                 borderWidth: 2,
-                borderColor: isActive ? '#007AFF' : '#EAEAEA',
+                borderColor: isActive ? selectedColor : colors.border,
               }}
             >
-              <View className="w-10 h-10 rounded-xl bg-[#F0F0F0] items-center justify-center">
+              <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: colors.bg }}>
                 <Text className="text-[20px]">{persona.icon}</Text>
               </View>
               <View className="flex-1">
-                <Text className="text-[15px] font-semibold text-[#333]">
+                <Text className="text-[15px] font-semibold" style={{ color: colors.text }}>
                   {displayName}
                 </Text>
-                <Text className="text-[13px] text-[#666] mt-0.5" numberOfLines={1}>
+                <Text className="text-[13px] mt-0.5" style={{ color: colors.subtext }} numberOfLines={1}>
                   {displayDesc}
                 </Text>
               </View>
               {isActive && (
-                <View className="w-3 h-3 rounded-full bg-[#007AFF]" />
+                <View className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedColor }} />
               )}
             </TouchableOpacity>
           );
@@ -89,7 +97,7 @@ export default function PersonaSelector({
         <TouchableOpacity
           onPress={onCreatePress}
           style={{
-            backgroundColor: '#F0F7FF',
+            backgroundColor: colors.card,
             borderRadius: 16,
             padding: 16,
             flexDirection: 'row',
@@ -98,12 +106,12 @@ export default function PersonaSelector({
             gap: 8,
             borderWidth: 1,
             borderStyle: 'dashed',
-            borderColor: '#007AFF',
+            borderColor: selectedColor,
             minHeight: 56,
           }}
         >
-          <Plus color="#007AFF" size={18} />
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#007AFF' }}>
+          <Plus color={selectedColor} size={18} />
+          <Text style={{ fontSize: 14, fontWeight: '600', color: selectedColor }}>
             {t('createPersona')}
           </Text>
         </TouchableOpacity>

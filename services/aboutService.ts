@@ -498,6 +498,12 @@ const API_ROOT =
 const VERSION_UPDATES_ROUTE =
   process.env.EXPO_PUBLIC_ABOUT_UPDATES_ROUTE || "/version/updates";
 
+const OLLAMA_API_ROOT =
+  process.env.EXPO_PUBLIC_OLLAMA_API_ROOT || API_ROOT.replace(/\/api\/?$/, "");
+
+const OLLAMA_VERSION_ROUTE =
+  process.env.EXPO_PUBLIC_OLLAMA_VERSION_ROUTE || "/ollama/api/version";
+
 function normalizeVersionUpdates(payload: any): AboutVersionUpdates {
   const data =
     payload && typeof payload === "object" && "data" in payload ? payload.data : payload;
@@ -508,6 +514,17 @@ function normalizeVersionUpdates(payload: any): AboutVersionUpdates {
   };
 }
 
+function normalizeOllamaVersion(payload: any): string {
+  const data =
+    payload && typeof payload === "object" && "data" in payload ? payload.data : payload;
+
+  if (typeof data === "string") return data;
+  if (typeof data?.version === "string") return data.version;
+  if (typeof data?.ollama?.version === "string") return data.ollama.version;
+
+  return "";
+}
+
 export const aboutService = {
   getVersionUpdates: async (): Promise<AboutVersionUpdates> => {
     const response = await apiClient.get(VERSION_UPDATES_ROUTE, {
@@ -516,6 +533,14 @@ export const aboutService = {
     });
 
     return normalizeVersionUpdates(response.data);
+  },
+  getOllamaVersion: async (): Promise<string> => {
+    const response = await apiClient.get(OLLAMA_VERSION_ROUTE, {
+      baseURL: OLLAMA_API_ROOT,
+      headers: { "x-no-cache": "1" },
+    });
+
+    return normalizeOllamaVersion(response.data);
   },
   getReleaseNotes: async (): Promise<Record<string, AboutReleaseNotesVersion>> => RELEASE_NOTES,
 };

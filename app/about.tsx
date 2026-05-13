@@ -89,7 +89,9 @@ export default function AboutScreen() {
   const { colors } = useResolvedTheme(themeMode);
   const [currentVersion, setCurrentVersion] = useState(APP_VERSION);
   const [latestVersion, setLatestVersion] = useState(APP_VERSION);
+  const [ollamaVersion, setOllamaVersion] = useState(OLLAMA_VERSION);
   const [isLoadingVersion, setIsLoadingVersion] = useState(true);
+  const [isLoadingOllamaVersion, setIsLoadingOllamaVersion] = useState(true);
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const [releaseNotes, setReleaseNotes] = useState<Record<string, AboutReleaseNotesVersion>>({});
   const [isReleaseNotesVisible, setIsReleaseNotesVisible] = useState(false);
@@ -106,24 +108,28 @@ export default function AboutScreen() {
 
     const loadVersionUpdates = async () => {
       try {
-        const [updates, notes] = await Promise.all([
-          aboutService.getVersionUpdates(),
+        const [updates, notes, syncedOllamaVersion] = await Promise.all([
+          aboutService.getVersionUpdates().catch(() => null),
           aboutService.getReleaseNotes(),
+          aboutService.getOllamaVersion().catch(() => ""),
         ]);
 
         if (!isActive) return;
 
-        setCurrentVersion(updates.current || APP_VERSION);
-        setLatestVersion(updates.latest || updates.current || APP_VERSION);
+        setCurrentVersion(updates?.current || APP_VERSION);
+        setLatestVersion(updates?.latest || updates?.current || APP_VERSION);
+        setOllamaVersion(syncedOllamaVersion || OLLAMA_VERSION);
         setReleaseNotes(notes);
       } catch {
         if (!isActive) return;
 
         setCurrentVersion(APP_VERSION);
         setLatestVersion(APP_VERSION);
+        setOllamaVersion(OLLAMA_VERSION);
       } finally {
         if (isActive) {
           setIsLoadingVersion(false);
+          setIsLoadingOllamaVersion(false);
         }
       }
     };
@@ -158,12 +164,18 @@ export default function AboutScreen() {
     setIsCheckingUpdates(true);
 
     try {
-      const updates = await aboutService.getVersionUpdates();
+      const [updates, syncedOllamaVersion] = await Promise.all([
+        aboutService.getVersionUpdates(),
+        aboutService.getOllamaVersion().catch(() => ""),
+      ]);
       const nextCurrent = updates.current || APP_VERSION;
       const nextLatest = updates.latest || updates.current || APP_VERSION;
 
       setCurrentVersion(nextCurrent);
       setLatestVersion(nextLatest);
+      if (syncedOllamaVersion) {
+        setOllamaVersion(syncedOllamaVersion);
+      }
 
       if (nextLatest !== nextCurrent) {
         Alert.alert(
@@ -256,7 +268,7 @@ export default function AboutScreen() {
               </Text>
 
               <Text style={[styles.versionValue, { color: colors.text, fontSize: scaled16 }]}>
-                {isLoadingVersion ? t("loading") : versionStatus}
+                {isLoadingVersion ? t("aboutVersionLoading") : versionStatus}
               </Text>
 
               <Pressable onPress={handleOpenReleaseNotes} hitSlop={6}>
@@ -299,7 +311,9 @@ export default function AboutScreen() {
           >
             {t("aboutOllamaVersion")}
           </Text>
-          <Text style={[styles.versionValue, { color: colors.text, fontSize: scaled16 }]}>{OLLAMA_VERSION}</Text>
+          <Text style={[styles.versionValue, { color: colors.text, fontSize: scaled16 }]}>
+            {isLoadingOllamaVersion ? t("aboutVersionLoading") : ollamaVersion}
+          </Text>
         </SectionCard>
 
         <SectionCard colors={colors}>
