@@ -19,6 +19,7 @@ import {
   type SidebarUi,
 } from './SidebarUtils';
 import { useUIScale } from '../../hooks/useUIScale';
+import { useHaptics } from '../../hooks/useHaptics';
 
 export function SidebarPromptModal({
   state,
@@ -38,6 +39,7 @@ export function SidebarPromptModal({
   const scaled14 = useUIScale(14);
   const scaled15 = useUIScale(15);
   const scaled17 = useUIScale(17);
+  const { haptics } = useHaptics();
 
   useEffect(() => {
     setValue(state.value);
@@ -46,7 +48,7 @@ export function SidebarPromptModal({
   return (
     <Modal transparent visible={state.visible} animationType="fade">
       <View style={[styles.overlay, { backgroundColor: ui.overlay }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <Pressable style={StyleSheet.absoluteFill} onPress={() => { haptics('light'); onClose(); }} />
         <View style={[styles.dialog, { backgroundColor: ui.dialogBg, borderColor: colors.border }]}>
           <Text style={[styles.dialogTitle, { color: colors.text, fontSize: scaled17 }]}>{state.title}</Text>
           <TextInput
@@ -66,7 +68,7 @@ export function SidebarPromptModal({
             autoFocus
           />
           <View style={styles.dialogActions}>
-            <TouchableOpacity onPress={onClose} style={styles.dialogGhostButton} activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => { haptics('light'); onClose(); }} style={styles.dialogGhostButton} activeOpacity={0.7}>
               <Text style={[styles.dialogGhostText, { color: colors.subtext, fontSize: scaled14 }]}>
                 {cancelLabel}
               </Text>
@@ -84,6 +86,7 @@ export function SidebarPromptModal({
                 setSaving(true);
                 try {
                   await state.onSubmit(value.trim());
+                  haptics('success');
                   onClose();
                 } finally {
                   setSaving(false);
@@ -118,11 +121,12 @@ export function SidebarActionSheet({
 }) {
   const scaled15 = useUIScale(15);
   const scaled16 = useUIScale(16);
+  const { haptics } = useHaptics();
 
   return (
     <Modal transparent visible={visible} animationType="none">
       <View style={[styles.overlay, { backgroundColor: ui.overlay }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <Pressable style={StyleSheet.absoluteFill} onPress={() => { haptics('light'); onClose(); }} />
         <View style={[styles.sheet, { backgroundColor: ui.dialogBg, borderColor: colors.border }]}>
           {!!title && <Text style={[styles.sheetTitle, { color: colors.text, fontSize: scaled16 }]}>{title}</Text>}
           {actions.map((action) => (
@@ -131,6 +135,7 @@ export function SidebarActionSheet({
               style={styles.sheetItem}
               activeOpacity={0.75}
               onPress={() => {
+                haptics(action.danger ? 'warning' : 'light');
                 onClose();
                 requestAnimationFrame(() => {
                   requestAnimationFrame(() => {
@@ -180,11 +185,12 @@ export function SidebarFolderPickerModal({
   const scaled15 = useUIScale(15);
   const scaled16 = useUIScale(16);
   const scaled18 = useUIScale(18);
+  const { haptics } = useHaptics();
 
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
       <View style={[styles.overlay, { backgroundColor: ui.overlay }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <Pressable style={StyleSheet.absoluteFill} onPress={() => { haptics('light'); onClose(); }} />
         <View style={[styles.sheet, { maxHeight: 480, backgroundColor: ui.dialogBg, borderColor: colors.border }]}>
           <Text style={[styles.sheetTitle, { color: colors.text, fontSize: scaled16 }]}>{title}</Text>
 
@@ -194,6 +200,7 @@ export function SidebarFolderPickerModal({
                 style={styles.sheetItem}
                 activeOpacity={0.75}
                 onPress={async () => {
+                  haptics('light');
                   await onSelect(null);
                 }}
               >
@@ -212,6 +219,7 @@ export function SidebarFolderPickerModal({
                 style={styles.sheetItem}
                 activeOpacity={0.75}
                 onPress={async () => {
+                  haptics('light');
                   await onSelect(folder.id);
                 }}
               >

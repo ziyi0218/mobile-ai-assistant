@@ -27,6 +27,7 @@ import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
 import { useI18n } from "../i18n/useI18n";
 import { useUIScale } from "../hooks/useUIScale";
+import { useHaptics } from "../hooks/useHaptics";
 
 export default function CompteScreen() {
   const router = useRouter();
@@ -41,6 +42,7 @@ export default function CompteScreen() {
   const scaled15 = useUIScale(15);
   const scaled14 = useUIScale(14);
   const scaleFactor = useUIScale(1);
+  const { haptics } = useHaptics();
 
   const [profileId, setProfileId] = useState<string | null>(null);
   const [email, setEmail] = useState("");
@@ -234,7 +236,10 @@ export default function CompteScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => {
+              haptics("light");
+              router.back();
+            }}
             style={[
               styles.backButton,
               {

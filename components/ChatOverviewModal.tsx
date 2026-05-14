@@ -13,7 +13,6 @@ import { Minus, Plus, X } from 'lucide-react-native';
 import { chatService } from '../services/chatService';
 import type { ChatData } from '../types/api';
 import type { TranslationKey } from '../i18n';
-import { useI18n } from '../i18n/useI18n';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useResolvedTheme } from '../utils/theme';
 import { buildChatOverview, type OverviewNode } from '../utils/chatOverview';
@@ -58,22 +57,8 @@ export default function ChatOverviewModal({
 }: ChatOverviewModalProps) {
   const themeMode = useSettingsStore((state) => state.themeMode);
   const { colors, resolved } = useResolvedTheme(themeMode);
-  const { i18n } = useI18n();
   const isDark = resolved === 'dark';
   const overviewCopy = useMemo(() => {
-    if (i18n.language.startsWith('zh')) {
-      return {
-        title: '聊天总览',
-        openFirst: '请先打开一个对话。',
-        empty: '这个对话暂时没有可展示的内容。',
-        hint: '可缩放总览画布，点击气泡查看完整内容。',
-        you: '你',
-        assistant: '助手',
-        latest: '当前',
-        mediaOnly: '[附件或非文本内容]',
-      };
-    }
-
     return {
       title: t('chatOverview'),
       openFirst: t('overviewOpenChatFirst'),
@@ -84,7 +69,7 @@ export default function ChatOverviewModal({
       latest: t('overviewLatest'),
       mediaOnly: t('overviewMediaOnly'),
     };
-  }, [i18n.language, t]);
+  }, [t]);
 
   const [chatData, setChatData] = useState<ChatData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -141,8 +126,9 @@ export default function ChatOverviewModal({
     [graph.nodes],
   );
 
-  const canvasWidth = Math.max(graph.width * scale, 320);
+  const canvasWidth = Math.max(graph.width * scale, 360);
   const canvasHeight = Math.max(graph.height * scale, 240);
+  const headerTitle = chatData?.title?.trim() || overviewCopy.title;
 
   const latestRing = isDark ? '#FFFFFF' : '#111111';
   const userCardBg = isDark ? '#17335A' : '#EFF5FF';
@@ -180,8 +166,12 @@ export default function ChatOverviewModal({
               <X size={18} color={colors.text} />
             </TouchableOpacity>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.text, fontSize: 19, fontWeight: '700' }}>
-                {overviewCopy.title}
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={{ color: colors.text, fontSize: 19, fontWeight: '700' }}
+              >
+                {headerTitle}
               </Text>
               <Text style={{ color: colors.subtext, fontSize: 12, marginTop: 2 }}>
                 {overviewCopy.hint}
@@ -259,10 +249,10 @@ export default function ChatOverviewModal({
             </Text>
           </View>
         ) : (
-          <ScrollView horizontal bounces={false} contentContainerStyle={{ flexGrow: 1 }}>
+          <ScrollView horizontal bounces={false}>
             <ScrollView
               bounces={false}
-              contentContainerStyle={{ padding: 16 }}
+              contentContainerStyle={{ padding: 16, alignItems: 'flex-start' }}
               showsVerticalScrollIndicator={false}
             >
               <View
@@ -281,7 +271,7 @@ export default function ChatOverviewModal({
                   height={canvasHeight}
                   style={{ position: 'absolute', top: 0, left: 0 }}
                 >
-                  {graph.edges.map((edge) => {
+                  {graph.edges.map((edge, index) => {
                     const from = nodeMap.get(edge.from);
                     const to = nodeMap.get(edge.to);
 
@@ -289,7 +279,7 @@ export default function ChatOverviewModal({
 
                     return (
                       <Path
-                        key={edge.id}
+                        key={`${edge.id || 'edge'}-${index}`}
                         d={buildOrthogonalPath(from, to, scale, edge.kind === 'followUp')}
                         stroke={linkColor}
                         strokeWidth={1.5}
@@ -300,14 +290,14 @@ export default function ChatOverviewModal({
                   })}
                 </Svg>
 
-                {graph.nodes.map((node) => {
+                {graph.nodes.map((node, index) => {
                   const isUser = node.role === 'user';
                   const cardBg = isUser ? userCardBg : assistantCardBg;
                   const borderColor = node.isLatest ? latestRing : isUser ? 'transparent' : assistantBorder;
 
                   return (
                     <Pressable
-                      key={node.id}
+                      key={`${node.id || 'node'}-${index}`}
                       onPress={() => setSelectedNode(node)}
                       style={{
                         position: 'absolute',

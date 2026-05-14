@@ -166,6 +166,7 @@ export default function ArchivedChatsScreen() {
     try {
       await unarchiveAllChats();
       setConfirmMode(null);
+      haptics("success");
     } catch (error) {
       console.error("Error unarchiving all chats:", error);
     }
@@ -191,12 +192,14 @@ export default function ArchivedChatsScreen() {
       }
 
       setConfirmMode(null);
+      haptics("success");
     } catch (error) {
       console.error("Erreur export archived chats:", error);
     }
   };
 
   const openDeleteConfirm = (chatId: string, chatTitle?: string | null) => {
+    haptics("warning");
     setSelectedChatId(chatId);
     setSelectedChatTitle(chatTitle || "Untitled chat");
     setConfirmMode("deleteOne");
@@ -210,6 +213,7 @@ export default function ArchivedChatsScreen() {
       setConfirmMode(null);
       setSelectedChatId(null);
       setSelectedChatTitle("");
+      haptics("success");
     } catch (error) {
       console.error("Error deleting archived chat:", error);
     }
@@ -240,7 +244,8 @@ export default function ArchivedChatsScreen() {
         </View>
 
         <Text style={[styles.title, { color: colors.text, fontSize: scaledTitleSize }]}>
-          — {t("archivedChats")} —       </Text>
+          — {t("archivedChats")} —
+        </Text>
 
         <View style={[styles.panel, { backgroundColor: colors.card, borderRadius: scaledPanelRadius }]}>
 

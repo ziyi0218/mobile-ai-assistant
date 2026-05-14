@@ -111,6 +111,7 @@ export default function DataControlsScreen() {
     try {
       await archiveAllChats();
       setConfirmMode(null);  
+      haptics("success");
     } catch (error) {
       console.error("Error archiving all chats:", error);
     }
@@ -120,6 +121,7 @@ export default function DataControlsScreen() {
     try {
       await unarchiveAllChats();
       setConfirmMode(null);
+      haptics("success");
     } catch (error) {
       console.error("Error unarchiving all chats:", error);
     }
@@ -155,6 +157,7 @@ export default function DataControlsScreen() {
       await fetchHistory();
       await fetchArchivedChats();
 
+      haptics("success");
       Alert.alert(t("importChats"), t("importChatsSuccess"));
     } catch (error) {
       console.error("Error importing chats:", error);
@@ -179,6 +182,7 @@ export default function DataControlsScreen() {
           dialogTitle: t("exportChats"),
         });
       }
+      haptics("success");
     } catch (error) {
       console.error("Error exporting all chats:", error);
     }
@@ -188,6 +192,7 @@ export default function DataControlsScreen() {
     try {
       await deleteAllChats();
       setConfirmMode(null);
+      haptics("success");
     } catch (error) {
       console.error("Error deleting all chats:", error);
     }

@@ -6,7 +6,7 @@ const ASSISTANT_CARD_HEIGHT = 86;
 const HORIZONTAL_GAP = 20;
 const USER_TO_ASSISTANTS_GAP = 44;
 const ROUND_GAP = 72;
-const CANVAS_PADDING_X = 28;
+const CANVAS_PADDING_X = 18;
 const CANVAS_PADDING_Y = 28;
 
 export interface OverviewNode {

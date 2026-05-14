@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Check, ChevronLeft, ChevronUp, MessageCircle, Undo2, Redo2 } from 'lucide-react-native';
+import { Check, ChevronLeft, ChevronRight, ChevronUp, MessageCircle, Undo2, Redo2 } from 'lucide-react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -13,6 +13,7 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { useNoteStore } from '../../store/useNoteStore';
 import { useResolvedTheme } from '../../utils/theme';
 import { useUIScale } from '../../hooks/useUIScale';
+import { useHaptics } from '../../hooks/useHaptics';
 
 const LAB_TOOLBAR_ACTIONS: NoteToolbarAction[] = ['h1', 'h2', 'h3', 'bullet', 'numbered', 'bold', 'italic', 'strike', 'code'];
 const TITLE_SAVE_DEBOUNCE_MS = 500;
@@ -54,13 +55,15 @@ export default function NoteDetailScreen() {
   const s24 = useUIScale(24);
   const s32 = useUIScale(32);
   const s36 = useUIScale(36);
-  const s38 = useUIScale(38);
+  const s34 = useUIScale(34);
   const s44 = useUIScale(44);
   const s48 = useUIScale(48);
+  const s56 = useUIScale(56);
   const s64 = useUIScale(64);
   const s72 = useUIScale(72);
   const s148 = useUIScale(148);
   const s180 = useUIScale(180);
+  const { haptics } = useHaptics();
   const note = useNoteStore((state) => state.notes.find((item) => item.id === id));
   const isLoading = useNoteStore((state) => state.isLoading);
   const fetchNotes = useNoteStore((state) => state.fetchNotes);
@@ -294,12 +297,14 @@ export default function NoteDetailScreen() {
   };
 
   const handleDismissKeyboard = () => {
+    haptics('light');
     setPendingCommand('blur');
     setIsToolbarExpanded(false);
     Keyboard.dismiss();
   };
 
   const handleJumpToTitle = () => {
+    haptics('light');
     titleInputRef.current?.focus();
     const cursor = title.length;
     setKeyboardVisible(true);
@@ -315,7 +320,10 @@ export default function NoteDetailScreen() {
           <Text style={[styles.missingText, { color: colors.text, fontSize: s16, marginBottom: s16 }]}>{t('notesEmpty')}</Text>
           {isLoading ? <Text style={{ color: colors.subtext, marginBottom: s16, fontSize: s14 }}>{t('connecting')}</Text> : null}
           <Pressable
-            onPress={() => router.replace('/notes')}
+            onPress={() => {
+              haptics('light');
+              router.replace('/notes');
+            }}
             style={[
               styles.backToListButton,
               {
@@ -336,9 +344,12 @@ export default function NoteDetailScreen() {
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.bg }]}>
       <View style={[styles.container, { paddingHorizontal: s18 }]}>
-        <View style={[styles.header, { paddingTop: s8, marginBottom: s18 }]}>
+        <View style={[styles.header, { paddingTop: s8, marginBottom: s8 }]}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => {
+              haptics('light');
+              router.back();
+            }}
             style={[
               styles.iconButton,
               {
@@ -355,7 +366,10 @@ export default function NoteDetailScreen() {
 
           <View style={[styles.headerActions, { gap: s12 }]}>
             <Pressable
-              onPress={() => setPendingCommand('undo')}
+              onPress={() => {
+                haptics('light');
+                setPendingCommand('undo');
+              }}
               style={[styles.headerActionButton, { width: s24, height: s24 }]}
               hitSlop={8}
             >
@@ -363,7 +377,10 @@ export default function NoteDetailScreen() {
             </Pressable>
 
             <Pressable
-              onPress={() => setPendingCommand('redo')}
+              onPress={() => {
+                haptics('light');
+                setPendingCommand('redo');
+              }}
               style={[styles.headerActionButton, { width: s24, height: s24 }]}
               hitSlop={8}
             >
@@ -371,7 +388,10 @@ export default function NoteDetailScreen() {
             </Pressable>
 
             <Pressable
-              onPress={() => setIsChatVisible(true)}
+              onPress={() => {
+                haptics('light');
+                setIsChatVisible(true);
+              }}
               style={[styles.headerActionButton, { width: s24, height: s24 }]}
               hitSlop={8}
             >
@@ -405,10 +425,10 @@ export default function NoteDetailScreen() {
             }}
             placeholder={t('notesUntitled')}
             placeholderTextColor={colors.subtext}
-            style={[styles.titleInput, { color: colors.text, fontSize: s38, marginBottom: s8 }]}
+            style={[styles.titleInput, { color: colors.text, fontSize: s32, marginBottom: s8 / 2 }]}
           />
 
-          <Text style={[styles.meta, { color: colors.subtext, fontSize: s14, marginBottom: s18 }]}>
+          <Text style={[styles.meta, { color: colors.subtext, fontSize: s12, marginBottom: s12 }]}>
             {formatUpdatedLabel(note.updatedAt, i18n.language)}   {t('notesPrivate')}   {wordCount} {t('notesWords')}   {characterCount} {t('notesCharacters')}
           </Text>
         </View>
@@ -439,7 +459,7 @@ export default function NoteDetailScreen() {
           </View>
         ) : (
           <>
-            <View style={[styles.labEditorWrap, { marginTop: s14, paddingBottom: s12 }]}>
+            <View style={[styles.labEditorWrap, { marginTop: s8, paddingBottom: s12 }]}>
               <NativeCollabEditorHost
                 noteId={note.id}
                 initialHtml={contentHtml || editorSeedHtml}
@@ -472,11 +492,7 @@ export default function NoteDetailScreen() {
                     style={[
                       styles.floatingToolbarCard,
                       {
-                        backgroundColor: colors.card,
-                        borderColor: colors.border,
-                        borderRadius: s22,
-                        paddingHorizontal: s8,
-                        paddingVertical: s8,
+                        borderRadius: s18,
                       },
                     ]}
                   >
@@ -484,26 +500,32 @@ export default function NoteDetailScreen() {
                   </View>
 
                   <Pressable
-                    onPress={() => setIsToolbarExpanded(false)}
+                    onPress={() => {
+                      haptics('light');
+                      setIsToolbarExpanded(false);
+                    }}
                     style={[
                       styles.toolbarDockExpanded,
                       {
                         backgroundColor: colors.card,
                         borderColor: colors.border,
-                        width: s36,
-                        height: s64,
-                        marginLeft: s8,
-                        borderTopLeftRadius: s18,
-                        borderBottomLeftRadius: s18,
+                        width: s32,
+                        height: s56,
+                        marginLeft: s8 / 2,
+                        borderTopLeftRadius: s16,
+                        borderBottomLeftRadius: s16,
                       },
                     ]}
                   >
-                    <Text style={[styles.toolbarDockText, { color: colors.text, fontSize: s24, lineHeight: s24 }]}>...</Text>
+                    <ChevronRight size={s22} color={colors.text} strokeWidth={2.4} />
                   </Pressable>
                 </View>
               ) : (
                 <Pressable
-                  onPress={() => setIsToolbarExpanded(true)}
+                  onPress={() => {
+                    haptics('light');
+                    setIsToolbarExpanded(true);
+                  }}
                   style={[
                     styles.toolbarDockCollapsed,
                     {
@@ -554,6 +576,7 @@ export default function NoteDetailScreen() {
 
       <NoteChatModal
         visible={isChatVisible}
+        noteId={note.id}
         noteTitle={title.trim() || t('notesUntitled')}
         noteContent={contentText}
         onClose={() => setIsChatVisible(false)}
@@ -631,16 +654,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   floatingToolbarCard: {
-    maxWidth: 320,
-    borderWidth: 1,
+    maxWidth: 292,
+    borderWidth: 0,
     borderRadius: 22,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
     shadowColor: '#000',
-    shadowOpacity: 0.14,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 3,
   },
   toolbarDockExpanded: {
     width: 36,
@@ -671,11 +694,6 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
-  },
-  toolbarDockText: {
-    fontSize: 24,
-    fontWeight: '600',
-    lineHeight: 24,
   },
   keyboardBar: {
     position: 'absolute',

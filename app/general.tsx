@@ -17,6 +17,7 @@ import { resources, type TranslationKey } from "../i18n/translations";
 import { useSettingsStore, type Language } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
 import { useUIScale } from "../hooks/useUIScale";
+import { useHaptics } from "../hooks/useHaptics";
 
 function resolvePreviewLanguage(language: Language) {
   if (language !== "systeme") return language;
@@ -73,6 +74,7 @@ export default function General() {
   const scaled16 = useUIScale(16);
   const scaled14 = useUIScale(14);
   const scaleFactor = useUIScale(1);
+  const { haptics } = useHaptics();
 
   const themes = useMemo(
     () =>
@@ -116,6 +118,7 @@ export default function General() {
     setLanguage(draftLanguage);
     setNotificationsEnabled(draftNotificationsEnabled);
     setIsDirty(false);
+    haptics("success");
     Alert.alert(t("generalSave"), t("generalSaveMessage"));
   };
 
@@ -124,7 +127,10 @@ export default function General() {
       <View style={styles.container}>
         <View style={styles.header}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => {
+              haptics("light");
+              router.back();
+            }}
             style={[
               styles.backButton,
               {
@@ -148,7 +154,10 @@ export default function General() {
           <View>
             <TouchableOpacity
               style={[styles.item, { backgroundColor: colors.card }]}
-              onPress={() => setThemeVisible(true)}
+              onPress={() => {
+                haptics("light");
+                setThemeVisible(true);
+              }}
             >
               <Text style={[styles.label, { color: colors.text, fontSize: scaled16 }]}>
                 {t("theme")}
@@ -163,7 +172,10 @@ export default function General() {
 
             <TouchableOpacity
               style={[styles.item, { backgroundColor: colors.card }]}
-              onPress={() => setLangVisible(true)}
+              onPress={() => {
+                haptics("light");
+                setLangVisible(true);
+              }}
             >
               <Text style={[styles.label, { color: colors.text, fontSize: scaled16 }]}>
                 {t("language")}
@@ -183,6 +195,7 @@ export default function General() {
               <Switch
                 value={draftNotificationsEnabled}
                 onValueChange={(value) => {
+                  haptics("light");
                   setDraftNotificationsEnabled(value);
                   setIsDirty(true);
                 }}
@@ -221,6 +234,7 @@ export default function General() {
                 key={item.key}
                 style={styles.option}
                 onPress={() => {
+                  haptics("light");
                   setDraftThemeMode(item.key);
                   setIsDirty(true);
                   setThemeVisible(false);
@@ -246,6 +260,7 @@ export default function General() {
                 key={item.key}
                 style={styles.option}
                 onPress={() => {
+                  haptics("light");
                   setDraftLanguage(item.key);
                   setIsDirty(true);
                   setLangVisible(false);

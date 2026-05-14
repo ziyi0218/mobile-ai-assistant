@@ -25,6 +25,7 @@ export default function InterfaceScreen() {
   const scaled16 = useUIScale(16);
   const scaled48 = useUIScale(48);
   const scaled40 = useUIScale(40);
+  const scaled60 = useUIScale(60);
   const scaled22 = useUIScale(22);
   const scaleFactor = useUIScale(1);
   const { haptics } = useHaptics();
@@ -108,9 +109,9 @@ export default function InterfaceScreen() {
                               color: colors.text,
                               fontSize: scaled22,
                               fontWeight: 'bold',
-                              width: scaled40,
+                              width: scaled60,
                               height: scaled40,
-                              minWidth: 36,
+                              minWidth: 48,
                               minHeight: 36,
                               paddingVertical: 0,
                               textAlign: 'center',

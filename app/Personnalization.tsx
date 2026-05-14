@@ -21,6 +21,7 @@ import { useI18n } from "../i18n/useI18n";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
 import { useUIScale } from "../hooks/useUIScale";
+import { useHaptics } from "../hooks/useHaptics";
 import {
   personnalizationService,
   type PersonalizationMemory,
@@ -70,6 +71,7 @@ function ManageMemoryModal({
   const scaled16 = useUIScale(16);
   const scaled18 = useUIScale(18);
   const scaled22 = useUIScale(22);
+  const { haptics } = useHaptics();
 
   const isEditing = editingId !== null;
 
@@ -81,41 +83,48 @@ function ManageMemoryModal({
   }, []);
 
   const closeAll = useCallback(() => {
+    haptics("light");
     resetPanels();
     onClose();
-  }, [onClose, resetPanels]);
+  }, [haptics, onClose, resetPanels]);
 
   const openAdd = useCallback(() => {
+    haptics("light");
     setEditingId(null);
     setDetailText("");
     setMode("edit");
-  }, []);
+  }, [haptics]);
 
   const openEdit = useCallback((memory: MemoryItem) => {
+    haptics("light");
     setEditingId(memory.id);
     setDetailText(memory.detail);
     setMode("edit");
-  }, []);
+  }, [haptics]);
 
   const deleteOne = useCallback(
     (id: string) => {
+      haptics("warning");
       setMemories((prev) => prev.filter((memory) => memory.id !== id));
     },
-    [setMemories]
+    [haptics, setMemories]
   );
 
   const askClearAll = useCallback(() => {
+    haptics("warning");
     setMode("confirmClear");
-  }, []);
+  }, [haptics]);
 
   const clearAll = useCallback(() => {
+    haptics("success");
     setMemories([]);
     resetPanels();
-  }, [resetPanels, setMemories]);
+  }, [haptics, resetPanels, setMemories]);
 
   const upsertMemory = useCallback(() => {
     const trimmedValue = detailText.trim();
     if (!trimmedValue) return;
+    haptics("success");
 
     setMemories((prev) => {
       if (editingId) {
@@ -145,7 +154,7 @@ function ManageMemoryModal({
     });
 
     resetPanels();
-  }, [detailText, editingId, resetPanels, setMemories]);
+  }, [detailText, editingId, haptics, resetPanels, setMemories]);
 
   const footer = useMemo(
     () => (
@@ -278,7 +287,7 @@ function ManageMemoryModal({
                 ]}
               >
                 <View style={styles.overlayHeaderRow}>
-                  <Pressable onPress={resetPanels} hitSlop={10}>
+                  <Pressable onPress={() => { haptics("light"); resetPanels(); }} hitSlop={10}>
                     <Text style={[styles.overlayLink, { color: colors.text, fontSize: scaled14 }]}>
                       {t("cancel")}
                     </Text>
@@ -353,7 +362,7 @@ function ManageMemoryModal({
               <View style={styles.clearButtonsRow}>
                 <Pressable
                   style={[styles.cancelClearButton, { backgroundColor: colors.border }]}
-                  onPress={resetPanels}
+                  onPress={() => { haptics("light"); resetPanels(); }}
                 >
                   <Text
                     style={[styles.cancelClearText, { color: colors.text, fontSize: scaled16 }]}
@@ -399,6 +408,7 @@ export default function PersonnalizationScreen() {
   const scaled20 = useUIScale(20);
   const scaled22 = useUIScale(22);
   const scaleFactor = useUIScale(1);
+  const { haptics } = useHaptics();
 
   useEffect(() => {
     let isActive = true;
@@ -452,6 +462,7 @@ export default function PersonnalizationScreen() {
       setSavedMemories(latest.memories);
       setDraftMemories(latest.memories);
 
+      haptics("success");
       Alert.alert(t("persoSave"), t("persoSaveMessage"));
     } catch (error) {
       const message =
@@ -460,14 +471,17 @@ export default function PersonnalizationScreen() {
     } finally {
       setIsSavingPersonalization(false);
     }
-  }, [draftMemories, draftMemoryEnabled, savedMemories, t]);
+  }, [draftMemories, draftMemoryEnabled, haptics, savedMemories, t]);
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => {
+              haptics("light");
+              router.back();
+            }}
             style={[
               styles.backButton,
               {
@@ -515,7 +529,10 @@ export default function PersonnalizationScreen() {
 
               <Switch
                 value={draftMemoryEnabled}
-                onValueChange={setDraftMemoryEnabled}
+                onValueChange={(value) => {
+                  haptics("light");
+                  setDraftMemoryEnabled(value);
+                }}
                 disabled={isLoadingPersonalization || isSavingPersonalization}
                 trackColor={{
                   false: colors.subtext,
@@ -534,7 +551,10 @@ export default function PersonnalizationScreen() {
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
               disabled={isManageDisabled}
-              onPress={() => setIsManageModalVisible(true)}
+              onPress={() => {
+                haptics("light");
+                setIsManageModalVisible(true);
+              }}
             >
               {isLoadingPersonalization ? (
                 <ActivityIndicator size="small" color={colors.text} />

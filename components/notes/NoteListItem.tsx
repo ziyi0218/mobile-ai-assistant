@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-nativ
 import { MoreHorizontal } from 'lucide-react-native';
 import type { NoteItem } from '../../store/useNoteStore';
 import { useUIScale } from '../../hooks/useUIScale';
+import { useHaptics } from '../../hooks/useHaptics';
 
 type NoteListItemProps = {
   note: NoteItem;
@@ -28,12 +29,16 @@ export default function NoteListItem({ note, colors, relativeLabel, byLabel, onP
   const scaled28 = useUIScale(28);
   const scaled72 = useUIScale(72);
   const scaled8 = useUIScale(8);
+  const { haptics } = useHaptics();
   const metaText = note.author ? `${relativeLabel}  ${byLabel} ${note.author}` : relativeLabel;
 
   return (
     <TouchableOpacity
       activeOpacity={0.8}
-      onPress={onPress}
+      onPress={() => {
+        haptics('light');
+        onPress();
+      }}
       style={[
         styles.row,
         {
@@ -56,7 +61,14 @@ export default function NoteListItem({ note, colors, relativeLabel, byLabel, onP
         </Text>
       </View>
 
-      <Pressable onPress={onOpenMenu} hitSlop={10} style={[styles.menuButton, { width: scaled28, height: scaled28, marginLeft: scaled8 }]}>
+      <Pressable
+        onPress={() => {
+          haptics('light');
+          onOpenMenu();
+        }}
+        hitSlop={10}
+        style={[styles.menuButton, { width: scaled28, height: scaled28, marginLeft: scaled8 }]}
+      >
         <MoreHorizontal size={scaled18} color={colors.subtext} />
       </Pressable>
     </TouchableOpacity>

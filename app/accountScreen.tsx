@@ -155,14 +155,17 @@ export default function AccountScreen() {
     const pass = adePass.trim();
 
     if (!user || !pass) {
+      haptics("warning");
       Alert.alert(t("error"), t("adeFillCredentials"));
       return;
     }
 
+    haptics("light");
     setAdeLoading(true);
     try {
       await adeService.login(user, pass);
       setAdeConnected(true);
+      haptics("success");
       Alert.alert(t("adeConsult"), t("adeConnected"));
     } catch (e: any) {
       const msg = e?.response?.data?.detail || e?.message || "Erreur inconnue";
@@ -297,6 +300,7 @@ export default function AccountScreen() {
                       <Switch
                         value={biometricEnabled}
                         onValueChange={(value) => {
+                          haptics("light");
                           toggleBiometric(value);
                         }}
                         trackColor={{ false: "#767577", true: "#4A90D9" }}

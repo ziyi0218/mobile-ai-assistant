@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
+  type GestureResponderEvent,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,6 +33,7 @@ import {
   FolderPlus,
   Link2,
   Link2Off,
+  MessageSquare,
   Pin,
   PinOff,
   Search,
@@ -50,6 +52,7 @@ import { useI18n } from '../../i18n/useI18n';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useResolvedTheme } from '../../utils/theme';
 import { useUIScale } from '../../hooks/useUIScale';
+import { useHaptics } from '../../hooks/useHaptics';
 import {
   cloneChat,
   ensureShareLink,
@@ -96,9 +99,15 @@ export default function Sidebar({
   const router = useRouter();
   const searchInputRef = useRef<TextInput>(null);
   const animValue = useRef(new Animated.Value(0)).current;
+  const hasInitializedFolderExpansion = useRef(false);
+  const knownFolderIdsRef = useRef<Set<string>>(new Set());
+  const folderRowRefs = useRef<Record<string, View | null>>({});
+  const folderDropZonesRef = useRef<Record<string, { y: number; height: number }>>({});
+  const dragTargetFolderIdRef = useRef<string | null>(null);
   const themeMode = useSettingsStore((state) => state.themeMode);
   const { i18n } = useI18n();
   const { colors, resolved } = useResolvedTheme(themeMode);
+  const { haptics } = useHaptics();
   const ui = useMemo(() => buildSidebarUi(colors, resolved === 'dark'), [colors, resolved]);
   const scaled11 = useUIScale(11);
   const scaled12 = useUIScale(12);
@@ -110,9 +119,12 @@ export default function Sidebar({
   const scaled17 = useUIScale(17);
   const scaled18 = useUIScale(18);
   const scaled19 = useUIScale(19);
+  const scaled20 = useUIScale(20);
+  const scaled24 = useUIScale(24);
   const scaled8 = useUIScale(8);
   const scaled34 = useUIScale(34);
   const scaled36 = useUIScale(36);
+  const scaled40 = useUIScale(40);
   const scaled10 = useUIScale(10);
   const scaled12Radius = useUIScale(12);
   const [dashedSeparatorWidth, setDashedSeparatorWidth] = useState(0);
@@ -153,6 +165,9 @@ export default function Sidebar({
   const [folderMenu, setFolderMenu] = useState<FolderMenuState>({ visible: false, folder: null });
   const [folderPickerChat, setFolderPickerChat] = useState<ChatSummary | null>(null);
   const [activeActionChat, setActiveActionChat] = useState<ChatSummary | null>(null);
+  const [draggingChat, setDraggingChat] = useState<ChatSummary | null>(null);
+  const [dragOverlayY, setDragOverlayY] = useState(0);
+  const [dragTargetFolderId, setDragTargetFolderId] = useState<string | null>(null);
   const [isExportMenuVisible, setIsExportMenuVisible] = useState(false);
   const [pendingExportFormat, setPendingExportFormat] = useState<'json' | 'txt' | 'pdf' | null>(null);
   const [shareMenuState, setShareMenuState] = useState<{ visible: boolean; hasShareLink: boolean }>({
@@ -208,11 +223,20 @@ export default function Sidebar({
 
   useEffect(() => {
     setExpandedFolderIds((prev) => {
-      if (prev.size > 0) return prev;
       const next = new Set<string>();
+      const knownFolderIds = knownFolderIdsRef.current;
+      const shouldInitializeAll = !hasInitializedFolderExpansion.current;
+
       folders.forEach((folder) => {
-        if (folder.expanded !== false) next.add(folder.id);
+        if (prev.has(folder.id)) {
+          next.add(folder.id);
+        } else if ((shouldInitializeAll || !knownFolderIds.has(folder.id)) && folder.expanded !== false) {
+          next.add(folder.id);
+        }
       });
+
+      knownFolderIdsRef.current = new Set(folders.map((folder) => folder.id));
+      hasInitializedFolderExpansion.current = true;
       return next;
     });
   }, [folders]);
@@ -297,15 +321,18 @@ export default function Sidebar({
   }, [visible, sortedFolders, expandedFolderIds, folderChatsById, folderChatsLoading, loadFolderChats]);
 
   const openPrompt = (config: Omit<PromptState, 'visible'>) => {
+    haptics('light');
     setPromptState({ ...config, visible: true });
   };
 
   const handleSelectChat = (chatId: string) => {
+    haptics('light');
     setCurrentChatId(chatId);
     onClose();
   };
 
   const openChatMenu = useCallback(async (chat: ChatSummary) => {
+    haptics('light');
     setActiveActionChat(chat);
     setChatMenu({ visible: true, chat });
 
@@ -324,7 +351,7 @@ export default function Sidebar({
     } catch (error) {
       console.error('Erreur statut pin chat:', error);
     }
-  }, []);
+  }, [haptics]);
 
   const requireActionChat = useCallback(() => {
     const chat = activeActionChat ?? chatMenu.chat;
@@ -355,6 +382,7 @@ export default function Sidebar({
       setShareMenuState({ visible: false, hasShareLink: true });
       Alert.alert(t('shareChat'), result.reused ? t('shareLinkCopied') : t('shareLinkCreatedAndCopied'));
       await refreshSidebarData();
+      haptics('success');
     } catch (error) {
       console.error('Error copying share link:', error);
       Alert.alert(t('shareChat'), t('shareLinkCopyFailed'));
@@ -370,6 +398,7 @@ export default function Sidebar({
       setShareMenuState({ visible: false, hasShareLink: false });
       Alert.alert(t('shareChat'), t('shareLinkDeleted'));
       await refreshSidebarData();
+      haptics('success');
     } catch (error) {
       console.error('Error deleting share link:', error);
       Alert.alert(t('shareChat'), t('shareLinkDeleteFailed'));
@@ -380,6 +409,7 @@ export default function Sidebar({
     try {
       await openCommunitySharePage();
       setShareMenuState((prev) => ({ ...prev, visible: false }));
+      haptics('light');
     } catch (error) {
       console.error('Error opening Open WebUI community:', error);
       Alert.alert(t('shareChat'), t('openWebUICommunityFailed'));
@@ -393,6 +423,7 @@ export default function Sidebar({
 
       try {
         await exportSingleChat(chat.id, format);
+        haptics('success');
       } catch (error) {
         console.error(`Error exporting chat as ${format}:`, error);
         Alert.alert(t('exportChat'), t('exportChatFailed').replace('{{format}}', format.toUpperCase()));
@@ -417,6 +448,7 @@ export default function Sidebar({
       const cloned = await cloneChat(chat.id, i18n.language);
       await refreshSidebarData();
       await setCurrentChatId(cloned.id);
+      haptics('success');
     } catch (error) {
       console.error('Error cloning chat:', error);
       Alert.alert(t('cloneChat'), t('cloneChatFailed'));
@@ -424,6 +456,7 @@ export default function Sidebar({
   }, [i18n.language, refreshSidebarData, requireActionChat, setCurrentChatId, t]);
 
   const handleToggleFolder = async (folder: ChatFolder) => {
+    haptics('light');
     const nextExpanded = !expandedFolderIds.has(folder.id);
     setExpandedFolderIds((prev) => {
       const next = new Set(prev);
@@ -470,24 +503,111 @@ export default function Sidebar({
     [folders]
   );
 
+  const measureFolderDropZones = useCallback(() => {
+    folderDropZonesRef.current = {};
+    visibleFolders.forEach((folder) => {
+      folderRowRefs.current[folder.id]?.measureInWindow((_x, y, _width, height) => {
+        folderDropZonesRef.current = {
+          ...folderDropZonesRef.current,
+          [folder.id]: { y, height },
+        };
+      });
+    });
+  }, [visibleFolders]);
+
+  const updateDragTarget = useCallback(
+    (pageY: number, chat: ChatSummary | null = draggingChat) => {
+      if (!chat) return;
+      const currentFolderId = getEffectiveChatFolderId(chat);
+      const nextTarget =
+        visibleFolders.find((folder) => {
+          if (folder.id === currentFolderId) return false;
+          const zone = folderDropZonesRef.current[folder.id];
+          return zone && pageY >= zone.y && pageY <= zone.y + zone.height;
+        })?.id ?? null;
+
+      if (nextTarget && nextTarget !== dragTargetFolderIdRef.current) {
+        haptics('light');
+      }
+
+      dragTargetFolderIdRef.current = nextTarget;
+      setDragTargetFolderId(nextTarget);
+    },
+    [draggingChat, getEffectiveChatFolderId, haptics, visibleFolders]
+  );
+
+  const handleChatDragStart = useCallback(
+    (chat: ChatSummary, event: GestureResponderEvent) => {
+      setChatMenu({ visible: false, chat: null });
+      setDraggingChat(chat);
+      setDragOverlayY(event.nativeEvent.pageY);
+      setDragTargetFolderId(null);
+      dragTargetFolderIdRef.current = null;
+      haptics('medium');
+      measureFolderDropZones();
+    },
+    [haptics, measureFolderDropZones]
+  );
+
+  const handleChatDragMove = useCallback(
+    (event: GestureResponderEvent) => {
+      if (!draggingChat) return;
+      const pageY = event.nativeEvent.pageY;
+      setDragOverlayY(pageY);
+      updateDragTarget(pageY);
+    },
+    [draggingChat, updateDragTarget]
+  );
+
+  const handleChatDragEnd = useCallback(async () => {
+    const chat = draggingChat;
+    const targetFolderId = dragTargetFolderIdRef.current;
+
+    setDraggingChat(null);
+    setDragTargetFolderId(null);
+    dragTargetFolderIdRef.current = null;
+
+    if (!chat || !targetFolderId) return;
+    if (getEffectiveChatFolderId(chat) === targetFolderId) return;
+
+    await moveChatToFolder(chat.id, targetFolderId);
+    syncLocalChatFolderMove(chat, targetFolderId);
+    haptics('success');
+    setExpandedFolderIds((prev) => {
+      const next = new Set(prev);
+      next.add(targetFolderId);
+      return next;
+    });
+    await loadFolderChats(targetFolderId, true);
+  }, [draggingChat, getEffectiveChatFolderId, haptics, loadFolderChats, moveChatToFolder, syncLocalChatFolderMove]);
+
   const exportActions: SidebarAction[] = [
     {
       key: 'json',
       label: t('downloadJson'),
       icon: <FileJson size={scaled18} color={colors.text} />,
-      onPress: () => setPendingExportFormat('json'),
+      onPress: () => {
+        haptics('light');
+        setPendingExportFormat('json');
+      },
     },
     {
       key: 'txt',
       label: t('downloadTxt'),
       icon: <FileText size={scaled18} color={colors.text} />,
-      onPress: () => setPendingExportFormat('txt'),
+      onPress: () => {
+        haptics('light');
+        setPendingExportFormat('txt');
+      },
     },
     {
       key: 'pdf',
       label: t('downloadPdf'),
       icon: <FileType2 size={scaled18} color={colors.text} />,
-      onPress: () => setPendingExportFormat('pdf'),
+      onPress: () => {
+        haptics('light');
+        setPendingExportFormat('pdf');
+      },
     },
   ];
 
@@ -532,6 +652,7 @@ export default function Sidebar({
           label: t('download'),
           icon: <Download size={scaled18} color={colors.text} />,
           onPress: () => {
+            haptics('light');
             setIsExportMenuVisible(true);
           },
         },
@@ -560,6 +681,7 @@ export default function Sidebar({
           ),
           onPress: async () => {
             await togglePinChat(chatMenu.chat!.id);
+            haptics('success');
           },
         },
         {
@@ -574,7 +696,10 @@ export default function Sidebar({
           key: 'move',
           label: t('sidebarMoveToFolder'),
           icon: <FolderOpen size={scaled18} color={ui.warning} />,
-          onPress: () => setFolderPickerChat(chatMenu.chat),
+          onPress: () => {
+            haptics('light');
+            setFolderPickerChat(chatMenu.chat);
+          },
         },
         ...(getEffectiveChatFolderId(chatMenu.chat)
           ? [
@@ -585,6 +710,7 @@ export default function Sidebar({
                 onPress: async () => {
                   await moveChatToFolder(chatMenu.chat!.id, null);
                   syncLocalChatFolderMove(chatMenu.chat!, null);
+                  haptics('success');
                 },
               },
             ]
@@ -595,6 +721,7 @@ export default function Sidebar({
           icon: <Archive size={scaled18} color={colors.text} />,
           onPress: async () => {
             await toggleArchiveChat(chatMenu.chat!.id);
+            haptics('success');
           },
         },
         {
@@ -603,7 +730,9 @@ export default function Sidebar({
           danger: true,
           icon: <Trash2 size={scaled18} color={ui.danger} />,
           onPress: async () => {
+            haptics('warning');
             await deleteChat(chatMenu.chat!.id);
+            haptics('success');
           },
         },
       ]
@@ -618,6 +747,7 @@ export default function Sidebar({
           onPress: async () => {
             try {
               await exportFolderAsJson(folderMenu.folder!.id, folderMenu.folder!.name);
+              haptics('success');
             } catch (error) {
               console.error('Erreur export folder:', error);
               Alert.alert(t('exportFolder'), t('exportFolderFailed'));
@@ -645,18 +775,21 @@ export default function Sidebar({
           danger: true,
           icon: <Trash2 size={scaled18} color={ui.danger} />,
           onPress: async () => {
+            haptics('warning');
             await deleteFolder(folderMenu.folder!.id);
+            haptics('success');
           },
         },
       ]
     : [];
 
   const handleOpenSettings = useCallback(() => {
+    haptics('light');
     onClose();
     setTimeout(() => {
       router.push('/accountScreen');
     }, 300);
-  }, [onClose, router]);
+  }, [haptics, onClose, router]);
 
   const overlayOpacity = animValue;
   const drawerTranslateX = animValue.interpolate({
@@ -696,6 +829,7 @@ export default function Sidebar({
         <View style={styles.header}>
           <TouchableOpacity
             onPress={async () => {
+              haptics('light');
               await startNewChat();
               onClose();
             }}
@@ -728,12 +862,14 @@ export default function Sidebar({
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          scrollEnabled={draggingChat === null}
           showsVerticalScrollIndicator={false}
         >
           <TouchableOpacity
             activeOpacity={0.6}
             style={styles.notesRow}
             onPress={() => {
+              haptics('light');
               onClose();
               setTimeout(() => {
                 router.push('/notes');
@@ -762,7 +898,10 @@ export default function Sidebar({
             <TouchableOpacity
               activeOpacity={0.75}
               style={styles.sectionHeaderMain}
-              onPress={() => setFoldersSectionExpanded((prev) => !prev)}
+              onPress={() => {
+                haptics('light');
+                setFoldersSectionExpanded((prev) => !prev);
+              }}
             >
               {foldersSectionExpanded ? (
                 <ChevronDown size={scaled14} color={colors.subtext} style={styles.sectionChevron} />
@@ -796,33 +935,47 @@ export default function Sidebar({
             visibleFolders.length > 0 ? (
               visibleFolders.map((folder) => (
                 <View key={folder.id}>
-                  <SidebarFolderRow
-                    folder={folder}
-                    isExpanded={expandedFolderIds.has(folder.id)}
-                    onToggle={() => handleToggleFolder(folder)}
-                    onOpenMenu={() => setFolderMenu({ visible: true, folder })}
-                    colors={colors}
-                    ui={ui}
-                  />
+                  <View
+                    ref={(node) => {
+                      folderRowRefs.current[folder.id] = node;
+                    }}
+                  >
+                    <SidebarFolderRow
+                      folder={folder}
+                      isExpanded={expandedFolderIds.has(folder.id)}
+                      onToggle={() => handleToggleFolder(folder)}
+                      onOpenMenu={() => setFolderMenu({ visible: true, folder })}
+                      isDropEnabled={draggingChat !== null}
+                      isDropTarget={dragTargetFolderId === folder.id}
+                      colors={colors}
+                      ui={ui}
+                    />
+                  </View>
 
                   {expandedFolderIds.has(folder.id) && (
                     <>
                       {(folderChatMap.get(folder.id) ?? [])
                         .filter((chat) => filterChats(chat, query, noTitle))
                         .map((chat) => (
-                        <SidebarChatRow
-                          key={chat.id}
-                          chat={chat}
-                          selected={currentChatId === chat.id}
-                          onPress={() => handleSelectChat(chat.id)}
-                          onOpenMenu={() => {
-                            void openChatMenu(chat);
-                          }}
-                          colors={colors}
-                          ui={ui}
-                          fallbackTitle={noTitle}
-                          indent
-                        />
+                          <SidebarChatRow
+                            key={chat.id}
+                            chat={chat}
+                            selected={currentChatId === chat.id}
+                            onPress={() => handleSelectChat(chat.id)}
+                            onOpenMenu={() => {
+                              void openChatMenu(chat);
+                            }}
+                            onDragStart={handleChatDragStart}
+                            onDragMove={handleChatDragMove}
+                            onDragEnd={() => {
+                              void handleChatDragEnd();
+                            }}
+                            isDragging={draggingChat?.id === chat.id}
+                            colors={colors}
+                            ui={ui}
+                            fallbackTitle={noTitle}
+                            indent
+                          />
                       ))}
                       {folderChatsLoading[folder.id] && (
                         <ActivityIndicator
@@ -854,7 +1007,10 @@ export default function Sidebar({
               <TouchableOpacity
                 activeOpacity={0.75}
                 style={styles.pinnedToggle}
-                onPress={() => setPinnedSectionExpanded((prev) => !prev)}
+                onPress={() => {
+                  haptics('light');
+                  setPinnedSectionExpanded((prev) => !prev);
+                }}
               >
                 {pinnedSectionExpanded ? (
                   <ChevronDown size={scaled14} color={colors.subtext} style={styles.sectionChevron} />
@@ -877,6 +1033,12 @@ export default function Sidebar({
                       onOpenMenu={() => {
                         void openChatMenu(chat);
                       }}
+                      onDragStart={handleChatDragStart}
+                      onDragMove={handleChatDragMove}
+                      onDragEnd={() => {
+                        void handleChatDragEnd();
+                      }}
+                      isDragging={draggingChat?.id === chat.id}
                       colors={colors}
                       ui={ui}
                       fallbackTitle={noTitle}
@@ -926,6 +1088,12 @@ export default function Sidebar({
                     onOpenMenu={() => {
                       void openChatMenu(chat);
                     }}
+                    onDragStart={handleChatDragStart}
+                    onDragMove={handleChatDragMove}
+                    onDragEnd={() => {
+                      void handleChatDragEnd();
+                    }}
+                    isDragging={draggingChat?.id === chat.id}
                     colors={colors}
                     ui={ui}
                     fallbackTitle={noTitle}
@@ -945,6 +1113,7 @@ export default function Sidebar({
             activeOpacity={0.75}
             style={styles.profileRow}
             onPress={() => {
+              haptics('light');
               onClose();
               setTimeout(() => {
                 router.push('/compte');
@@ -979,6 +1148,27 @@ export default function Sidebar({
           </TouchableOpacity>
         </View>
         </Animated.View>
+
+        {draggingChat && (
+          <View
+            pointerEvents="none"
+            style={[
+              localStyles.dragPreview,
+              {
+                top: Math.max(insets.top + 8, dragOverlayY - scaled24),
+                left: scaled20,
+                width: SIDEBAR_WIDTH - scaled40,
+                backgroundColor: colors.card,
+                borderColor: dragTargetFolderId ? colors.accent : colors.border,
+              },
+            ]}
+          >
+            <MessageSquare size={scaled14} color={colors.subtext} />
+            <Text style={[localStyles.dragPreviewText, { color: colors.text, fontSize: scaled14 }]} numberOfLines={1}>
+              {getChatTitle(draggingChat, noTitle)}
+            </Text>
+          </View>
+        )}
       </View>
 
       <SidebarPromptModal
@@ -1037,6 +1227,7 @@ export default function Sidebar({
           if (!folderPickerChat) return;
           await moveChatToFolder(folderPickerChat.id, folderId);
           syncLocalChatFolderMove(folderPickerChat, folderId);
+          haptics('success');
           if (folderId && expandedFolderIds.has(folderId)) {
             await loadFolderChats(folderId, true);
           }
@@ -1046,3 +1237,26 @@ export default function Sidebar({
     </Modal>
   );
 }
+
+const localStyles = StyleSheet.create({
+  dragPreview: {
+    position: 'absolute',
+    zIndex: 30,
+    elevation: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+  },
+  dragPreviewText: {
+    flex: 1,
+    marginLeft: 12,
+    fontWeight: '700',
+  },
+});

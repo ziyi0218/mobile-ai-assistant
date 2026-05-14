@@ -3,6 +3,9 @@ import i18n from "../i18n/i18n";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { Platform } from "react-native";
+import * as NavigationBar from "expo-navigation-bar";
+import * as SystemUI from "expo-system-ui";
 import * as Localization from "expo-localization";
 import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 
@@ -28,6 +31,15 @@ export default function RootLayout() {
       i18n.changeLanguage(language);
     }
   }, [language]);
+
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+
+    SystemUI.setBackgroundColorAsync(colors.bg).catch(() => {});
+    NavigationBar.setBackgroundColorAsync(colors.bg).catch(() => {});
+    NavigationBar.setButtonStyleAsync(resolved === "dark" ? "light" : "dark").catch(() => {});
+    NavigationBar.setStyle(resolved === "dark" ? "dark" : "light");
+  }, [colors.bg, resolved]);
 
   return (
     <SafeAreaProvider>

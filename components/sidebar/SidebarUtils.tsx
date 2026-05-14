@@ -348,6 +348,9 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 7,
+    paddingHorizontal: 8,
+    borderRadius: 14,
+    borderWidth: 1,
   },
   folderMainAction: {
     flexDirection: 'row',

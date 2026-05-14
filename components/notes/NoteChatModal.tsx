@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -11,10 +12,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { MessageCircle, Send, Square, X } from 'lucide-react-native';
+import { ChevronDown, MessageCircle, Send, Square, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShallow } from 'zustand/react/shallow';
 import MessageBubble from '../MessageBubble';
+import ModelSelector from '../ModelSelector';
 import { chatService } from '../../services/chatService';
 import { useI18n } from '../../i18n/useI18n';
 import { useChatStore } from '../../store/chatStore';
@@ -23,9 +25,11 @@ import { useResolvedTheme } from '../../utils/theme';
 import { buildModelItem } from '../../utils/messageHelpers';
 import { generateUUID } from '../../utils/uuid';
 import { useUIScale } from '../../hooks/useUIScale';
+import { useHaptics } from '../../hooks/useHaptics';
 
 type NoteChatModalProps = {
   visible: boolean;
+  noteId: string;
   noteTitle: string;
   noteContent: string;
   onClose: () => void;
@@ -36,6 +40,52 @@ type LocalChatMessage = {
   role: 'user' | 'assistant';
   content: string;
 };
+
+function TypingDots({ color, size }: { color: string; size: number }) {
+  const dots = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+
+  useEffect(() => {
+    const animations = dots.map((dot) =>
+      Animated.sequence([
+        Animated.timing(dot, {
+          toValue: -size * 0.45,
+          duration: 260,
+          useNativeDriver: true,
+        }),
+        Animated.timing(dot, {
+          toValue: 0,
+          duration: 260,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    const loop = Animated.loop(Animated.stagger(120, animations));
+    loop.start();
+
+    return () => loop.stop();
+  }, [dots, size]);
+
+  return (
+    <View style={[styles.typingDots, { minHeight: size * 1.6 }]}>
+      {dots.map((dot, index) => (
+        <Animated.View
+          key={index}
+          style={[
+            styles.typingDot,
+            {
+              width: size,
+              height: size,
+              borderRadius: size / 2,
+              backgroundColor: color,
+              marginRight: index === dots.length - 1 ? 0 : size * 0.85,
+              transform: [{ translateY: dot }],
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
 
 type LlmParams = {
   temperature: number;
@@ -112,6 +162,7 @@ function buildNoteSystemPrompt(noteTitle: string, noteContent: string) {
 
 export default function NoteChatModal({
   visible,
+  noteId,
   noteTitle,
   noteContent,
   onClose,
@@ -123,6 +174,7 @@ export default function NoteChatModal({
   const { colors } = useResolvedTheme(themeMode);
   const s2 = useUIScale(2);
   const s4 = useUIScale(4);
+  const s7 = useUIScale(7);
   const s8 = useUIScale(8);
   const s10 = useUIScale(10);
   const s12 = useUIScale(12);
@@ -141,8 +193,9 @@ export default function NoteChatModal({
   const s42 = useUIScale(42);
   const s96 = useUIScale(96);
   const s140 = useUIScale(140);
+  const { haptics } = useHaptics();
   const scrollRef = useRef<ScrollView>(null);
-  const activeModel = useChatStore((state) => state.activeModels[0] || 'athene-v2:latest');
+  const defaultModel = useChatStore((state) => state.activeModels[0] || 'athene-v2:latest');
   const modelVision = useChatStore((state) => state.modelVision);
   const systemPrompt = useChatStore((state) => state.systemPrompt);
   const llmParams = useChatStore(
@@ -173,6 +226,9 @@ export default function NoteChatModal({
   const [messages, setMessages] = useState<LocalChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState('');
+  const [selectedModelVision, setSelectedModelVision] = useState<boolean | null>(null);
+  const [isModelSelectorVisible, setIsModelSelectorVisible] = useState(false);
   const eventSourceRef = useRef<any>(null);
   const taskIdsRef = useRef<string[]>([]);
   const finalizedRef = useRef(false);
@@ -185,6 +241,8 @@ export default function NoteChatModal({
     () => buildNoteSystemPrompt(noteTitle, noteContent),
     [noteContent, noteTitle]
   );
+  const activeModel = selectedModel || defaultModel;
+  const activeModelVision = selectedModelVision ?? modelVision[activeModel] ?? false;
 
   const scrollToBottom = useCallback((animated = true) => {
     requestAnimationFrame(() => {
@@ -213,7 +271,8 @@ export default function NoteChatModal({
     setErrorText(null);
   }, []);
 
-  const stopGeneration = useCallback(async () => {
+  const stopGeneration = useCallback(async (withFeedback = true) => {
+    if (withFeedback) haptics('medium');
     const currentEventSource = eventSourceRef.current;
     const taskIds = [...taskIdsRef.current];
     finalizedRef.current = true;
@@ -233,17 +292,17 @@ export default function NoteChatModal({
         console.warn('Erreur stop note chat:', error);
       }
     }
-  }, []);
+  }, [haptics]);
 
   useEffect(() => {
     if (visible) return;
-    void stopGeneration();
+    void stopGeneration(false);
     resetLocalState();
   }, [resetLocalState, stopGeneration, visible]);
 
   useEffect(() => {
     return () => {
-      void stopGeneration();
+      void stopGeneration(false);
     };
   }, [stopGeneration]);
 
@@ -259,11 +318,14 @@ export default function NoteChatModal({
   const handleSend = useCallback(async () => {
     const trimmed = inputText.trim();
     if (!trimmed || isTyping) return;
+    haptics('light');
 
     const userMessageId = generateUUID();
     const assistantMessageId = generateUUID();
     const requestId = activeRequestIdRef.current + 1;
     const currentMessages = messagesRef.current;
+    const previousUserMessage = [...currentMessages].reverse().find((message) => message.role === 'user');
+    const timestamp = Math.floor(Date.now() / 1000);
     const nextMessages: LocalChatMessage[] = [
       ...currentMessages,
       { id: userMessageId, role: 'user', content: trimmed },
@@ -310,7 +372,23 @@ export default function NoteChatModal({
             web_search: false,
           },
           variables: {},
-          model_item: buildModelItem(activeModel, modelVision[activeModel] ?? false),
+          model_item: buildModelItem(activeModel, activeModelVision),
+          chat_id: `local:note-${noteId}`,
+          parent_id: userMessageId,
+          parent_message: {
+            id: userMessageId,
+            parentId: previousUserMessage?.id ?? null,
+            childrenIds: [assistantMessageId],
+            role: 'user',
+            content: trimmed,
+            timestamp,
+            models: [activeModel],
+          },
+          background_tasks: {
+            title_generation: false,
+            tags_generation: false,
+            follow_up_generation: false,
+          },
         },
         (chunk: string, taskId?: string) => {
           if (requestId !== activeRequestIdRef.current) return;
@@ -333,6 +411,7 @@ export default function NoteChatModal({
           if (requestId !== activeRequestIdRef.current) return;
           console.error('Erreur note chat stream:', error);
           setErrorText(t('notesChatError'));
+          haptics('warning');
           finalizeStream(requestId);
         }
       );
@@ -347,9 +426,10 @@ export default function NoteChatModal({
       if (requestId !== activeRequestIdRef.current) return;
       console.error('Erreur note chat send:', error);
       setErrorText(t('notesChatError'));
+      haptics('warning');
       finalizeStream(requestId);
     }
-  }, [activeModel, finalizeStream, inputText, isTyping, llmParams, modelVision, noteSystemPrompt, scrollToBottom, systemPrompt, t]);
+  }, [activeModel, activeModelVision, finalizeStream, haptics, inputText, isTyping, llmParams, noteId, noteSystemPrompt, scrollToBottom, systemPrompt, t]);
 
   return (
     <Modal
@@ -375,7 +455,10 @@ export default function NoteChatModal({
           ]}
         >
           <Pressable
-            onPress={onClose}
+            onPress={() => {
+              haptics('light');
+              onClose();
+            }}
             style={[styles.closeButton, { width: s34, height: s34, marginRight: s10 }]}
             hitSlop={10}
           >
@@ -454,6 +537,7 @@ export default function NoteChatModal({
           ) : (
             messages.map((message) => {
               const isUser = message.role === 'user';
+              const showTypingDots = !isUser && isTyping && !message.content;
               return (
                 <View key={message.id} style={[styles.messageBlock, { marginBottom: s24 }]}>
                   <Text style={[styles.roleLabel, { color: colors.subtext, fontSize: s12, marginBottom: s10 }]}>
@@ -473,7 +557,11 @@ export default function NoteChatModal({
                         : { backgroundColor: 'transparent', paddingRight: s4 },
                     ]}
                     >
-                      <MessageBubble content={message.content || (isTyping && !isUser ? '...' : '')} isUser={isUser} />
+                      {showTypingDots ? (
+                        <TypingDots color={colors.subtext} size={s7} />
+                      ) : (
+                        <MessageBubble content={message.content} isUser={isUser} />
+                      )}
                     </View>
                   </View>
                 </View>
@@ -527,9 +615,19 @@ export default function NoteChatModal({
             />
 
             <View style={[styles.inputFooter, { marginTop: s10 }]}>
-              <Text style={[styles.modelText, { color: colors.text, fontSize: s15, marginRight: s12 }]} numberOfLines={1}>
-                {activeModel}
-              </Text>
+              <Pressable
+                disabled={isTyping}
+                onPress={() => {
+                  haptics('light');
+                  setIsModelSelectorVisible(true);
+                }}
+                style={[styles.modelButton, { marginRight: s12, opacity: isTyping ? 0.55 : 1 }]}
+              >
+                <Text style={[styles.modelText, { color: colors.text, fontSize: s15 }]} numberOfLines={1}>
+                  {activeModel}
+                </Text>
+                <ChevronDown color={colors.subtext} size={s16} strokeWidth={2.1} />
+              </Pressable>
 
               <Pressable
                 disabled={!isTyping && !inputText.trim()}
@@ -559,6 +657,18 @@ export default function NoteChatModal({
             </View>
           </View>
         </View>
+
+        <ModelSelector
+          visible={isModelSelectorVisible}
+          onClose={() => setIsModelSelectorVisible(false)}
+          onSelect={(name, vision) => {
+            haptics('medium');
+            setSelectedModel(name);
+            setSelectedModelVision(vision ?? null);
+          }}
+          mode="switch"
+          t={t}
+        />
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -618,6 +728,13 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: '100%',
   },
+  typingDots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  typingDot: {
+  },
   errorText: {
   },
   inputDock: {
@@ -638,6 +755,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  modelButton: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   modelText: {
     flex: 1,

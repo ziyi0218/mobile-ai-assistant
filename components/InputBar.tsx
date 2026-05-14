@@ -19,6 +19,7 @@ import { useResolvedTheme } from '../utils/theme';
 import { useLocation } from '../hooks/useLocation';
 import useInterfaceSettingsStore from '../store/interfaceSettingsStore';
 import { useUIScale } from '../hooks/useUIScale';
+import { useHaptics } from '../hooks/useHaptics';
 
 interface InputBarProps {
   t?: (key: TranslationKey) => string;
@@ -57,6 +58,7 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
   const enterSends = useInterfaceSettingsStore(state => state.optionsList['27'].value); //iface_enter_is_send
   const scaleFactor = useUIScale(1);
   const styles = createInputBarStyles(scaleFactor);
+  const { haptics } = useHaptics();
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -81,12 +83,14 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
   }, []);
 
   const handleExpand = () => {
+    haptics('light');
     isExpandingRef.current = true;
     setIsExpanded(true);
     setTimeout(() => expandedInputRef.current?.focus(), 100);
   };
 
   const handleCollapse = () => {
+    haptics('light');
     isExpandingRef.current = true;
     setIsExpanded(false);
     setTimeout(() => normalInputRef.current?.focus(), 100);
@@ -94,8 +98,10 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
 
   const handleAction = () => {
     if (isTyping) {
+      haptics('medium');
       stopGeneration();
     } else if (inputText.trim().length > 0 || attachments.length > 0) {
+      haptics('light');
       sendMessage(inputText.trim(), location);
       setInputText('');
       if (isExpanded) handleCollapse();
@@ -103,10 +109,12 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
   };
 
   const handlePlusPress = () => {
+    haptics('light');
     const options = [t('actionCamera'), t('actionPhoto'), t('actionFile'), t('actionReferenceChat'), t('cancel')];
     showActionSheetWithOptions(
       { options, cancelButtonIndex: 4 },
       (index) => {
+        if (typeof index === 'number' && index !== 4) haptics('light');
         switch (index) {
           case 0: handleCamera(); break;
           case 1: handlePickImage(); break;
@@ -120,24 +128,26 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
   const handleCamera = async () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') { Alert.alert(t('permissionRequired'), t('cameraPermission')); return; }
+      if (status !== 'granted') { haptics('warning'); Alert.alert(t('permissionRequired'), t('cameraPermission')); return; }
       const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8, base64: true });
       if (!result.canceled && result.assets[0]) {
         const a = result.assets[0];
         addAttachment({ type: 'image', uri: a.uri, name: a.fileName || `photo_${Date.now()}.jpg`, mimeType: a.mimeType || 'image/jpeg', base64: a.base64 || undefined });
+        haptics('success');
       }
-    } catch (e) { console.error('Erreur caméra:', e); }
+    } catch (e) { console.error('Erreur camera:', e); }
   };
 
   const handlePickImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') { Alert.alert(t('permissionRequired'), t('galleryPermission')); return; }
+      if (status !== 'granted') { haptics('warning'); Alert.alert(t('permissionRequired'), t('galleryPermission')); return; }
       const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8, base64: true, allowsMultipleSelection: true, selectionLimit: 5 });
       if (!result.canceled) {
         result.assets.forEach((a) => {
           addAttachment({ type: 'image', uri: a.uri, name: a.fileName || `image_${Date.now()}.jpg`, mimeType: a.mimeType || 'image/jpeg', base64: a.base64 || undefined });
         });
+        haptics('success');
       }
     } catch (e) { console.error('Erreur galerie:', e); }
   };
@@ -149,11 +159,13 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
         result.assets.forEach((a) => {
           addAttachment({ type: 'file', uri: a.uri, name: a.name, mimeType: a.mimeType || 'application/octet-stream' });
         });
+        haptics('success');
       }
     } catch (e) { console.error('Erreur fichier:', e); }
   };
 
   const handleReferenceChat = async () => {
+    haptics('light');
     setLoadingModal(true);
     setIsChatPickerVisible(true);
     try {
@@ -167,6 +179,7 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
   };
 
   const handleSelectChat = (chat: any) => {
+    haptics('medium');
     setIsChatPickerVisible(false);
     useChatStore.getState().setCurrentChatId(chat.id);
   };
@@ -229,7 +242,7 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
         onSelect={handleSelectChat}
         onClose={() => setIsChatPickerVisible(false)}
         renderLabel={(item) => item.title || t('untitledConversation')}
-        icon={<MessageSquare color="#007AFF" size={18*scaleFactor} />}
+        icon={<MessageSquare color={colors.accent} size={18*scaleFactor} />}
       />
 
       {attachments.length > 0 && <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />}
@@ -238,7 +251,10 @@ export default function InputBar({ t = (k) => k }: InputBarProps) {
           <Plus color={colors.text} size={22*scaleFactor} strokeWidth={2.5} />
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => setIsIntegrationsVisible(true)}
+          onPress={() => {
+            haptics('light');
+            setIsIntegrationsVisible(true);
+          }}
           style={[styles.integBtn, (webSearchEnabled || codeInterpreterEnabled) && (isDark ? styles.integActiveDark : styles.integActive)]}
         >
           <LayoutGrid color={(webSearchEnabled || codeInterpreterEnabled) ? '#007AFF' : colors.subtext} size={20*scaleFactor} />
@@ -284,39 +300,58 @@ function ListPickerModal({ visible, title, loading, items, emptyText, onSelect, 
   onSelect: (item: any) => void; onClose: () => void; renderLabel: (item: any) => string; icon: React.ReactNode;
 }) {
   const scaleFactor = useUIScale(1);
+  const themeMode = useSettingsStore((state) => state.themeMode);
+  const { colors, resolved } = useResolvedTheme(themeMode);
+  const { haptics } = useHaptics();
+  const isDark = resolved === 'dark';
+  const scaled8 = useUIScale(8);
+  const scaled10 = useUIScale(10);
+  const scaled12 = useUIScale(12);
+  const scaled14 = useUIScale(14);
+  const scaled15 = useUIScale(15);
+  const scaled16 = useUIScale(16);
+  const scaled18 = useUIScale(18);
+  const scaled20 = useUIScale(20);
+  const scaled24 = useUIScale(24);
+  const scaled32 = useUIScale(32);
+  const scaled34 = useUIScale(34);
+  const scaled36 = useUIScale(36);
+  const overlay = isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.28)';
+  const iconBg = isDark ? 'rgba(0,122,255,0.18)' : '#E8F0FE';
+
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '70%', paddingBottom: 34 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }}>
-            <Text style={{ fontSize: 18*scaleFactor, fontWeight: '700', color: '#111' }}>{title}</Text>
-            <TouchableOpacity onPress={onClose} style={{ width: 32*scaleFactor, height: 32*scaleFactor, borderRadius: 16, backgroundColor: '#F5F5F5', alignItems: 'center', justifyContent: 'center' }}>
-              <X color="#666" size={18*scaleFactor} />
+      <View style={{ flex: 1, backgroundColor: overlay, justifyContent: 'flex-end' }}>
+        <View style={{ backgroundColor: colors.card, borderTopLeftRadius: scaled24, borderTopRightRadius: scaled24, maxHeight: '70%', paddingBottom: scaled34 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: scaled20, paddingTop: scaled20, paddingBottom: scaled12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+            <Text style={{ fontSize: scaled18, fontWeight: '700', color: colors.text }}>{title}</Text>
+            <TouchableOpacity onPress={() => { haptics('light'); onClose(); }} style={{ width: scaled32, height: scaled32, borderRadius: scaled16, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
+              <X color={colors.subtext} size={scaled18} />
             </TouchableOpacity>
           </View>
 
           {loading ? (
-            <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-              <ActivityIndicator size="large" color="#007AFF" />
+            <View style={{ paddingVertical: 40 * scaleFactor, alignItems: 'center' }}>
+              <ActivityIndicator size="large" color={colors.accent} />
             </View>
           ) : items.length === 0 ? (
-            <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-              <Text style={{ fontSize: 15*scaleFactor, color: '#999' }}>{emptyText}</Text>
+            <View style={{ paddingVertical: 40 * scaleFactor, alignItems: 'center' }}>
+              <Text style={{ fontSize: scaled15, color: colors.subtext }}>{emptyText}</Text>
             </View>
           ) : (
             <FlatList
               data={items}
               keyExtractor={(item, i) => item.id || String(i)}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
+              contentContainerStyle={{ paddingHorizontal: scaled16, paddingVertical: scaled8 }}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  onPress={() => onSelect(item)}
-                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' }}
+                  onPress={() => { haptics('medium'); onSelect(item); }}
+                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: scaled14, paddingHorizontal: scaled8, borderBottomWidth: 1, borderBottomColor: colors.border }}
                 >
-                  <View style={{ width: 36*scaleFactor, height: 36*scaleFactor, borderRadius: 10, backgroundColor: '#F0F4FF', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                  <View style={{ width: scaled36, height: scaled36, borderRadius: scaled10, backgroundColor: iconBg, alignItems: 'center', justifyContent: 'center', marginRight: scaled12 }}>
                     {icon}
                   </View>
-                  <Text style={{ flex: 1, fontSize: 15*scaleFactor, color: '#333' }} numberOfLines={2}>{renderLabel(item)}</Text>
+                  <Text style={{ flex: 1, fontSize: scaled15, color: colors.text }} numberOfLines={2}>{renderLabel(item)}</Text>
                 </TouchableOpacity>
               )}
             />
@@ -331,6 +366,7 @@ function ListPickerModal({ visible, title, loading, items, emptyText, onSelect, 
 function AttachmentPreview({ attachments, onRemove }: { attachments: Attachment[]; onRemove: (uri: string) => void }) {
   const scaleFactor = useUIScale(1);
   const styles = createInputBarStyles(scaleFactor);
+  const { haptics } = useHaptics();
 
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8, paddingHorizontal: 4 }} contentContainerStyle={{ gap: 8 }}>
@@ -345,7 +381,7 @@ function AttachmentPreview({ attachments, onRemove }: { attachments: Attachment[
               <Text style={styles.fileName} numberOfLines={2}>{att.name}</Text>
             </View>
           )}
-          <TouchableOpacity onPress={() => onRemove(att.uri)} style={styles.removeBtn}>
+          <TouchableOpacity onPress={() => { haptics('light'); onRemove(att.uri); }} style={styles.removeBtn}>
             <X color="#FFF" size={10*scaleFactor} />
           </TouchableOpacity>
         </View>

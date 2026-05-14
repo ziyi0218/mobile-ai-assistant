@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet, Modal } from "react-native";
+import { useHaptics } from "../hooks/useHaptics";
 
 type SettingsConfirmModalProps = {
   visible: boolean;
@@ -30,6 +31,8 @@ export default function SettingsConfirmModal({
   colors,
   danger = false,
 }: SettingsConfirmModalProps) {
+  const { haptics } = useHaptics();
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={styles.overlayMask}>
@@ -48,7 +51,10 @@ export default function SettingsConfirmModal({
           <View style={styles.clearButtonsRow}>
             <Pressable
               style={[styles.cancelClearButton, { backgroundColor: colors.border }]}
-              onPress={onCancel}
+              onPress={() => {
+                haptics("light");
+                onCancel();
+              }}
             >
               <Text style={[styles.cancelClearText, { color: colors.text }]}>
                 {cancelText}
@@ -60,7 +66,10 @@ export default function SettingsConfirmModal({
                 styles.confirmClearButton,
                 { backgroundColor: danger ? "#DC2626" : colors.text },
               ]}
-              onPress={onConfirm}
+              onPress={() => {
+                haptics(danger ? "warning" : "light");
+                onConfirm();
+              }}
             >
               <Text style={[styles.confirmClearText, { color: colors.bg }]}>
                 {confirmText}

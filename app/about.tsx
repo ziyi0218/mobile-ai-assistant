@@ -17,6 +17,7 @@ import { useSettingsStore } from "../store/useSettingsStore";
 import { useResolvedTheme } from "../utils/theme";
 import { useI18n } from "../i18n/useI18n";
 import { useUIScale } from "../hooks/useUIScale";
+import { useHaptics } from "../hooks/useHaptics";
 import {
   aboutService,
   type AboutReleaseNotesVersion,
@@ -102,6 +103,7 @@ export default function AboutScreen() {
   const scaled14 = useUIScale(14);
   const scaled13 = useUIScale(13);
   const scaleFactor = useUIScale(1);
+  const { haptics } = useHaptics();
 
   useEffect(() => {
     let isActive = true;
@@ -237,7 +239,10 @@ export default function AboutScreen() {
       >
         <View style={styles.header}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => {
+              haptics("light");
+              router.back();
+            }}
             style={[
               styles.backButton,
               {

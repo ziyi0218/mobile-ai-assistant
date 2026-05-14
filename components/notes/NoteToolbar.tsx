@@ -14,6 +14,7 @@ import {
   Underline,
 } from 'lucide-react-native';
 import { useUIScale } from '../../hooks/useUIScale';
+import { useHaptics } from '../../hooks/useHaptics';
 
 export type NoteToolbarAction =
   | 'h1'
@@ -53,14 +54,15 @@ const toolbarActions: Array<{ key: NoteToolbarAction; render: (color: string, si
 ];
 
 export default function NoteToolbar({ colors, onAction, actions }: NoteToolbarProps) {
-  const iconSize = useUIScale(18);
-  const actionSize = useUIScale(34);
+  const iconSize = useUIScale(17);
+  const actionSize = useUIScale(31);
   const actionRadius = useUIScale(10);
-  const wrapRadius = useUIScale(18);
-  const verticalPadding = useUIScale(8);
-  const horizontalPadding = useUIScale(6);
-  const contentPadding = useUIScale(2);
-  const contentGap = useUIScale(4);
+  const wrapRadius = useUIScale(16);
+  const verticalPadding = useUIScale(7);
+  const horizontalPadding = useUIScale(5);
+  const contentPadding = useUIScale(1);
+  const contentGap = useUIScale(3);
+  const { haptics } = useHaptics();
   const visibleActions = actions?.length
     ? toolbarActions.filter((action) => actions.includes(action.key))
     : toolbarActions;
@@ -88,7 +90,10 @@ export default function NoteToolbar({ colors, onAction, actions }: NoteToolbarPr
             key={action.key}
             activeOpacity={0.75}
             style={[styles.action, { width: actionSize, height: actionSize, borderRadius: actionRadius }]}
-            onPress={() => onAction(action.key)}
+            onPress={() => {
+              haptics('light');
+              onAction(action.key);
+            }}
           >
             {action.render(colors.text, iconSize)}
           </TouchableOpacity>

@@ -38,6 +38,7 @@ import { useI18n } from '../i18n/useI18n';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useResolvedTheme } from '../utils/theme';
 import { useUIScale } from '../hooks/useUIScale';
+import { useHaptics } from '../hooks/useHaptics';
 import { buildSidebarUi, type SidebarAction } from './sidebar/SidebarUtils';
 import { SidebarActionSheet } from './sidebar/SidebarModals';
 import {
@@ -72,6 +73,7 @@ export default function Header({
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const router = useRouter();
   const { i18n } = useI18n();
+  const { haptics } = useHaptics();
   const overviewLabel = i18n.language.startsWith('zh') ? '聊天总览' : t('chatOverview');
   const overviewOpenFirst = i18n.language.startsWith('zh')
     ? '请先打开一个对话。'
@@ -89,6 +91,7 @@ export default function Header({
   const setCurrentChatId = useChatStore((state) => state.setCurrentChatId);
 
   const handleDeleteChat = () => {
+    haptics('warning');
     Alert.alert(
       t('deleteChat'),
       t('deleteChatConfirm'),
@@ -103,6 +106,7 @@ export default function Header({
               await deleteChat(currentChatId);
             }
             startNewChat();
+            haptics('success');
           },
         },
       ]
@@ -124,11 +128,13 @@ export default function Header({
   const scaledAvatarRadius = useUIScale(18);
 
   const handleMenuAction = (action: () => void) => {
+    haptics('light');
     setIsMoreMenuVisible(false);
     setTimeout(() => action(), 600);
   };
 
   const handleSwitchModel = (newModel: string, vision?: boolean) => {
+    haptics('medium');
     switchModel(currentIndex, newModel);
     useChatStore.getState().setModelVision(newModel, vision ?? false);
   };
@@ -147,11 +153,12 @@ export default function Header({
       const cloned = await cloneChat(chatId, i18n.language);
       await fetchHistory();
       await setCurrentChatId(cloned.id);
+      haptics('success');
     } catch (error) {
       console.error('Error cloning chat:', error);
       Alert.alert(t('cloneChat'), t('cloneChatFailed'));
     }
-  }, [fetchHistory, i18n.language, requireCurrentChat, setCurrentChatId, t]);
+  }, [fetchHistory, haptics, i18n.language, requireCurrentChat, setCurrentChatId, t]);
 
   const handleExportChat = useCallback(
     async (format: 'json' | 'txt' | 'pdf') => {
@@ -160,12 +167,13 @@ export default function Header({
 
       try {
         await exportSingleChat(chatId, format);
+        haptics('success');
       } catch (error) {
         console.error(`Error exporting chat as ${format}:`, error);
         Alert.alert(t('exportChat'), t('exportChatFailed').replace('{{format}}', format.toUpperCase()));
       }
     },
-    [requireCurrentChat, t]
+    [haptics, requireCurrentChat, t]
   );
 
   const handleOpenShareMenu = useCallback(async () => {
@@ -188,6 +196,7 @@ export default function Header({
     try {
       const result = await ensureShareLink(chatId);
       setShareMenuState({ visible: false, hasShareLink: true });
+      haptics('success');
       Alert.alert(t('shareChat'), result.reused ? t('shareLinkCopied') : t('shareLinkCreatedAndCopied'));
     } catch (error) {
       console.error('Error copying share link:', error);
@@ -202,6 +211,7 @@ export default function Header({
     try {
       await removeShareLink(chatId);
       setShareMenuState({ visible: false, hasShareLink: false });
+      haptics('success');
       Alert.alert(t('shareChat'), t('shareLinkDeleted'));
     } catch (error) {
       console.error('Error deleting share link:', error);
@@ -212,6 +222,7 @@ export default function Header({
   const handleOpenCommunity = useCallback(async () => {
     try {
       await openCommunitySharePage();
+      haptics('light');
       setShareMenuState((prev) => ({ ...prev, visible: false }));
     } catch (error) {
       console.error('Error opening Open WebUI community:', error);
@@ -221,10 +232,12 @@ export default function Header({
 
   const handleOpenOverview = useCallback(() => {
     if (!currentChatId) {
+      haptics('warning');
       Alert.alert(overviewLabel, overviewOpenFirst);
       return;
     }
 
+    haptics('light');
     setIsOverviewVisible(true);
   }, [currentChatId, overviewLabel, overviewOpenFirst]);
 
@@ -313,6 +326,7 @@ export default function Header({
         visible={isSelectorVisible}
         onClose={() => setIsSelectorVisible(false)}
         onSelect={(name, vision) => {
+          haptics('medium');
           addModel(name);
           useChatStore.getState().setModelVision(name, vision ?? false);
         }}
@@ -443,13 +457,13 @@ export default function Header({
 
       <View className="flex-row items-center justify-between px-4 overflow-hidden">
         <View className="flex-1 flex-row items-center min-w-0 mr-3">
-          <TouchableOpacity onPress={() => setIsSidebarVisible(true)}>
+          <TouchableOpacity onPress={() => { haptics('light'); setIsSidebarVisible(true); }}>
             <Menu color={colors.text} size={scaled24} />
           </TouchableOpacity>
 
           <View className="ml-4 flex-1 min-w-0">
             <TouchableOpacity
-              onPress={() => setIsSwitchSelectorVisible(true)}
+              onPress={() => { haptics('light'); setIsSwitchSelectorVisible(true); }}
               activeOpacity={0.6}
               className="flex-row items-center"
             >
@@ -463,7 +477,7 @@ export default function Header({
 
         <View className="flex-row items-center gap-3">
           <TouchableOpacity
-            onPress={() => setIsSelectorVisible(true)}
+            onPress={() => { haptics('light'); setIsSelectorVisible(true); }}
             disabled={activeModels.length >= 4}
             style={{ opacity: activeModels.length >= 4 ? 0.3 : 1 }}
           >
@@ -471,7 +485,10 @@ export default function Header({
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={startNewChat}
+            onPress={() => {
+              haptics('light');
+              startNewChat();
+            }}
             activeOpacity={0.6}
             className="rounded-[10px] items-center justify-center"
             style={{ width: scaled32, height: scaled32 }}
@@ -480,7 +497,7 @@ export default function Header({
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setIsMoreMenuVisible(true)}
+            onPress={() => { haptics('light'); setIsMoreMenuVisible(true); }}
             activeOpacity={0.6}
             className="rounded-[10px] items-center justify-center"
             style={{ width: scaled32, height: scaled32 }}
@@ -489,7 +506,10 @@ export default function Header({
           </TouchableOpacity>
 
           <Pressable
-            onPress={() => router.push('/accountScreen')}
+            onPress={() => {
+              haptics('light');
+              router.push('/accountScreen');
+            }}
             className="items-center justify-center overflow-hidden"
             style={{
               width: scaled36,

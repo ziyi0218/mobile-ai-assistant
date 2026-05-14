@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View, type GestureResponderEvent } from 'react-native';
 import {
   ChevronDown,
   ChevronRight,
@@ -23,6 +23,10 @@ export function SidebarChatRow({
   selected,
   onPress,
   onOpenMenu,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
+  isDragging = false,
   colors,
   ui,
   fallbackTitle,
@@ -32,6 +36,10 @@ export function SidebarChatRow({
   selected: boolean;
   onPress: () => void;
   onOpenMenu: () => void;
+  onDragStart?: (chat: ChatSummary, event: GestureResponderEvent) => void;
+  onDragMove?: (event: GestureResponderEvent) => void;
+  onDragEnd?: () => void;
+  isDragging?: boolean;
   colors: SidebarThemeColors;
   ui: SidebarUi;
   fallbackTitle: string;
@@ -44,16 +52,28 @@ export function SidebarChatRow({
   const scaled10 = useUIScale(10);
 
   return (
-    <TouchableOpacity
+    <View
+      onTouchMove={onDragMove}
+      onTouchEnd={onDragEnd}
+      onTouchCancel={onDragEnd}
+    >
+      <TouchableOpacity
       activeOpacity={0.75}
-      onPress={onPress}
-      onLongPress={onOpenMenu}
+      delayLongPress={260}
+      onPress={() => {
+        if (!isDragging) onPress();
+      }}
+      onLongPress={(event) => {
+        if (onDragStart) onDragStart(chat, event);
+        else onOpenMenu();
+      }}
       style={[
         styles.chatRow,
         indent && styles.chatRowIndented,
         {
           backgroundColor: selected ? ui.rowSelected : ui.rowBg,
           borderColor: selected ? ui.rowSelectedBorder : 'transparent',
+          opacity: isDragging ? 0.35 : 1,
         },
       ]}
     >
@@ -83,7 +103,8 @@ export function SidebarChatRow({
       <TouchableOpacity onPress={onOpenMenu} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <MoreHorizontal size={scaled16} color={colors.subtext} />
       </TouchableOpacity>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -92,6 +113,8 @@ export function SidebarFolderRow({
   isExpanded,
   onToggle,
   onOpenMenu,
+  isDropTarget = false,
+  isDropEnabled = false,
   colors,
   ui,
 }: {
@@ -99,6 +122,8 @@ export function SidebarFolderRow({
   isExpanded: boolean;
   onToggle: () => void;
   onOpenMenu: () => void;
+  isDropTarget?: boolean;
+  isDropEnabled?: boolean;
   colors: SidebarThemeColors;
   ui: SidebarUi;
 }) {
@@ -106,7 +131,16 @@ export function SidebarFolderRow({
   const scaled16 = useUIScale(16);
 
   return (
-    <View style={styles.folderRow}>
+    <View
+      style={[
+        styles.folderRow,
+        {
+          backgroundColor: isDropTarget ? ui.rowSelected : 'transparent',
+          borderColor: isDropTarget ? ui.rowSelectedBorder : 'transparent',
+          opacity: isDropEnabled ? 1 : undefined,
+        },
+      ]}
+    >
       <TouchableOpacity style={styles.folderMainAction} activeOpacity={0.75} onPress={onToggle}>
         {isExpanded ? (
           <ChevronDown size={scaled16} color={colors.subtext} />

@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Download, FileCode2, FileText, FileType2, Plus, Search, Share2, Trash2 } from 'lucide-react-native';
+import { ChevronLeft, Download, FileCode2, FileText, FileType2, Plus, Search, Trash2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useI18n } from '../../i18n/useI18n';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { type NoteItem, useNoteStore } from '../../store/useNoteStore';
 import { useResolvedTheme } from '../../utils/theme';
 import { useUIScale } from '../../hooks/useUIScale';
+import { useHaptics } from '../../hooks/useHaptics';
 import { exportNote, type NoteExportFormat } from '../../utils/noteExport';
 import NoteListItem from '../../components/notes/NoteListItem';
 import { SidebarActionSheet } from '../../components/sidebar/SidebarModals';
@@ -91,6 +92,7 @@ export default function NotesScreen() {
   const scaled40 = useUIScale(40);
   const scaled44 = useUIScale(44);
   const scaled52 = useUIScale(52);
+  const { haptics } = useHaptics();
   const notes = useNoteStore((state) => state.notes);
   const isLoading = useNoteStore((state) => state.isLoading);
   const total = useNoteStore((state) => state.total);
@@ -154,7 +156,9 @@ export default function NotesScreen() {
 
   const handleCreate = async () => {
     try {
+      haptics('light');
       const note = await createNote();
+      haptics('success');
       router.push(`/notes/${note.id}`);
     } catch (error) {
       console.error('Erreur create note:', error);
@@ -162,6 +166,7 @@ export default function NotesScreen() {
   };
 
   const handleDeleteNote = (note: NoteItem) => {
+    haptics('warning');
     Alert.alert(
       t('notesDeleteTitle'),
       t('notesDeleteMessage').replace('{{title}}', note.title),
@@ -172,6 +177,7 @@ export default function NotesScreen() {
           style: 'destructive',
           onPress: () => {
             void deleteNote(note.id);
+            haptics('success');
           },
         },
       ]
@@ -184,6 +190,7 @@ export default function NotesScreen() {
     try {
       const freshNote = await fetchNoteById(selectedNote.id);
       await exportNote(freshNote ?? selectedNote, format);
+      haptics('success');
     } catch (error) {
       console.error(`Erreur export note ${format}:`, error);
       Alert.alert(t('download'), error instanceof Error ? error.message : t('notesChatError'));
@@ -198,12 +205,6 @@ export default function NotesScreen() {
       onPress: () => {
         setIsExportMenuVisible(true);
       },
-    },
-    {
-      key: 'share',
-      label: t('share'),
-      icon: <Share2 size={scaled18} color={colors.text} />,
-      onPress: () => {},
     },
     {
       key: 'delete',
@@ -248,9 +249,12 @@ export default function NotesScreen() {
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.bg }]}>
       <View style={[styles.container, { paddingHorizontal: scaled18 }]}>
-        <View style={[styles.header, { paddingTop: scaled8, marginBottom: scaled20 }]}>
+        <View style={[styles.header, { paddingTop: scaled8, marginBottom: scaled8 }]}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => {
+              haptics('light');
+              router.back();
+            }}
             style={[
               styles.iconButton,
               {
